@@ -11,7 +11,7 @@ const HeroSection = () => {
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
       <div className="relative flex w-full flex-col py-[74px] max-md:max-w-full">
         {/* Background Pattern */}
-        <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0">
+        <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20">
           <div className="flex w-full gap-[40px_62px] flex-wrap max-md:max-w-full">
             {/* First row of pattern icons */}
             {[
