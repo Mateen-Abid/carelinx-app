@@ -221,57 +221,6 @@ const Index = () => {
                 isSpecial={index === 6}
               />
             ))}
-            
-            {/* Special Physical Therapy Card */}
-            <article className="bg-white relative overflow-hidden flex-1 min-w-[222px] max-w-[222px] px-[18px] py-[23px] rounded-[18px]">
-              <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
-                Physical Therapy
-              </div>
-              <div className="z-0 w-full mt-7">
-                <div className="flex w-full flex-col items-center">
-                  <div className="flex w-[102px] max-w-full gap-2">
-                    <div className="flex w-[102px] gap-[-25px]">
-                      <img
-                        src="https://api.builder.io/api/v1/image/assets/TEMP/8559cde1d85afa8752521dd1ea31d0054ba77f05?placeholderIfAbsent=true"
-                        className="aspect-[1] object-contain w-[102px] rounded-[21248px]"
-                        alt="Care Clinic"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center text-xs font-normal justify-center mt-2">
-                    <div className="text-black text-xl tracking-[-0.4px]">
-                      Care Clinic
-                    </div>
-                    <div className="items-center border flex text-black font-medium whitespace-nowrap text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-                      <div className="text-xs leading-[18px] self-stretch my-auto">
-                        Physiotherapist
-                      </div>
-                    </div>
-                    <div className="text-[rgba(98,98,98,1)] mt-1">
-                      456 Oak Avenue, Suburb
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full text-xs mt-1.5">
-                  <div className="text-[rgba(98,98,98,1)] font-normal">
-                    Time
-                  </div>
-                  <div className="w-full text-black font-medium text-center mt-1.5">
-                    <div className="items-center border flex gap-0.5 bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-                      <div className="text-xs leading-[18px] self-stretch my-auto">
-                        8:30 AM – 6:00 PM • Mon–Fri
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-[rgba(0,255,162,1)] absolute z-0 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
-              <button className="bg-[rgba(14,36,68,1)] z-0 flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center mt-7 px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
-                <span className="self-stretch my-auto">
-                  Book Appointment
-                </span>
-              </button>
-            </article>
           </div>
         </section>
         
