@@ -184,20 +184,19 @@ const Index = () => {
       address: "267 River Lane, Town",
       type: "Wellness",
       services: [
-        { name: "Nutrition", icon: "" },
-        { name: "Physical Therapy", icon: "" },
-        { name: "Chiropractic", icon: "" },
-        { name: "Acupuncture", icon: "" },
-        { name: "More", icon: "" }
+        { name: "Nutrition", icon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true" },
+        { name: "Physical Therapy", icon: "https://api.builder.io/api/v1/image/assets/TEMP/fe39b153c852b4408c74f864631bb123dc030526?placeholderIfAbsent=true" },
+        { name: "Chiropractic", icon: "https://api.builder.io/api/v1/image/assets/TEMP/632209998a4d7dc59a41cbde006e3f96b55d49ed?placeholderIfAbsent=true" },
+        { name: "Acupuncture", icon: "https://api.builder.io/api/v1/image/assets/TEMP/1be7a1ffed610ca72836f6a3de8f0a9eb24d320d?placeholderIfAbsent=true" },
+        { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/c83950a613573292f4969d0887ea863401551486?placeholderIfAbsent=true" }
       ],
       doctorCount: "3 Doctors available",
       daysOpen: "Tue – Sun",
       timing: "9:00 AM – 5:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/8559cde1d85afa8752521dd1ea31d0054ba77f05?placeholderIfAbsent=true",
+      doctorAvatars: "https://api.builder.io/api/v1/image/assets/TEMP/8e56e14793369a1ac3bf99381e090b847becb7c7?placeholderIfAbsent=true",
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
-      timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true",
-      isCallOnly: true,
-      phoneNumber: "+123 456 7890"
+      timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
     }
   ];
 

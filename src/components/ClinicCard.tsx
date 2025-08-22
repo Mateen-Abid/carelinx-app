@@ -37,7 +37,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   phoneNumber
 }) => {
   return (
-    <article className="bg-white flex min-w-80 flex-col h-[280px] overflow-hidden items-stretch flex-1 shrink basis-[0%] my-auto p-3.5 rounded-[14px] max-md:max-w-full">
+    <article className="bg-white flex min-w-80 flex-col h-[320px] overflow-hidden items-stretch flex-1 shrink basis-[0%] my-auto p-3.5 rounded-[14px] max-md:max-w-full">
       <div className="flex w-full items-center gap-[40px_100px] justify-between py-[7px]">
         <div className="self-stretch flex items-center gap-1.5 font-normal my-auto">
           <img
