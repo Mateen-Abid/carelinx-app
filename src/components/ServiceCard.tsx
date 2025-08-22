@@ -34,79 +34,77 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </>
       )}
       
-      <div className={`w-full flex flex-col flex-1 ${isSpecial ? 'mt-7 z-0' : ''}`}>
-        {/* Top section with clinic info and service */}
-        <div className="flex w-full flex-col">
-          <div className="self-stretch flex w-full gap-1.5 font-normal">
-            <img
-              src={clinicIcon}
-              className="aspect-[1] object-contain w-6 shrink-0 rounded-[23px]"
-              alt={`${clinicName} logo`}
-            />
-            <div className="flex flex-col items-stretch justify-center w-[129px]">
-              <div className="text-black text-base">
-                {clinicName}
-              </div>
-              <div className="text-[rgba(40,40,40,1)] text-xs">
-                {address}
-              </div>
+      {/* Top section with clinic info and service */}
+      <div className="flex w-full flex-col">
+        <div className="self-stretch flex w-full gap-1.5 font-normal">
+          <img
+            src={clinicIcon}
+            className="aspect-[1] object-contain w-6 shrink-0 rounded-[23px]"
+            alt={`${clinicName} logo`}
+          />
+          <div className="flex flex-col items-stretch justify-center w-[129px]">
+            <div className="text-black text-base">
+              {clinicName}
             </div>
-          </div>
-          
-          <div className="flex w-[102px] max-w-full gap-[-76px] mt-3.5 mb-3.5 self-center">
-            <div className="bg-[rgba(0,255,162,1)] flex w-[102px] items-center gap-5 justify-center h-[102px] px-5 rounded-[337px]">
-              <img
-                src={serviceIcon}
-                className="aspect-[1] object-contain w-[62px] self-stretch my-auto"
-                alt={serviceName}
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-col items-center text-xs font-normal justify-center">
-            <div className="text-black text-xl tracking-[-0.4px] text-center h-[48px] flex items-center">
-              {serviceName}
-            </div>
-            <div className="items-center border flex text-black font-medium whitespace-nowrap text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-              <div className="text-xs leading-[18px] self-stretch my-auto">
-                {specialty}
-              </div>
-            </div>
-            <div className="text-[rgba(98,98,98,1)] mt-1 text-center h-[16px] flex items-center">
+            <div className="text-[rgba(40,40,40,1)] text-xs">
               {address}
             </div>
           </div>
         </div>
         
-        {/* Spacer to push timing and button to bottom */}
-        <div className="flex-1"></div>
-        
-        {/* Timing section - aligned at bottom */}
-        <div className="w-full text-xs mt-4">
-          <div className="text-[rgba(98,98,98,1)] font-normal">
-            Time
-          </div>
-          <div className="w-full text-black font-medium text-center mt-1.5">
-            <div className="items-center border flex gap-0.5 bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-              <img
-                src={timeIcon}
-                className="aspect-[1] object-contain w-3 self-stretch shrink-0 my-auto"
-                alt="Time icon"
-              />
-              <div className="text-xs leading-[18px] self-stretch my-auto">
-                {timeSchedule}
-              </div>
-            </div>
+        <div className="flex w-[102px] max-w-full gap-[-76px] mt-3.5 mb-3.5 self-center">
+          <div className="bg-[rgba(0,255,162,1)] flex w-[102px] items-center gap-5 justify-center h-[102px] px-5 rounded-[337px]">
+            <img
+              src={serviceIcon}
+              className="aspect-[1] object-contain w-[62px] self-stretch my-auto"
+              alt={serviceName}
+            />
           </div>
         </div>
         
-        {/* Button section - aligned at very bottom */}
-        <button className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center mt-4 px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
-          <span className="self-stretch my-auto">
-            Book Appointment
-          </span>
-        </button>
+        <div className="flex flex-col items-center text-xs font-normal justify-center">
+          <div className="text-black text-xl tracking-[-0.4px] text-center h-[48px] flex items-center">
+            {serviceName}
+          </div>
+          <div className="items-center border flex text-black font-medium whitespace-nowrap text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
+            <div className="text-xs leading-[18px] self-stretch my-auto">
+              {specialty}
+            </div>
+          </div>
+          <div className="text-[rgba(98,98,98,1)] mt-1 text-center h-[16px] flex items-center">
+            {address}
+          </div>
+        </div>
       </div>
+      
+      {/* Spacer to push timing and button to bottom */}
+      <div className="flex-1"></div>
+      
+      {/* Timing section - aligned at bottom */}
+      <div className="w-full text-xs">
+        <div className="text-[rgba(98,98,98,1)] font-normal">
+          Time
+        </div>
+        <div className="w-full text-black font-medium text-center mt-1.5">
+          <div className="items-center border flex gap-0.5 bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
+            <img
+              src={timeIcon}
+              className="aspect-[1] object-contain w-3 self-stretch shrink-0 my-auto"
+              alt="Time icon"
+            />
+            <div className="text-xs leading-[18px] self-stretch my-auto">
+              {timeSchedule}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Button section - aligned at very bottom */}
+      <button className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center mt-4 px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
+        <span className="self-stretch my-auto">
+          Book Appointment
+        </span>
+      </button>
     </article>
   );
 };
