@@ -227,7 +227,7 @@ const Index = () => {
           <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
             Clinic
           </h2>
-          <div className="flex w-full items-center gap-[18px] flex-wrap mt-4 max-md:max-w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[18px] mt-4 max-md:max-w-full">
             {clinicCards.map((clinic, index) => (
               <ClinicCard key={index} {...clinic} />
             ))}
