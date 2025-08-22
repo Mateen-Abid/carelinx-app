@@ -133,7 +133,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none">
+        <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none w-full">
           <button className="bg-[rgba(0,255,162,1)] self-stretch flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors">
             <span className="self-stretch my-auto">View Details</span>
           </button>
