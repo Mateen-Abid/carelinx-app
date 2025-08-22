@@ -24,7 +24,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   isSpecial = false
 }) => {
   return (
-    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[420px] flex flex-col px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
+    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[460px] flex flex-col px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
       {isSpecial && (
         <>
           <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
@@ -52,7 +52,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
         </div>
         
-        <div className="flex w-[102px] max-w-full gap-[-76px] mt-3.5 mb-3.5 self-center">
+        <div className="flex w-[102px] max-w-full gap-[-76px] mt-3 mb-3 self-center">
           <div className="bg-[rgba(0,255,162,1)] flex w-[102px] items-center gap-5 justify-center h-[102px] px-5 rounded-[337px]">
             <img
               src={serviceIcon}
@@ -63,7 +63,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
         
         <div className="flex flex-col items-center text-xs font-normal justify-center">
-          <div className="text-black text-xl tracking-[-0.4px] text-center h-[48px] flex items-center">
+          <div className="text-black text-xl tracking-[-0.4px] text-center h-[40px] flex items-center">
             {serviceName}
           </div>
           <div className="items-center border flex text-black font-medium whitespace-nowrap text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
@@ -81,7 +81,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       <div className="flex-1"></div>
       
       {/* Timing section - aligned at bottom */}
-      <div className="w-full text-xs">
+      <div className="w-full text-xs mb-3">
         <div className="text-[rgba(98,98,98,1)] font-normal">
           Time
         </div>
@@ -100,7 +100,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       </div>
       
       {/* Button section - aligned at very bottom */}
-      <button className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center mt-4 px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
+      <button className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
         <span className="self-stretch my-auto">
           Book Appointment
         </span>
