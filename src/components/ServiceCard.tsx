@@ -24,7 +24,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   isSpecial = false
 }) => {
   return (
-    <article className={`bg-white overflow-hidden w-[222px] px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
+    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
       {isSpecial && (
         <>
           <div className="text-black text-lg font-semibold tracking-[-1px] z-0">

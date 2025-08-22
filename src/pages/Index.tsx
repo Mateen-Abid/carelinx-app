@@ -213,7 +213,7 @@ const Index = () => {
           <h2 className="text-2xl text-black font-normal tracking-[-1px]">
             Services & Specialists
           </h2>
-          <div className="flex w-full items-center gap-[18px] mt-4 max-md:max-w-full overflow-x-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
             {serviceCards.map((card, index) => (
               <ServiceCard
                 key={index}
@@ -223,7 +223,7 @@ const Index = () => {
             ))}
             
             {/* Special Physical Therapy Card */}
-            <article className="bg-white relative overflow-hidden w-[220px] px-[18px] py-[23px] rounded-[18px]">
+            <article className="bg-white relative overflow-hidden flex-1 min-w-[222px] max-w-[222px] px-[18px] py-[23px] rounded-[18px]">
               <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
                 Physical Therapy
               </div>
