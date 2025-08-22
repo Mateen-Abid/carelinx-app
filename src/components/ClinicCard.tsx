@@ -37,7 +37,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   phoneNumber
 }) => {
   return (
-    <article className="bg-white flex min-w-80 flex-col overflow-hidden items-stretch flex-1 shrink basis-[0%] my-auto p-3.5 rounded-[14px] max-md:max-w-full">
+    <article className="bg-white flex min-w-80 flex-col h-[280px] overflow-hidden items-stretch flex-1 shrink basis-[0%] my-auto p-3.5 rounded-[14px] max-md:max-w-full">
       <div className="flex w-full items-center gap-[40px_100px] justify-between py-[7px]">
         <div className="self-stretch flex items-center gap-1.5 font-normal my-auto">
           <img
@@ -61,12 +61,12 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="w-full text-xs font-normal mt-3">
-        <div className="text-[rgba(40,40,40,1)]">
+      <div className="w-full text-xs font-normal mt-2 flex-1">
+        <div className="text-[rgba(40,40,40,1)] mb-2">
           {services.length > 0 ? (type === 'Hospital' ? 'Departments' : 'Services') : 'Specialties'}
         </div>
-        <div className="flex w-full gap-1 text-black flex-wrap mt-2.5">
-          {services.map((service, index) => (
+        <div className="flex w-full gap-1 text-black flex-wrap">
+          {services.slice(0, 5).map((service, index) => (
             <div key={index} className="bg-[rgba(243,243,243,1)] flex items-center gap-1.5 justify-center px-2.5 py-1.5 rounded-[99px]">
               {service.icon && (
                 <img
@@ -75,7 +75,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
                   alt=""
                 />
               )}
-              <div className="self-stretch my-auto">
+              <div className="self-stretch my-auto text-xs">
                 {service.name}
               </div>
             </div>
@@ -83,7 +83,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex w-full items-center gap-[19px] mt-3">
+      <div className="flex w-full items-center gap-[19px] mt-2 mb-2">
         <div className="self-stretch flex gap-2 w-[152px] my-auto">
           {doctorAvatars && (
             <img
@@ -98,7 +98,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex items-center gap-2.5 text-xs text-[rgba(40,40,40,1)] font-normal mt-3">
+      <div className="flex items-center gap-2.5 text-xs text-[rgba(40,40,40,1)] font-normal mb-3">
         <div className="self-stretch my-auto">Days Open</div>
         <div className="items-center border self-stretch flex gap-0.5 text-black font-medium text-center bg-neutral-50 my-auto pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
           <img
@@ -124,7 +124,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
       </div>
       
       {isCallOnly ? (
-        <div className="flex items-center gap-3 text-xs justify-center mt-3">
+        <div className="flex items-center gap-3 text-xs justify-center">
           <div className="text-[rgba(207,42,42,1)] font-normal self-stretch my-auto">
             Call Know for an Appoinment
           </div>
@@ -133,7 +133,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none mt-3 pt-3">
+        <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none">
           <button className="bg-[rgba(0,255,162,1)] self-stretch flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors">
             <span className="self-stretch my-auto">View Details</span>
           </button>
