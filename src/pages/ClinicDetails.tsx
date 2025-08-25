@@ -110,27 +110,27 @@ const doctors = [
 const ClinicDetails = () => {
   const { clinicId } = useParams();
 
-  // Map clinic slugs to clinic data
+  // Real clinic data mapping based on the Index page data
   const clinicData = {
     'central-medical-center': {
       name: 'Central Medical Center',
       address: '456 Oak Avenue, Suburb'
     },
-    'city-general-hospital': {
-      name: 'City General Hospital', 
-      address: '123 Main Street, Downtown'
+    'green-valley-hospital': {
+      name: 'Green Valley Hospital',
+      address: '789 Maple Street, Townsville'
     },
-    'metro-health-clinic': {
-      name: 'Metro Health Clinic',
-      address: '789 Health Blvd, Metro'
+    'sunrise-health-clinic': {
+      name: 'Sunrise Health Clinic',
+      address: '321 Pine Road, Village'
     },
-    'sunrise-medical-center': {
-      name: 'Sunrise Medical Center',
-      address: '321 Sunrise Ave, East'
+    'sunset-medical-center': {
+      name: 'Sunset Medical Center',
+      address: '144 Maple Drive, City'
     },
-    'wellness-clinic': {
-      name: 'Wellness Clinic',
-      address: '654 Wellness Way, North'
+    'lakeside-wellness-center': {
+      name: 'Lakeside Wellness Center',
+      address: '267 River Lane, Town'
     }
   };
 

@@ -1,8 +1,20 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleClinicClick = () => {
+    if (location.pathname === '/') {
+      // If on home page, scroll to clinic section
+      const clinicSection = document.getElementById('clinic-section');
+      clinicSection?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // If on other pages, navigate to home page
+      navigate('/');
+    }
+  };
 
   return (
     <header className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -29,7 +41,10 @@ const Header = () => {
                 Home
               </div>
             </div>
-            <div className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+            <div 
+              onClick={handleClinicClick}
+              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
               <div className="self-stretch my-auto">
                 Clinic
               </div>
