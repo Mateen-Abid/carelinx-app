@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useBooking } from '@/contexts/BookingContext';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [step, setStep] = useState<'date' | 'confirmation'>('date');
+  const { addAppointment } = useBooking();
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -50,6 +52,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+    
+    // Save the appointment
+    if (selectedDate) {
+      addAppointment({
+        doctorName: doctorName,
+        specialty: 'General Medicine',
+        clinic: clinicName,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: time,
+        status: 'upcoming',
+        doctorImage: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'
+      });
+    }
+    
     setStep('confirmation');
   };
 
