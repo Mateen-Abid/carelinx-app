@@ -61,16 +61,6 @@ const MyBookings = () => {
                 </div>
               </div>
             </div>
-            
-            {/* Right side - Hero Section */}
-            <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Healthcare Management</h2>
-                  <p className="text-gray-600">Keep track of all your medical appointments</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
