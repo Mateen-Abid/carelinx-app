@@ -15,6 +15,7 @@ export interface Appointment {
 interface BookingContextType {
   appointments: Appointment[];
   addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => void;
+  cancelAppointment: (appointmentId: string) => void;
   getUpcomingAppointments: () => Appointment[];
   getPastAppointments: () => Appointment[];
 }
@@ -62,6 +63,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  const cancelAppointment = (appointmentId: string) => {
+    setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+  };
+
   const getUpcomingAppointments = () => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
@@ -93,6 +98,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     <BookingContext.Provider value={{
       appointments,
       addAppointment,
+      cancelAppointment,
       getUpcomingAppointments,
       getPastAppointments
     }}>

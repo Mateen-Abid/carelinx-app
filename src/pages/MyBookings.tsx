@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BookingModal } from '@/components/BookingModal';
+import { MoreVertical, Calendar, X } from 'lucide-react';
 
 const MyBookings = () => {
-  const { getUpcomingAppointments, getPastAppointments, appointments } = useBooking();
+  const { getUpcomingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
   const navigate = useNavigate();
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   
   const upcomingAppointments = getUpcomingAppointments();
   const pastBookings = getPastAppointments();
@@ -15,30 +20,77 @@ const MyBookings = () => {
   console.log('Upcoming appointments:', upcomingAppointments);
   console.log('Past bookings:', pastBookings);
 
-  const AppointmentCard = ({ appointment, showStatus = false }: { appointment: Appointment; showStatus?: boolean }) => (
-    <div className="bg-white rounded-lg p-4 shadow-sm border">
-        <div className="flex items-center gap-4">
-          <img
-            src={appointment.doctorImage || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'}
+  const handleReschedule = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    cancelAppointment(appointment.id);
+    setIsBookingModalOpen(true);
+  };
+
+  const handleCancel = (appointmentId: string) => {
+    cancelAppointment(appointmentId);
+  };
+
+  const AppointmentCard = ({ appointment, showStatus = false, isUpcoming = false }: { 
+    appointment: Appointment; 
+    showStatus?: boolean; 
+    isUpcoming?: boolean;
+  }) => (
+    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <img
+          src={appointment.doctorImage || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'}
           alt={appointment.doctorName}
-          className="w-12 h-12 rounded-full object-cover"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
         />
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">{appointment.doctorName}</h3>
-          <p className="text-sm text-gray-600">{appointment.specialty || 'General Medicine'}</p>
-          <p className="text-sm text-gray-500">{appointment.clinic}</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{appointment.doctorName}</h3>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">{appointment.specialty || 'General Medicine'}</p>
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{appointment.clinic}</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm font-medium text-gray-900">{appointment.time}</p>
-          <p className="text-sm text-gray-500">{new Date(appointment.date).toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric' 
-          })}</p>
-          {showStatus && (
-            <span className="inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-              Completed
-            </span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="text-right">
+            <p className="text-xs sm:text-sm font-medium text-gray-900">{appointment.time}</p>
+            <p className="text-xs sm:text-sm text-gray-500">{new Date(appointment.date).toLocaleDateString('en-US', { 
+              weekday: 'short', 
+              month: 'short', 
+              day: 'numeric' 
+            })}</p>
+            {showStatus && (
+              <span className="inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                Completed
+              </span>
+            )}
+          </div>
+          {isUpcoming && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-2" align="end">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs sm:text-sm"
+                    onClick={() => handleReschedule(appointment)}
+                  >
+                    <Calendar className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    Reschedule
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm"
+                    onClick={() => handleCancel(appointment.id)}
+                  >
+                    <X className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
@@ -78,9 +130,9 @@ const MyBookings = () => {
           </div>
           
           {upcomingAppointments.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {upcomingAppointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} />
+                <AppointmentCard key={appointment.id} appointment={appointment} isUpcoming={true} />
               ))}
             </div>
           ) : (
@@ -100,13 +152,26 @@ const MyBookings = () => {
             <p className="text-sm sm:text-base text-gray-600">Check your history of completed appointments. Perfect for quick reference or records.</p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {pastBookings.map((appointment) => (
               <AppointmentCard key={appointment.id} appointment={appointment} showStatus={true} />
             ))}
           </div>
         </div>
       </section>
+
+      {/* Booking Modal for Rescheduling */}
+      {selectedAppointment && (
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setSelectedAppointment(null);
+          }}
+          doctorName={selectedAppointment.doctorName}
+          clinicName={selectedAppointment.clinic}
+        />
+      )}
     </div>
   );
 };
