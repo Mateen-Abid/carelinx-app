@@ -120,9 +120,8 @@ const ClinicDetails = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left side - Clinic Info */}
             <div className="lg:w-1/3">
-              <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg p-6 h-64 relative overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop&auto=format)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-                <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
-                <div className="relative z-10">
+              <div className="bg-white border rounded-lg p-6 h-64">
+                <div className="">
                 <h1 className="text-2xl font-bold text-gray-900 mb-4">Central Medical Center</h1>
                 <div className="flex items-center gap-2 text-gray-600">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -130,8 +129,8 @@ const ClinicDetails = () => {
                   </svg>
                   <span>456 Oak Avenue, Suburb</span>
                 </div>
-              </div>
                 </div>
+              </div>
               </div>
             
             {/* Right side - Hero Image */}
@@ -182,27 +181,27 @@ const ClinicDetails = () => {
       <section className="py-12 px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Our Doctors</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             {doctors.map((doctor, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 flex flex-col h-full">
+              <div key={index} className="bg-gray-50 rounded-lg p-4 flex flex-col justify-between h-64">
                 <div className="text-center flex-1">
                   <img
                     src={doctor.image}
                     alt={doctor.name}
                     className="w-16 h-16 rounded-lg object-cover mx-auto mb-3"
                   />
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1">{doctor.name}</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{doctor.name}</h3>
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-gray-600">{doctor.specialization}</span>
+                    <span className="text-xs text-gray-600 line-clamp-1">{doctor.specialization}</span>
                   </div>
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-xs text-green-600">Available</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-4">{doctor.timing}</p>
+                  <p className="text-xs text-gray-500 mb-4 line-clamp-2">{doctor.timing}</p>
                 </div>
-                <Button size="sm" className="w-full mt-auto">
+                <Button size="sm" className="w-full">
                   Book Appointment
                 </Button>
               </div>

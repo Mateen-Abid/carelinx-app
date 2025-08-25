@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
+  const navigate = useNavigate();
+
   return (
     <header className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
       <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center gap-[40px_100px] text-white justify-between flex-wrap px-8 max-md:max-w-full max-md:px-5">
@@ -18,7 +21,10 @@ const Header = () => {
             </div>
           </div>
           <nav className="self-stretch flex min-w-60 gap-[40px_44px] text-sm font-medium tracking-[-0.28px] leading-none my-auto py-5">
-            <div className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+            <div 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
               <div className="self-stretch my-auto">
                 Home
               </div>
