@@ -11,7 +11,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor1.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'
   },
   {
     name: 'X-Ray',
@@ -19,7 +19,7 @@ const services = [
     specialization: 'Cardiologist',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor2.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Brain Scan',
@@ -27,7 +27,7 @@ const services = [
     specialization: 'Neurologist',
     timing: '01:00 PM - 5:00 PM | Mon-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor3.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=80&h=80&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Retinal Care',
@@ -35,7 +35,7 @@ const services = [
     specialization: 'Retinologist',
     timing: '11:00 AM - 4:00 PM | Tue-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor4.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=80&h=80&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Ultrasound',
@@ -43,7 +43,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '03:00 PM - 6:00 PM | Tue-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor5.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=80&h=80&fit=crop&crop=face&auto=format'
   },
   {
     name: 'ECG',
@@ -51,7 +51,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doctor6.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=80&h=80&fit=crop&crop=face&auto=format'
   }
 ];
 
@@ -61,49 +61,49 @@ const doctors = [
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc1.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'Radiology Care',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc2.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'Radiology',
     available: true,
     timing: '9:00 AM - 5:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc3.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. House',
     specialization: 'Dermatology',
     available: true,
     timing: '9:00 AM - 7:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc4.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc5.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc6.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=150&h=150&fit=crop&crop=face&auto=format'
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '8:00 PM - 9:00 PM',
-    image: 'https://api.builder.io/api/v1/image/assets/TEMP/doc7.jpg?placeholderIfAbsent=true'
+    image: 'https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=150&h=150&fit=crop&crop=face&auto=format'
   }
 ];
 
@@ -115,24 +115,31 @@ const ClinicDetails = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-100 to-purple-100 py-12 px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center gap-8">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">Central Medical Center</h1>
-              <div className="flex items-center gap-2 text-gray-600 mb-6">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
-                <span>456 Oak Avenue, Suburb</span>
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left side - Clinic Info */}
+            <div className="lg:w-1/3">
+              <div className="bg-gray-100 rounded-lg p-6 h-64">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Central Medical Center</h1>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  <span>456 Oak Avenue, Suburb</span>
+                </div>
               </div>
             </div>
-            <div className="flex-1">
-              <img
-                src="/lovable-uploads/e03343c2-853f-43e1-b591-2b65316fa06c.png"
-                alt="Medical Center Illustration"
-                className="w-full h-64 object-cover rounded-lg"
-              />
+            
+            {/* Right side - Hero Image */}
+            <div className="lg:w-2/3">
+              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center overflow-hidden">
+                <img
+                  src="/lovable-uploads/65b7f82d-e75f-41b9-b51b-d2012af0f3e8.png"
+                  alt="Medical Center Illustration"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -172,26 +179,29 @@ const ClinicDetails = () => {
       <section className="py-12 px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Our Doctors</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
             {doctors.map((doctor, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4">
-                <div className="text-center">
+              <div key={index} className="bg-gray-50 rounded-lg p-4 flex flex-col h-full">
+                <div className="text-center flex-1">
                   <img
                     src={doctor.image}
                     alt={doctor.name}
-                    className="w-20 h-20 rounded-lg object-cover mx-auto mb-3"
+                    className="w-16 h-16 rounded-lg object-cover mx-auto mb-3"
                   />
                   <h3 className="font-semibold text-gray-900 text-sm mb-1">{doctor.name}</h3>
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-xs text-gray-600">{doctor.specialization}</span>
                   </div>
-                  <div className="flex items-center justify-center gap-1 mb-3">
+                  <div className="flex items-center justify-center gap-1 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-xs text-green-600">Available</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-3">{doctor.timing}</p>
+                  <p className="text-xs text-gray-500 mb-4">{doctor.timing}</p>
                 </div>
+                <Button size="sm" className="w-full mt-auto">
+                  Book Appointment
+                </Button>
               </div>
             ))}
           </div>
