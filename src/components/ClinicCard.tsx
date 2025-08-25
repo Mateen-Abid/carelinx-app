@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface ClinicService {
   name: string;
@@ -36,6 +37,14 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   isCallOnly = false,
   phoneNumber
 }) => {
+  const navigate = useNavigate();
+
+  const handleViewDetails = () => {
+    // Convert clinic name to a URL-friendly slug
+    const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    navigate(`/clinic/${clinicSlug}`);
+  };
+
   return (
     <article className="bg-white flex w-full flex-col h-[320px] overflow-hidden items-stretch p-3.5 rounded-[14px]">
       <div className="flex w-full items-center gap-[40px_100px] justify-between py-[7px]">
@@ -134,7 +143,10 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none w-full">
-          <button className="bg-[rgba(0,255,162,1)] self-stretch flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors">
+          <button 
+            onClick={handleViewDetails}
+            className="bg-[rgba(0,255,162,1)] self-stretch flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors"
+          >
             <span className="self-stretch my-auto">View Details</span>
           </button>
           <button className="bg-[rgba(14,36,68,1)] self-stretch flex min-h-[42px] items-center text-white justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
