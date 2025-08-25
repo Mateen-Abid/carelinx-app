@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookingModal } from '@/components/BookingModal';
 
 interface ClinicService {
   name: string;
@@ -38,11 +39,16 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   phoneNumber
 }) => {
   const navigate = useNavigate();
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const handleViewDetails = () => {
     // Convert clinic name to a URL-friendly slug
     const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     navigate(`/clinic/${clinicSlug}`);
+  };
+
+  const handleBookAppointment = () => {
+    setIsBookingModalOpen(true);
   };
 
   return (
@@ -149,11 +155,20 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           >
             <span className="self-stretch my-auto">View Details</span>
           </button>
-          <button className="bg-[rgba(14,36,68,1)] self-stretch flex min-h-[42px] items-center text-white justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
+          <button 
+            onClick={handleBookAppointment}
+            className="bg-[rgba(14,36,68,1)] self-stretch flex min-h-[42px] items-center text-white justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors"
+          >
             <span className="self-stretch my-auto">Book Appointment</span>
           </button>
         </div>
       )}
+
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        clinicName={name}
+      />
     </article>
   );
 };

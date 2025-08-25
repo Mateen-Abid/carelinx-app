@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { BookingModal } from '@/components/BookingModal';
 
 // Mock data for services and doctors
 const services = [
@@ -109,6 +110,8 @@ const doctors = [
 
 const ClinicDetails = () => {
   const { clinicId } = useParams();
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<string>('');
 
   // Real clinic data mapping based on the Index page data
   const clinicData = {
@@ -137,6 +140,11 @@ const ClinicDetails = () => {
   const currentClinic = clinicData[clinicId as keyof typeof clinicData] || {
     name: 'Medical Center',
     address: 'Location not specified'
+  };
+
+  const handleBookAppointment = (doctorName?: string) => {
+    setSelectedDoctor(doctorName || 'Dr. Ishfaq');
+    setIsBookingModalOpen(true);
   };
 
   return (
@@ -196,7 +204,7 @@ const ClinicDetails = () => {
                   <p className="text-sm font-medium text-gray-900">{service.doctor}</p>
                   <p className="text-xs text-gray-600 mb-2">{service.specialization}</p>
                   <p className="text-xs text-gray-500 mb-3">{service.timing}</p>
-                  <Button size="sm" className="w-full">
+                  <Button size="sm" className="w-full" onClick={() => handleBookAppointment(service.doctor)}>
                     Book Appointment
                   </Button>
                 </div>
@@ -230,7 +238,7 @@ const ClinicDetails = () => {
                   </div>
                   <p className="text-xs text-gray-500 mb-4 line-clamp-2">{doctor.timing}</p>
                 </div>
-                <Button size="sm" className="w-full">
+                <Button size="sm" className="w-full" onClick={() => handleBookAppointment(doctor.name)}>
                   Book Appointment
                 </Button>
               </div>
@@ -296,11 +304,18 @@ const ClinicDetails = () => {
             </div>
 
             <div className="mt-6 flex justify-end">
-              <Button>Book Appointment</Button>
+              <Button onClick={() => handleBookAppointment()}>Book Appointment</Button>
             </div>
           </div>
         </div>
       </section>
+
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        doctorName={selectedDoctor}
+        clinicName={currentClinic.name}
+      />
     </div>
   );
 };
