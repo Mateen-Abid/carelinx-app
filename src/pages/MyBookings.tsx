@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPastAppointments } = useBooking();
+  const navigate = useNavigate();
   
   const upcomingAppointments = getUpcomingAppointments();
   const pastBookings = getPastAppointments();
@@ -91,7 +93,7 @@ const MyBookings = () => {
           ) : (
             <div className="bg-white rounded-lg p-8 text-center border">
               <p className="text-gray-500">No upcoming appointments scheduled.</p>
-              <Button className="mt-4">Book New Appointment</Button>
+              <Button className="mt-4" onClick={() => navigate('/')}>Book New Appointment</Button>
             </div>
           )}
         </div>
