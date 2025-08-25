@@ -66,10 +66,17 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
-    return appointments.filter(apt => {
+    console.log('Today string for comparison:', todayString);
+    
+    const upcoming = appointments.filter(apt => {
       const appointmentDate = apt.date; // Already in YYYY-MM-DD format
-      return appointmentDate >= todayString && apt.status === 'upcoming';
+      const isUpcoming = appointmentDate >= todayString && apt.status === 'upcoming';
+      console.log(`Appointment ${apt.id}: date=${appointmentDate}, status=${apt.status}, isUpcoming=${isUpcoming}`);
+      return isUpcoming;
     });
+    
+    console.log('Filtered upcoming appointments:', upcoming);
+    return upcoming;
   };
 
   const getPastAppointments = () => {
