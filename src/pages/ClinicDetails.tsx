@@ -120,7 +120,9 @@ const ClinicDetails = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left side - Clinic Info */}
             <div className="lg:w-1/3">
-              <div className="bg-gray-100 rounded-lg p-6 h-64">
+              <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg p-6 h-64 relative overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop&auto=format)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
+                <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+                <div className="relative z-10">
                 <h1 className="text-2xl font-bold text-gray-900 mb-4">Central Medical Center</h1>
                 <div className="flex items-center gap-2 text-gray-600">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -129,7 +131,8 @@ const ClinicDetails = () => {
                   <span>456 Oak Avenue, Suburb</span>
                 </div>
               </div>
-            </div>
+                </div>
+              </div>
             
             {/* Right side - Hero Image */}
             <div className="lg:w-2/3">
