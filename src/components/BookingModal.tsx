@@ -204,7 +204,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         <div className="flex justify-between items-center">
                           <div>
                             <div className="font-medium text-gray-900">{slot.time}</div>
-                            <div className="text-sm text-gray-600">{slot.doctor}</div>
                           </div>
                           {slot.available && (
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
