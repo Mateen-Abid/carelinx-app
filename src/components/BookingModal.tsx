@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Check, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -45,6 +46,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [step, setStep] = useState<'date' | 'confirmation'>('date');
   const { addAppointment } = useBooking();
+  const navigate = useNavigate();
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -77,8 +79,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleBookAnother = () => {
-    setStep('date');
-    setSelectedTime('');
+    handleClose();
+    navigate('/my-bookings');
   };
 
   if (step === 'confirmation') {
@@ -120,7 +122,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="w-full rounded-full py-3"
                   onClick={handleBookAnother}
                 >
-                  Book Another Appointment
+                  View Bookings
                 </Button>
               </div>
             </div>
