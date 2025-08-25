@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 
 const MyBookings = () => {
-  const { getUpcomingAppointments, getPastAppointments } = useBooking();
+  const { getUpcomingAppointments, getPastAppointments, appointments } = useBooking();
   const navigate = useNavigate();
   
   const upcomingAppointments = getUpcomingAppointments();
   const pastBookings = getPastAppointments();
+  
+  console.log('All appointments:', appointments);
+  console.log('Upcoming appointments:', upcomingAppointments);
+  console.log('Past bookings:', pastBookings);
 
   const AppointmentCard = ({ appointment, showStatus = false }: { appointment: Appointment; showStatus?: boolean }) => (
     <div className="bg-white rounded-lg p-4 shadow-sm border">
@@ -47,15 +51,15 @@ const MyBookings = () => {
       
       {/* Hero Section */}
       <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left side - Bookings Info */}
-            <div className="lg:w-1/3">
-              <div className="bg-white border rounded-lg p-6 h-64 relative overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop&auto=format)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="flex flex-col">
+            {/* Clinic Info */}
+            <div className="w-full max-w-md mx-auto lg:mx-0">
+              <div className="bg-white border rounded-lg p-4 sm:p-6 h-48 sm:h-64 relative overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop&auto=format)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
                 <div className="absolute inset-0 bg-white/80 rounded-lg"></div>
                 <div className="relative z-10">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-4">My Bookings</h1>
-                  <p className="text-gray-700">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">My Bookings</h1>
+                  <p className="text-sm sm:text-base text-gray-700">
                     View and manage all your scheduled appointments in one place.
                   </p>
                 </div>
@@ -66,11 +70,11 @@ const MyBookings = () => {
       </section>
 
       {/* Upcoming Appointments */}
-      <section className="py-8 px-8">
+      <section className="py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Upcoming Appointments</h2>
-            <p className="text-gray-600">Stay prepared with your confirmed appointments. Tap for details or reschedule if needed.</p>
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Upcoming Appointments</h2>
+            <p className="text-sm sm:text-base text-gray-600">Stay prepared with your confirmed appointments. Tap for details or reschedule if needed.</p>
           </div>
           
           {upcomingAppointments.length > 0 ? (
@@ -80,8 +84,8 @@ const MyBookings = () => {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-lg p-8 text-center border">
-              <p className="text-gray-500">No upcoming appointments scheduled.</p>
+            <div className="bg-white rounded-lg p-6 sm:p-8 text-center border">
+              <p className="text-gray-500 mb-4">No upcoming appointments scheduled.</p>
               <Button className="mt-4" onClick={() => navigate('/')}>Book New Appointment</Button>
             </div>
           )}
@@ -89,14 +93,14 @@ const MyBookings = () => {
       </section>
 
       {/* Past Bookings */}
-      <section className="py-8 px-8 bg-white">
+      <section className="py-6 lg:py-8 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Past Bookings</h2>
-            <p className="text-gray-600">Check your history of completed appointments. Perfect for quick reference or records.</p>
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Past Bookings</h2>
+            <p className="text-sm sm:text-base text-gray-600">Check your history of completed appointments. Perfect for quick reference or records.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pastBookings.map((appointment) => (
               <AppointmentCard key={appointment.id} appointment={appointment} showStatus={true} />
             ))}

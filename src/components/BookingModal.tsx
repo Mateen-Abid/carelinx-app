@@ -57,11 +57,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     
     // Save the appointment
     if (selectedDate) {
+      const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Saving appointment with date:', appointmentDate, 'time:', time);
+      
       addAppointment({
         doctorName: doctorName,
         specialty: 'General Medicine',
         clinic: clinicName,
-        date: format(selectedDate, 'yyyy-MM-dd'),
+        date: appointmentDate,
         time: time,
         status: 'upcoming',
         doctorImage: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'

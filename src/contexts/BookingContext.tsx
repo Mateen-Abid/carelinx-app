@@ -54,26 +54,31 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: Date.now().toString(),
       bookedAt: new Date(),
     };
-    setAppointments(prev => [...prev, newAppointment]);
+    console.log('Adding new appointment:', newAppointment);
+    setAppointments(prev => {
+      const updated = [...prev, newAppointment];
+      console.log('Updated appointments:', updated);
+      return updated;
+    });
   };
 
   const getUpcomingAppointments = () => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
     return appointments.filter(apt => {
-      const appointmentDate = new Date(apt.date);
-      return appointmentDate >= today && apt.status === 'upcoming';
+      const appointmentDate = apt.date; // Already in YYYY-MM-DD format
+      return appointmentDate >= todayString && apt.status === 'upcoming';
     });
   };
 
   const getPastAppointments = () => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
     return appointments.filter(apt => {
-      const appointmentDate = new Date(apt.date);
-      return appointmentDate < today || apt.status === 'completed';
+      const appointmentDate = apt.date; // Already in YYYY-MM-DD format
+      return appointmentDate < todayString || apt.status === 'completed';
     });
   };
 
