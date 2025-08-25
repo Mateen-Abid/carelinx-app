@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { BookingModal } from '@/components/BookingModal';
 
 interface ServiceCardProps {
   clinicName: string;
@@ -23,6 +24,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   timeIcon,
   isSpecial = false
 }) => {
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+  const handleBookAppointment = () => {
+    setIsBookingModalOpen(true);
+  };
+
   return (
     <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[460px] flex flex-col px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
       {isSpecial && (
@@ -100,11 +107,21 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       </div>
       
       {/* Button section - aligned at very bottom */}
-      <button className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors">
+      <button 
+        onClick={handleBookAppointment}
+        className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors"
+      >
         <span className="self-stretch my-auto">
           Book Appointment
         </span>
       </button>
+
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        doctorName="Available Doctor"
+        clinicName={clinicName}
+      />
     </article>
   );
 };
