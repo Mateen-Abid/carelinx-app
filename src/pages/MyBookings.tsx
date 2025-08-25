@@ -62,14 +62,13 @@ const MyBookings = () => {
               </div>
             </div>
             
-            {/* Right side - Hero Image */}
+            {/* Right side - Hero Section */}
             <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center overflow-hidden">
-                <img
-                  src="/lovable-uploads/6aac7cdd-c5b9-437c-b36e-f208bb88251e.png"
-                  alt="Medical Booking Illustration"
-                  className="w-full h-full object-cover"
-                />
+              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Healthcare Management</h2>
+                  <p className="text-gray-600">Keep track of all your medical appointments</p>
+                </div>
               </div>
             </div>
           </div>
