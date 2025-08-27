@@ -90,11 +90,12 @@ const Header = () => {
               </button>
             </div>
           )}
-          <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/6fbf8b00ccde8825b82a57c7f73178e32ef85faf?placeholderIfAbsent=true"
-            className="aspect-[3.08] object-contain w-[126px] self-stretch shrink-0 my-auto rounded-[40px] cursor-pointer hover:opacity-80 transition-opacity"
-            alt="User Profile"
-          />
+          <button 
+            onClick={() => navigate('/auth')}
+            className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors"
+          >
+            Sign Up
+          </button>
         </div>
       </div>
     </header>
