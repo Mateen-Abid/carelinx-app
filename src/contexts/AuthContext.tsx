@@ -13,6 +13,7 @@ interface AuthContextType {
   updateProfile: (fullName: string) => Promise<{ error: any }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -193,6 +194,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const resendConfirmation = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+      
+      toast.success('Confirmation email resent! Please check your inbox.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message);
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -203,6 +227,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateProfile,
     changePassword,
     deleteAccount,
+    resendConfirmation,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -21,8 +21,9 @@ const Auth = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showResendEmail, setShowResendEmail] = useState(false);
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, resendConfirmation } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +66,13 @@ const Auth = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!formData.email) return;
+    setLoading(true);
+    await resendConfirmation(formData.email);
+    setLoading(false);
   };
 
   return (
@@ -233,16 +241,27 @@ const Auth = () => {
               </Button>
 
               {!isLogin && (
-                <p className="text-xs text-muted-foreground text-center">
-                  By creating an account, you agree to the{' '}
-                  <button type="button" className="text-primary hover:underline">
-                    Terms of use
-                  </button>{' '}
-                  and{' '}
-                  <button type="button" className="text-primary hover:underline">
-                    Privacy Policy
-                  </button>
-                </p>
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={loading || !formData.email}
+                    variant="outline"
+                    className="w-full h-8 text-sm"
+                  >
+                    Resend Confirmation Email
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    By creating an account, you agree to the{' '}
+                    <button type="button" className="text-primary hover:underline">
+                      Terms of use
+                    </button>{' '}
+                    and{' '}
+                    <button type="button" className="text-primary hover:underline">
+                      Privacy Policy
+                    </button>
+                  </p>
+                </>
               )}
 
               <div className="text-center pt-2">
