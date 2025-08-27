@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const handleClinicClick = () => {
     if (location.pathname === '/') {
@@ -57,7 +59,10 @@ const Header = () => {
                 Booking
               </div>
             </div>
-            <div className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+            <div 
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
               <div className="self-stretch my-auto">
                 Profile
               </div>
@@ -65,9 +70,26 @@ const Header = () => {
           </nav>
         </div>
         <div className="self-stretch flex items-center gap-4 text-sm font-normal tracking-[-0.28px] leading-none my-auto">
-          <div className="self-stretch flex gap-[19px] my-auto pl-2.5 pr-[9px] pt-[27px] pb-7">
-            <button className="hover:text-[rgba(0,255,162,1)] transition-colors">Log in</button>
-          </div>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <span className="text-white">Welcome, {user.email}</span>
+              <button 
+                onClick={signOut}
+                className="hover:text-[rgba(0,255,162,1)] transition-colors px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="self-stretch flex gap-[19px] my-auto pl-2.5 pr-[9px] pt-[27px] pb-7">
+              <button 
+                onClick={() => navigate('/auth')}
+                className="hover:text-[rgba(0,255,162,1)] transition-colors"
+              >
+                Log in
+              </button>
+            </div>
+          )}
           <img
             src="https://api.builder.io/api/v1/image/assets/TEMP/6fbf8b00ccde8825b82a57c7f73178e32ef85faf?placeholderIfAbsent=true"
             className="aspect-[3.08] object-contain w-[126px] self-stretch shrink-0 my-auto rounded-[40px] cursor-pointer hover:opacity-80 transition-opacity"
