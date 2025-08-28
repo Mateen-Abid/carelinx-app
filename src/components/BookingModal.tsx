@@ -13,6 +13,7 @@ interface BookingModalProps {
   onClose: () => void;
   doctorName?: string;
   clinicName?: string;
+  serviceName?: string;
 }
 
 interface TimeSlot {
@@ -40,7 +41,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   isOpen,
   onClose,
   doctorName = 'Dr Ishfaq',
-  clinicName = 'Central Medical Center'
+  clinicName = 'Central Medical Center',
+  serviceName = 'General Consultation'
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -62,7 +64,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       
       addAppointment({
         doctorName: doctorName,
-        specialty: 'General Medicine',
+        specialty: serviceName,
         clinic: clinicName,
         date: appointmentDate,
         time: time,
@@ -109,9 +111,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 Booking Successful
               </h2>
               
-              <p className="text-gray-600 mb-8">
-                Your appointment has been confirmed for {selectedDate && format(selectedDate, 'MMMM d, yyyy')} at {selectedTime}
-              </p>
+              <div className="text-gray-600 mb-8 space-y-1">
+                <p>Your appointment has been confirmed for {selectedDate && format(selectedDate, 'MMMM d, yyyy')} at {selectedTime}</p>
+                <p className="text-sm"><strong>Service:</strong> {serviceName}</p>
+                <p className="text-sm"><strong>Clinic:</strong> {clinicName}</p>
+              </div>
               
               <div className="space-y-3">
                 <Button 

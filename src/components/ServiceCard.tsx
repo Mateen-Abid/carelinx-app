@@ -121,6 +121,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         onClose={() => setIsBookingModalOpen(false)}
         doctorName="Available Doctor"
         clinicName={clinicName}
+        serviceName={serviceName}
       />
     </article>
   );
