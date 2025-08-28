@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ServicesFilter from '@/components/ServicesFilter';
@@ -6,12 +6,13 @@ import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
 
 const Index = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const serviceCards = [
     {
       clinicName: "Central Medical Center",
       address: "456 Oak Avenue, Suburb",
       serviceName: "ECG",
-      specialty: "Cardiologist",
+      specialty: "Cardiology",
       timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
@@ -21,7 +22,7 @@ const Index = () => {
       clinicName: "Willow Grove Clinic",
       address: "456 Oak Avenue, Suburb",
       serviceName: "X-Ray",
-      specialty: "Cardiologist",
+      specialty: "Cardiology",
       timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
@@ -41,7 +42,7 @@ const Index = () => {
       clinicName: "Cedar Medical",
       address: "456 Oak Avenue, Suburb",
       serviceName: "Retinal Care",
-      specialty: "Radiologist",
+      specialty: "Ophthalmology",
       timeSchedule: "8:00 AM – 3:00 PM • Mon–Fri",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
@@ -51,7 +52,7 @@ const Index = () => {
       clinicName: "Cedar Medical",
       address: "456 Oak Avenue, Suburb",
       serviceName: "Ultrasound",
-      specialty: "Ultrasonographer",
+      specialty: "General Medicine",
       timeSchedule: "8:00 AM – 3:00 PM • Mon–Fri",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
@@ -61,7 +62,7 @@ const Index = () => {
       clinicName: "Central Medical Center",
       address: "456 Oak Avenue, Suburb",
       serviceName: "ECG",
-      specialty: "Cardiologist",
+      specialty: "Cardiology",
       timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
@@ -200,20 +201,72 @@ const Index = () => {
     }
   ];
 
+  // Mapping for service categories to match the specialty names
+  const serviceMapping: { [key: string]: string[] } = {
+    'all': [],
+    'cardiology': ['Cardiology'],
+    'neurology': ['Neurology'],
+    'ophthalmology': ['Ophthalmology'],
+    'general-medicine': ['General Medicine'],
+    'pediatrics': ['Pediatrics'],
+    'orthopedics': ['Orthopedics'],
+    'emergency-care': ['Emergency Care'],
+    'preventive-care': ['Preventive Care'],
+    'dermatology': ['Dermatology'],
+    'dentistry': ['Dentistry'],
+    'gynecology': ['Gynecology'],
+    'pathology': ['Pathology'],
+    'nutrition': ['Nutrition'],
+    'psychiatry': ['Psychiatry'],
+    'pulmonology': ['Pulmonology']
+  };
+
+  // Filter service cards based on selected category
+  const filteredServiceCards = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return serviceCards;
+    }
+    
+    const allowedSpecialties = serviceMapping[selectedCategory] || [];
+    return serviceCards.filter(card => 
+      allowedSpecialties.includes(card.specialty)
+    );
+  }, [selectedCategory, serviceCards]);
+
+  // Filter clinic cards based on selected category
+  const filteredClinicCards = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return clinicCards;
+    }
+    
+    const allowedSpecialties = serviceMapping[selectedCategory] || [];
+    return clinicCards.filter(clinic => 
+      clinic.services.some(service => 
+        allowedSpecialties.some(specialty => 
+          service.name.toLowerCase().includes(specialty.toLowerCase()) ||
+          specialty.toLowerCase().includes(service.name.toLowerCase())
+        )
+      )
+    );
+  }, [selectedCategory, clinicCards]);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
       <HeroSection />
       
       <main>
-        <ServicesFilter />
+        <ServicesFilter 
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
         
         <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
           <h2 className="text-2xl text-black font-normal tracking-[-1px]">
             Services & Specialists
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
-            {serviceCards.map((card, index) => (
+            {filteredServiceCards.map((card, index) => (
               <ServiceCard
                 key={index}
                 {...card}
@@ -229,7 +282,7 @@ const Index = () => {
               Clinic
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[18px] mt-4 max-md:max-w-full">
-              {clinicCards.map((clinic, index) => (
+              {filteredClinicCards.map((clinic, index) => (
                 <ClinicCard key={index} {...clinic} />
               ))}
             </div>

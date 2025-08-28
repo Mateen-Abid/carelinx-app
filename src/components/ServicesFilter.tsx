@@ -6,8 +6,12 @@ interface ServiceCategory {
   icon?: string;
 }
 
-const ServicesFilter = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+interface ServicesFilterProps {
+  onCategoryChange: (categoryId: string) => void;
+  selectedCategory: string;
+}
+
+const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory }) => {
 
   const categories: ServiceCategory[] = [
     { id: 'all', name: 'All' },
@@ -92,9 +96,7 @@ const ServicesFilter = () => {
   ];
 
   const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    // Implement filtering logic here
-    console.log('Selected category:', categoryId);
+    onCategoryChange(categoryId);
   };
 
   const CategoryPill: React.FC<{ category: ServiceCategory; isSelected: boolean }> = ({ 
