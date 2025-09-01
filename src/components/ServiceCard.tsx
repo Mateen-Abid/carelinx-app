@@ -31,7 +31,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   return (
-    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[460px] flex flex-col px-[18px] py-[23px] rounded-[18px] m-2 ${isSpecial ? 'relative' : ''}`}>
+    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[460px] flex flex-col px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
       {isSpecial && (
         <>
           <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
