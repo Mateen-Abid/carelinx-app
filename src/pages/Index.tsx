@@ -262,7 +262,7 @@ const Index = () => {
         />
         
         <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl">
             <h2 className="text-2xl text-black font-normal tracking-[-1px]">
               Services & Specialists
             </h2>
@@ -279,7 +279,7 @@ const Index = () => {
         </section>
         
         <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-          <div id="clinic-section" className="max-w-7xl mx-auto">
+          <div id="clinic-section" className="max-w-7xl">
             <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
               Clinic
             </h2>
