@@ -261,7 +261,7 @@ const Index = () => {
           onCategoryChange={setSelectedCategory}
         />
         
-        <section className="py-12 px-8">
+        <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-2xl text-black font-normal tracking-[-1px]">
               Services & Specialists
@@ -278,7 +278,7 @@ const Index = () => {
           </div>
         </section>
         
-        <section className="py-12 px-8">
+        <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
           <div id="clinic-section" className="max-w-7xl mx-auto">
             <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
               Clinic
