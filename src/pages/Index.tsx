@@ -261,18 +261,20 @@ const Index = () => {
           onCategoryChange={setSelectedCategory}
         />
         
-        <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-          <h2 className="text-2xl text-black font-normal tracking-[-1px]">
-            Services & Specialists
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
-            {filteredServiceCards.map((card, index) => (
-              <ServiceCard
-                key={index}
-                {...card}
-                isSpecial={index === 6}
-              />
-            ))}
+        <section className="py-12 px-8">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl text-black font-normal tracking-[-1px]">
+              Services & Specialists
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
+              {filteredServiceCards.map((card, index) => (
+                <ServiceCard
+                  key={index}
+                  {...card}
+                  isSpecial={index === 6}
+                />
+              ))}
+            </div>
           </div>
         </section>
         
