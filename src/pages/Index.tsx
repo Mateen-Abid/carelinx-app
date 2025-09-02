@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
+import ServicesFilter from '@/components/ServicesFilter';
 import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
 import SearchInput from '@/components/SearchInput';
 
 const Index = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const serviceCards = [
@@ -202,18 +204,42 @@ const Index = () => {
     }
   ];
 
-  // Filter service cards based on search query only
+  // Mapping for service categories to match the specialty names
+  const serviceMapping: { [key: string]: string[] } = {
+    'all': [],
+    'cardiology': ['Cardiology'],
+    'neurology': ['Neurology'],
+    'ophthalmology': ['Ophthalmology'],
+    'general-medicine': ['General Medicine'],
+    'pediatrics': ['Pediatrics'],
+    'orthopedics': ['Orthopedics'],
+    'emergency-care': ['Emergency Care'],
+    'dermatology': ['Dermatology']
+  };
+
+  // Filter service cards based on selected category and search query
   const filteredServiceCards = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return serviceCards;
+    let filtered = serviceCards;
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      const allowedSpecialties = serviceMapping[selectedCategory] || [];
+      filtered = filtered.filter(card => 
+        allowedSpecialties.includes(card.specialty)
+      );
     }
     
-    return serviceCards.filter(card =>
-      card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.clinicName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery, serviceCards]);
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(card =>
+        card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.clinicName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, searchQuery, serviceCards]);
 
   // Show all clinic cards (no filtering needed)
   const filteredClinicCards = clinicCards;
@@ -257,6 +283,14 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        {/* Services Filter - only show when services is selected */}
+        {viewMode === 'services' && (
+          <ServicesFilter 
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        )}
 
         {/* Search Bar - only show when services is selected */}
         {viewMode === 'services' && (
