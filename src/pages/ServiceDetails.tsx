@@ -151,8 +151,8 @@ const ServiceDetails = () => {
     );
   }
 
-  const handleBookAppointment = (doctorName?: string) => {
-    setSelectedDoctor(doctorName || serviceData.doctors[0]?.name || 'Doctor');
+  const handleBookAppointment = () => {
+    setSelectedDoctor(serviceData.doctors[0]?.name || 'Available Doctor');
     setIsBookingModalOpen(true);
   };
 
@@ -188,14 +188,20 @@ const ServiceDetails = () => {
               </div>
             </div>
             
-            {/* Right side - Hero Image */}
+            {/* Right side - Service Info Card */}
             <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-green-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center overflow-hidden">
-                <img
-                  src="/lovable-uploads/a3f89984-3fda-40a1-9bf1-9da442bb70fc.png"
-                  alt="Service Illustration"
-                  className="w-full h-full object-cover"
-                />
+              <div className="bg-gradient-to-r from-green-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Book Your {serviceData.name} Appointment</h3>
+                  <p className="text-gray-700 mb-6">Professional care with experienced specialists</p>
+                  <Button 
+                    size="lg"
+                    onClick={() => handleBookAppointment()}
+                    className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+                  >
+                    Book Now
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -240,15 +246,20 @@ const ServiceDetails = () => {
                   />
                   <h3 className="font-semibold text-gray-900 text-lg mb-2">{doctor.name}</h3>
                   <p className="text-sm text-gray-600 mb-4">{doctor.specialization}</p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleBookAppointment(doctor.name)}
-                  >
-                    Book Appointment
-                  </Button>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Single Book Now Button for the Service */}
+          <div className="text-center mt-8">
+            <Button 
+              size="lg"
+              onClick={() => handleBookAppointment()}
+              className="px-12 py-4 text-lg font-semibold"
+            >
+              Book Now - {serviceData.name}
+            </Button>
           </div>
         </div>
       </section>
