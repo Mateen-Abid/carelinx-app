@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BookingModal } from '@/components/BookingModal';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface ServiceCardProps {
   clinicName: string;
@@ -24,10 +24,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   timeIcon,
   isSpecial = false
 }) => {
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const handleBookAppointment = () => {
-    setIsBookingModalOpen(true);
+  // Convert service name to URL-friendly ID
+  const getServiceId = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, '-');
+  };
+
+  const handleServiceClick = () => {
+    const serviceId = getServiceId(serviceName);
+    navigate(`/service/${serviceId}`);
   };
 
   return (
@@ -108,21 +114,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       
       {/* Button section - aligned at very bottom */}
       <button 
-        onClick={handleBookAppointment}
+        onClick={handleServiceClick}
         className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors"
       >
         <span className="self-stretch my-auto">
-          Book Appointment
+          View Details
         </span>
       </button>
-
-      <BookingModal 
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        doctorName="Available Doctor"
-        clinicName={clinicName}
-        serviceName={serviceName}
-      />
     </article>
   );
 };

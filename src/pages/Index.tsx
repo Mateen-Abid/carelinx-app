@@ -4,9 +4,12 @@ import HeroSection from '@/components/HeroSection';
 import ServicesFilter from '@/components/ServicesFilter';
 import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
+import SearchInput from '@/components/SearchInput';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const serviceCards = [
     {
       clinicName: "Central Medical Center",
@@ -221,17 +224,29 @@ const Index = () => {
     'pulmonology': ['Pulmonology']
   };
 
-  // Filter service cards based on selected category
+  // Filter service cards based on selected category and search query
   const filteredServiceCards = useMemo(() => {
-    if (selectedCategory === 'all') {
-      return serviceCards;
+    let filtered = serviceCards;
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      const allowedSpecialties = serviceMapping[selectedCategory] || [];
+      filtered = filtered.filter(card => 
+        allowedSpecialties.includes(card.specialty)
+      );
     }
     
-    const allowedSpecialties = serviceMapping[selectedCategory] || [];
-    return serviceCards.filter(card => 
-      allowedSpecialties.includes(card.specialty)
-    );
-  }, [selectedCategory, serviceCards]);
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(card =>
+        card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.clinicName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, searchQuery, serviceCards]);
 
   // Filter clinic cards based on selected category
   const filteredClinicCards = useMemo(() => {
@@ -261,35 +276,87 @@ const Index = () => {
           onCategoryChange={setSelectedCategory}
         />
         
-        <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-          <div className="max-w-7xl">
-            <h2 className="text-2xl text-black font-normal tracking-[-1px]">
-              Services & Specialists
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
-              {filteredServiceCards.map((card, index) => (
-                <ServiceCard
-                  key={index}
-                  {...card}
-                  isSpecial={index === 6}
-                />
-              ))}
+        {/* Toggle between Services and Clinics */}
+        <section className="px-8 mt-6 max-md:px-5">
+          <div className="flex justify-center">
+            <div className="flex bg-white rounded-full p-1 border border-gray-200">
+              <button
+                onClick={() => setViewMode('services')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'services'
+                    ? 'bg-[rgba(0,255,162,1)] text-black'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                Services
+              </button>
+              <button
+                onClick={() => setViewMode('clinics')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'clinics'
+                    ? 'bg-[rgba(0,255,162,1)] text-black'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                </svg>
+                Clinics
+              </button>
             </div>
           </div>
         </section>
+
+        {/* Search Bar - only show when services is selected */}
+        {viewMode === 'services' && (
+          <section className="px-8 mt-6 max-md:px-5">
+            <div className="max-w-2xl mx-auto">
+              <SearchInput
+                placeholder="Search by service, clinic, or doctor's name"
+                onSearch={setSearchQuery}
+              />
+            </div>
+          </section>
+        )}
         
-        <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-          <div id="clinic-section" className="max-w-7xl">
-            <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
-              Clinic
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[18px] mt-4 max-md:max-w-full">
-              {filteredClinicCards.map((clinic, index) => (
-                <ClinicCard key={index} {...clinic} />
-              ))}
+        {/* Services Section - only show when services is selected */}
+        {viewMode === 'services' && (
+          <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
+            <div className="max-w-7xl">
+              <h2 className="text-2xl text-black font-normal tracking-[-1px]">
+                Services & Specialists
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
+                {filteredServiceCards.map((card, index) => (
+                  <ServiceCard
+                    key={index}
+                    {...card}
+                    isSpecial={index === 6}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+        
+        {/* Clinics Section - only show when clinics is selected */}
+        {viewMode === 'clinics' && (
+          <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
+            <div id="clinic-section" className="max-w-7xl">
+              <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
+                Clinic
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[18px] mt-4 max-md:max-w-full">
+                {filteredClinicCards.map((clinic, index) => (
+                  <ClinicCard key={index} {...clinic} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
