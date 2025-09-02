@@ -31,6 +31,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     return name.toLowerCase().replace(/\s+/g, '-');
   };
 
+  // Navigate to service details page
   const handleServiceClick = () => {
     const serviceId = getServiceId(serviceName);
     navigate(`/service/${serviceId}`);
