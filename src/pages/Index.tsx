@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
-import ServicesFilter from '@/components/ServicesFilter';
 import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
 import SearchInput from '@/components/SearchInput';
 
 const Index = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const serviceCards = [
@@ -204,66 +202,21 @@ const Index = () => {
     }
   ];
 
-  // Mapping for service categories to match the specialty names
-  const serviceMapping: { [key: string]: string[] } = {
-    'all': [],
-    'cardiology': ['Cardiology'],
-    'neurology': ['Neurology'],
-    'ophthalmology': ['Ophthalmology'],
-    'general-medicine': ['General Medicine'],
-    'pediatrics': ['Pediatrics'],
-    'orthopedics': ['Orthopedics'],
-    'emergency-care': ['Emergency Care'],
-    'preventive-care': ['Preventive Care'],
-    'dermatology': ['Dermatology'],
-    'dentistry': ['Dentistry'],
-    'gynecology': ['Gynecology'],
-    'pathology': ['Pathology'],
-    'nutrition': ['Nutrition'],
-    'psychiatry': ['Psychiatry'],
-    'pulmonology': ['Pulmonology']
-  };
-
-  // Filter service cards based on selected category and search query
+  // Filter service cards based on search query only
   const filteredServiceCards = useMemo(() => {
-    let filtered = serviceCards;
-    
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      const allowedSpecialties = serviceMapping[selectedCategory] || [];
-      filtered = filtered.filter(card => 
-        allowedSpecialties.includes(card.specialty)
-      );
+    if (!searchQuery.trim()) {
+      return serviceCards;
     }
     
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(card =>
-        card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.clinicName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return filtered;
-  }, [selectedCategory, searchQuery, serviceCards]);
-
-  // Filter clinic cards based on selected category
-  const filteredClinicCards = useMemo(() => {
-    if (selectedCategory === 'all') {
-      return clinicCards;
-    }
-    
-    const allowedSpecialties = serviceMapping[selectedCategory] || [];
-    return clinicCards.filter(clinic => 
-      clinic.services.some(service => 
-        allowedSpecialties.some(specialty => 
-          service.name.toLowerCase().includes(specialty.toLowerCase()) ||
-          specialty.toLowerCase().includes(service.name.toLowerCase())
-        )
-      )
+    return serviceCards.filter(card =>
+      card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.clinicName.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [selectedCategory, clinicCards]);
+  }, [searchQuery, serviceCards]);
+
+  // Show all clinic cards (no filtering needed)
+  const filteredClinicCards = clinicCards;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -271,11 +224,6 @@ const Index = () => {
       <HeroSection />
       
       <main>
-        <ServicesFilter 
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-        />
-        
         {/* Toggle between Services and Clinics */}
         <section className="px-8 mt-6 max-md:px-5">
           <div className="flex justify-center">
