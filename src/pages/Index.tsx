@@ -262,6 +262,14 @@ const Index = () => {
         {viewMode === 'services' && (
           <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
             <div className="max-w-7xl">
+              {/* Search Bar above title */}
+              <div className="mb-4 max-w-2xl">
+                <SearchInput
+                  placeholder="Search by service, clinic, or doctor's name"
+                  onSearch={setSearchQuery}
+                />
+              </div>
+              
               <h2 className="text-2xl text-black font-normal tracking-[-1px]">
                 Services & Specialists
               </h2>

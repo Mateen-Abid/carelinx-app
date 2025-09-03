@@ -87,7 +87,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
             <div className="flex bg-white rounded-full p-1 border border-gray-200">
               <button
                 onClick={() => onViewModeChange('services')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-colors ${
                   viewMode === 'services'
                     ? 'bg-[rgba(0,255,162,1)] text-black'
                     : 'text-gray-600 hover:text-black'
@@ -100,7 +100,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
               </button>
               <button
                 onClick={() => onViewModeChange('clinics')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-colors ${
                   viewMode === 'clinics'
                     ? 'bg-[rgba(0,255,162,1)] text-black'
                     : 'text-gray-600 hover:text-black'
