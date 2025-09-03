@@ -18,11 +18,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     { id: 'cardiology', name: 'Cardiology', icon: Heart },
     { id: 'neurology', name: 'Neurology', icon: Brain },
     { id: 'ophthalmology', name: 'Ophthalmology', icon: Eye },
-    { id: 'general-medicine', name: 'General Medicine', icon: Stethoscope },
-    { id: 'pediatrics', name: 'Pediatrics', icon: Baby },
-    { id: 'orthopedics', name: 'Orthopedics', icon: Bone },
-    { id: 'emergency-care', name: 'Emergency Care', icon: Plus },
-    { id: 'dermatology', name: 'Dermatology', icon: Palette }
+    { id: 'general-medicine', name: 'General Medicine', icon: Stethoscope }
   ];
 
   const handleCategorySelect = (categoryId: string) => {
