@@ -44,14 +44,6 @@ const Header = () => {
               </div>
             </div>
             <div 
-              onClick={handleClinicClick}
-              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <div className="self-stretch my-auto">
-                Clinic
-              </div>
-            </div>
-            <div 
               onClick={() => navigate('/my-bookings')}
               className="flex items-center gap-[9px] px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >

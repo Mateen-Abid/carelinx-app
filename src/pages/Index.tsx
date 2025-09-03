@@ -247,42 +247,13 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
-      <HeroSection />
+      <HeroSection 
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onSearch={setSearchQuery}
+      />
       
       <main>
-        {/* Toggle between Services and Clinics */}
-        <section className="px-8 mt-6 max-md:px-5">
-          <div className="flex justify-center">
-            <div className="flex bg-white rounded-full p-1 border border-gray-200">
-              <button
-                onClick={() => setViewMode('services')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
-                  viewMode === 'services'
-                    ? 'bg-[rgba(0,255,162,1)] text-black'
-                    : 'text-gray-600 hover:text-black'
-                }`}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-                Services
-              </button>
-              <button
-                onClick={() => setViewMode('clinics')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
-                  viewMode === 'clinics'
-                    ? 'bg-[rgba(0,255,162,1)] text-black'
-                    : 'text-gray-600 hover:text-black'
-                }`}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-                </svg>
-                Clinics
-              </button>
-            </div>
-          </div>
-        </section>
 
         {/* Services Filter - only show when services is selected */}
         {viewMode === 'services' && (

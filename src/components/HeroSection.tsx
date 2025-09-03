@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SearchInput from './SearchInput';
 
-const HeroSection = () => {
-  const handleSearch = (value: string) => {
-    console.log('Searching for:', value);
-    // Implement search functionality here
-  };
+interface HeroSectionProps {
+  viewMode: 'services' | 'clinics';
+  onViewModeChange: (mode: 'services' | 'clinics') => void;
+  onSearch: (value: string) => void;
+}
+
+const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, onSearch }) => {
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -79,16 +81,42 @@ const HeroSection = () => {
         
         {/* Main Content */}
         <div className="self-center z-0 flex w-[576px] max-w-full flex-col items-center">
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-white text-[38px] font-medium tracking-[-0.76px]">
-              Search to get matched
-            </h1>
-            <p className="text-neutral-300 text-base font-normal tracking-[-0.32px] mt-2">
-              Quickly find doctors, clinics, or services you need.
-            </p>
+          {/* Toggle between Services and Clinics */}
+          <div className="flex justify-center">
+            <div className="flex bg-white rounded-full p-1 border border-gray-200">
+              <button
+                onClick={() => onViewModeChange('services')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'services'
+                    ? 'bg-[rgba(0,255,162,1)] text-black'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                Services
+              </button>
+              <button
+                onClick={() => onViewModeChange('clinics')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'clinics'
+                    ? 'bg-[rgba(0,255,162,1)] text-black'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                </svg>
+                Clinics
+              </button>
+            </div>
           </div>
+          <p className="text-neutral-300 text-base font-normal tracking-[-0.32px] mt-4 text-center">
+            Quickly find doctors, clinics, or services you need.
+          </p>
           <div className="mt-6 w-full">
-            <SearchInput onSearch={handleSearch} />
+            <SearchInput onSearch={onSearch} />
           </div>
         </div>
       </div>
