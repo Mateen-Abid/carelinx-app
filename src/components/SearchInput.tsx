@@ -23,8 +23,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px]">
+    <form onSubmit={handleSubmit} className="w-full flex justify-center">
+      <div className="items-center flex w-full max-w-2xl gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px] mx-auto">
         <img
           src="https://api.builder.io/api/v1/image/assets/TEMP/57274afdd1238290026fe0d60710347fbb4f5f8b?placeholderIfAbsent=true"
           className="aspect-[1] object-contain w-5 self-stretch shrink-0 my-auto"
