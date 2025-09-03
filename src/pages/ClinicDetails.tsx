@@ -117,29 +117,35 @@ const ClinicDetails = () => {
   const clinicData = {
     'central-medical-center': {
       name: 'Central Medical Center',
-      address: '456 Oak Avenue, Suburb'
+      address: '456 Oak Avenue, Suburb',
+      description: 'A comprehensive healthcare facility providing quality medical services with state-of-the-art equipment and experienced medical professionals dedicated to your health and wellness.'
     },
     'green-valley-hospital': {
       name: 'Green Valley Hospital',
-      address: '789 Maple Street, Townsville'
+      address: '789 Maple Street, Townsville',
+      description: 'Modern hospital offering advanced medical care with specialized departments and 24/7 emergency services, committed to delivering exceptional patient care in a comfortable environment.'
     },
     'sunrise-health-clinic': {
       name: 'Sunrise Health Clinic',
-      address: '321 Pine Road, Village'
+      address: '321 Pine Road, Village',
+      description: 'Community-focused healthcare clinic providing personalized medical services with a team of caring professionals dedicated to maintaining your health and preventing illness.'
     },
     'sunset-medical-center': {
       name: 'Sunset Medical Center',
-      address: '144 Maple Drive, City'
+      address: '144 Maple Drive, City',
+      description: 'Full-service medical center offering comprehensive healthcare solutions with cutting-edge technology and a multidisciplinary approach to patient care and treatment.'
     },
     'lakeside-wellness-center': {
       name: 'Lakeside Wellness Center',
-      address: '267 River Lane, Town'
+      address: '267 River Lane, Town',
+      description: 'Holistic wellness center combining traditional medical care with preventive health services, focusing on overall well-being and lifestyle medicine for optimal health outcomes.'
     }
   };
 
   const currentClinic = clinicData[clinicId as keyof typeof clinicData] || {
     name: 'Medical Center',
-    address: 'Location not specified'
+    address: 'Location not specified',
+    description: 'Professional healthcare services available for your medical needs.'
   };
 
   const handleBookAppointment = (doctorName?: string) => {
@@ -158,12 +164,13 @@ const ClinicDetails = () => {
             {/* Clinic Info */}
             <div className="bg-white border rounded-lg p-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-4">{currentClinic.name}</h1>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-gray-600 mb-4">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
                 <span>{currentClinic.address}</span>
               </div>
+              <p className="text-gray-700 leading-relaxed">{currentClinic.description}</p>
             </div>
           </div>
         </div>
