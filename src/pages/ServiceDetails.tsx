@@ -165,44 +165,25 @@ const ServiceDetails = () => {
       {/* Hero Section */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left side - Service Info */}
-            <div className="lg:w-1/3">
-              <div className="bg-white border rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 bg-green-500 rounded-full"></div>
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{serviceData.name}</h1>
-                    <p className="text-green-600 font-medium">{serviceData.specialty}</p>
-                  </div>
+          <div className="max-w-3xl">
+            {/* Service Info */}
+            <div className="bg-white border rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-green-500 rounded-full"></div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600 mb-4">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  <span>{serviceData.address}</span>
-                </div>
-                <p className="text-gray-700 text-sm leading-relaxed">{serviceData.description}</p>
-              </div>
-            </div>
-            
-            {/* Right side - Service Info Card */}
-            <div className="lg:w-2/3">
-              <div className="bg-white border rounded-lg h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Book Your {serviceData.name} Appointment</h3>
-                  <p className="text-gray-600 mb-6">Professional care with experienced specialists</p>
-                  <Button 
-                    size="lg"
-                    onClick={() => handleBookAppointment()}
-                    className="px-8 py-3 text-lg font-semibold"
-                  >
-                    Book Now
-                  </Button>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{serviceData.name}</h1>
+                  <p className="text-green-600 font-medium">{serviceData.specialty}</p>
                 </div>
               </div>
+              <div className="flex items-center gap-2 text-gray-600 mb-4">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                <span>{serviceData.address}</span>
+              </div>
+              <p className="text-gray-700 text-sm leading-relaxed">{serviceData.description}</p>
             </div>
           </div>
         </div>
