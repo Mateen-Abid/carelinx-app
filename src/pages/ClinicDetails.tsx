@@ -154,29 +154,15 @@ const ClinicDetails = () => {
       {/* Hero Section */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left side - Clinic Info */}
-            <div className="lg:w-1/3">
-              <div className="bg-white border rounded-lg p-6 h-64">
-                <div className="">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">{currentClinic.name}</h1>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                  <span>{currentClinic.address}</span>
-                </div>
-                </div>
-              </div>
-              </div>
-            
-            {/* Right side - Hero Section */}
-            <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Welcome to {currentClinic.name}</h3>
-                  <p className="text-gray-700">Professional healthcare services in your area</p>
-                </div>
+          <div className="max-w-3xl">
+            {/* Clinic Info */}
+            <div className="bg-white border rounded-lg p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">{currentClinic.name}</h1>
+              <div className="flex items-center gap-2 text-gray-600">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                <span>{currentClinic.address}</span>
               </div>
             </div>
           </div>
