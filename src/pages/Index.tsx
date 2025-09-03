@@ -250,7 +250,8 @@ const Index = () => {
       <HeroSection 
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        onSearch={setSearchQuery}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
       />
       
       <main>

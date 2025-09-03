@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ServicesFilter from './SearchInput';
+import ServicesFilter from './ServicesFilter';
 
 interface HeroSectionProps {
   viewMode: 'services' | 'clinics';

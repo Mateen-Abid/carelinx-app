@@ -53,8 +53,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   };
 
   return (
-    <section className="w-full mt-6 px-8 max-md:px-5">
-      <div className="flex w-full items-center gap-3 flex-wrap justify-center max-w-4xl mx-auto">
+    <div className="w-full">
+      <div className="flex w-full items-center gap-3 flex-wrap justify-center">
         {categories.map((category) => (
           <CategoryPill
             key={category.id}
@@ -63,7 +63,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           />
         ))}
       </div>
-    </section>
+    </div>
   );
 };
 

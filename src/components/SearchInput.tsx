@@ -1,70 +1,45 @@
-import React from 'react';
-import { Heart, Brain, Eye, Stethoscope, Baby, Bone, Plus, Palette } from 'lucide-react';
+import React, { useState } from 'react';
 
-interface ServiceCategory {
-  id: string;
-  name: string;
-  icon: React.ComponentType<any>;
+interface SearchInputProps {
+  placeholder?: string;
+  onSearch?: (value: string) => void;
 }
 
-interface ServicesFilterProps {
-  onCategoryChange: (categoryId: string) => void;
-  selectedCategory: string;
-}
+const SearchInput: React.FC<SearchInputProps> = ({ 
+  placeholder = "Search by service, clinic, or doctor's name",
+  onSearch 
+}) => {
+  const [searchValue, setSearchValue] = useState('');
 
-const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory }) => {
-  const categories: ServiceCategory[] = [
-    { id: 'all', name: 'All', icon: Stethoscope },
-    { id: 'cardiology', name: 'Cardiology', icon: Heart },
-    { id: 'neurology', name: 'Neurology', icon: Brain },
-    { id: 'ophthalmology', name: 'Ophthalmology', icon: Eye },
-    { id: 'general-medicine', name: 'General Medicine', icon: Stethoscope },
-    { id: 'pediatrics', name: 'Pediatrics', icon: Baby },
-    { id: 'orthopedics', name: 'Orthopedics', icon: Bone },
-    { id: 'emergency-care', name: 'Emergency Care', icon: Plus },
-    { id: 'dermatology', name: 'Dermatology', icon: Palette }
-  ];
-
-  const handleCategorySelect = (categoryId: string) => {
-    onCategoryChange(categoryId);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchValue(value);
+    onSearch?.(value);
   };
 
-  const CategoryPill: React.FC<{ category: ServiceCategory; isSelected: boolean }> = ({ 
-    category, 
-    isSelected 
-  }) => {
-    const IconComponent = category.icon;
-    
-    return (
-      <button
-        onClick={() => handleCategorySelect(category.id)}
-        className={`flex items-center gap-2 justify-center px-4 py-3 rounded-full transition-colors min-h-[44px] ${
-          isSelected 
-            ? 'bg-[rgba(0,255,162,1)] text-black font-medium' 
-            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-        }`}
-      >
-        <IconComponent size={18} className="shrink-0" />
-        <span className="text-sm whitespace-nowrap">
-          {category.name}
-        </span>
-      </button>
-    );
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch?.(searchValue);
   };
 
   return (
-    <div className="w-full">
-      <div className="flex w-full items-center gap-3 flex-wrap justify-center">
-        {categories.map((category) => (
-          <CategoryPill
-            key={category.id}
-            category={category}
-            isSelected={selectedCategory === category.id}
-          />
-        ))}
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px]">
+        <img
+          src="https://api.builder.io/api/v1/image/assets/TEMP/57274afdd1238290026fe0d60710347fbb4f5f8b?placeholderIfAbsent=true"
+          className="aspect-[1] object-contain w-5 self-stretch shrink-0 my-auto"
+          alt="Search Icon"
+        />
+        <input
+          type="text"
+          value={searchValue}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
+        />
       </div>
-    </div>
+    </form>
   );
 };
 
-export default ServicesFilter;
+export default SearchInput;
