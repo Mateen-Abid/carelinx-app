@@ -170,14 +170,13 @@ const ClinicDetails = () => {
               </div>
               </div>
             
-            {/* Right side - Hero Image */}
+            {/* Right side - Hero Section */}
             <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center overflow-hidden">
-                <img
-                  src="/lovable-uploads/65b7f82d-e75f-41b9-b51b-d2012af0f3e8.png"
-                  alt="Medical Center Illustration"
-                  className="w-full h-full object-cover"
-                />
+              <div className="bg-gradient-to-r from-purple-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Welcome to {currentClinic.name}</h3>
+                  <p className="text-gray-700">Professional healthcare services in your area</p>
+                </div>
               </div>
             </div>
           </div>
