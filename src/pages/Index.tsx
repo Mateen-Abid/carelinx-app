@@ -255,25 +255,7 @@ const Index = () => {
       
       <main>
 
-        {/* Services Filter - only show when services is selected */}
-        {viewMode === 'services' && (
-          <ServicesFilter 
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
-        )}
 
-        {/* Search Bar - only show when services is selected */}
-        {viewMode === 'services' && (
-          <section className="px-8 mt-6 max-md:px-5">
-            <div className="max-w-2xl mx-auto">
-              <SearchInput
-                placeholder="Search by service, clinic, or doctor's name"
-                onSearch={setSearchQuery}
-              />
-            </div>
-          </section>
-        )}
         
         {/* Services Section - only show when services is selected */}
         {viewMode === 'services' && (

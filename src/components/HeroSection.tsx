@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import SearchInput from './SearchInput';
+import ServicesFilter from './SearchInput';
 
 interface HeroSectionProps {
   viewMode: 'services' | 'clinics';
   onViewModeChange: (mode: 'services' | 'clinics') => void;
-  onSearch: (value: string) => void;
+  selectedCategory: string;
+  onCategoryChange: (categoryId: string) => void;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, onSearch }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, selectedCategory, onCategoryChange }) => {
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -115,9 +116,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, o
           <p className="text-neutral-300 text-base font-normal tracking-[-0.32px] mt-4 text-center">
             Quickly find doctors, clinics, or services you need.
           </p>
-          <div className="mt-6 w-full">
-            <SearchInput onSearch={onSearch} />
-          </div>
+          {viewMode === 'services' && (
+            <div className="mt-6 w-full">
+              <ServicesFilter 
+                selectedCategory={selectedCategory}
+                onCategoryChange={onCategoryChange}
+              />
+            </div>
+          )}
         </div>
       </div>
     </section>
