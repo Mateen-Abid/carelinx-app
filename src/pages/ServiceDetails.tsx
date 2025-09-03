@@ -190,14 +190,14 @@ const ServiceDetails = () => {
             
             {/* Right side - Service Info Card */}
             <div className="lg:w-2/3">
-              <div className="bg-gradient-to-r from-green-200 via-blue-200 to-teal-200 rounded-lg h-64 flex items-center justify-center">
+              <div className="bg-white border rounded-lg h-64 flex items-center justify-center">
                 <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Book Your {serviceData.name} Appointment</h3>
-                  <p className="text-gray-700 mb-6">Professional care with experienced specialists</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Book Your {serviceData.name} Appointment</h3>
+                  <p className="text-gray-600 mb-6">Professional care with experienced specialists</p>
                   <Button 
                     size="lg"
                     onClick={() => handleBookAppointment()}
-                    className="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
+                    className="px-8 py-3 text-lg font-semibold"
                   >
                     Book Now
                   </Button>
