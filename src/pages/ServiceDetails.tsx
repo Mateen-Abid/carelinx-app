@@ -11,7 +11,7 @@ const serviceDetailsData = {
     specialty: 'Cardiology',
     description: 'Our cardiologists provide personalized ECG monitoring plans to help assess heart rhythm and detect irregular heartbeats. Suitable for all patients with cardiovascular concerns, with comprehensive analysis and treatment options available.',
     clinic: 'Central Medical Center',
-    clinicLogo: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=40&h=40&fit=crop&crop=center&auto=format',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
     address: '456 Oak Avenue, Suburb',
     schedule: {
       'Mon': '10:00 - 14:30',
@@ -40,7 +40,7 @@ const serviceDetailsData = {
     specialty: 'Radiology',
     description: 'Our radiologists provide comprehensive X-ray imaging services to help diagnose various medical conditions. State-of-the-art equipment ensures accurate results with minimal radiation exposure.',
     clinic: 'Willow Grove Clinic',
-    clinicLogo: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=40&h=40&fit=crop&crop=center&auto=format',
+    clinicLogo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=40&h=40&fit=crop&crop=center&auto=format',
     address: '456 Oak Avenue, Suburb',
     schedule: {
       'Mon': '09:00 - 13:00',
@@ -64,7 +64,7 @@ const serviceDetailsData = {
     specialty: 'Neurology',
     description: 'Our neurologists provide advanced brain imaging and scanning services to help diagnose neurological conditions. Comprehensive analysis with detailed reports and treatment recommendations.',
     clinic: 'Maple Leaf Center',
-    clinicLogo: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=40&h=40&fit=crop&crop=center&auto=format',
+    clinicLogo: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=40&h=40&fit=crop&crop=center&auto=format',
     address: '456 Oak Avenue, Suburb',
     schedule: {
       'Mon': 'Closed',
@@ -93,7 +93,7 @@ const serviceDetailsData = {
     specialty: 'Ophthalmology',
     description: 'Our ophthalmologists provide specialized retinal care services to help maintain and improve eye health. Comprehensive eye examinations with advanced diagnostic equipment.',
     clinic: 'Cedar Medical',
-    clinicLogo: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=40&h=40&fit=crop&crop=center&auto=format',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
     address: '456 Oak Avenue, Suburb',
     schedule: {
       'Mon': '08:00 - 15:00',
@@ -117,7 +117,7 @@ const serviceDetailsData = {
     specialty: 'General Medicine',
     description: 'Our medical professionals provide comprehensive ultrasound imaging services for various diagnostic purposes. Safe, non-invasive procedures with immediate results and detailed analysis.',
     clinic: 'Cedar Medical',
-    clinicLogo: 'https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=40&h=40&fit=crop&crop=center&auto=format',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
     address: '456 Oak Avenue, Suburb',
     schedule: {
       'Mon': '08:00 - 15:00',
