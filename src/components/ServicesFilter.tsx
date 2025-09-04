@@ -34,14 +34,14 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     return (
       <button
         onClick={() => handleCategorySelect(category.id)}
-        className={`flex items-center gap-2 justify-center px-4 py-3 rounded-full transition-colors min-h-[44px] ${
+        className={`flex items-center gap-1 sm:gap-2 justify-center px-3 sm:px-4 py-2 sm:py-3 rounded-full transition-colors min-h-[36px] sm:min-h-[44px] ${
           isSelected 
             ? 'bg-[rgba(0,255,162,1)] text-black font-medium' 
             : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
         }`}
       >
-        <IconComponent size={18} className="shrink-0" />
-        <span className="text-sm whitespace-nowrap">
+        <IconComponent size={16} className="shrink-0 sm:w-[18px] sm:h-[18px]" />
+        <span className="text-xs sm:text-sm whitespace-nowrap">
           {category.name}
         </span>
       </button>
@@ -50,7 +50,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   return (
     <div className="w-full">
-      <div className="flex w-full items-center gap-3 flex-wrap justify-center">
+      <div className="flex w-full items-center gap-2 sm:gap-3 flex-wrap justify-center">
         {categories.map((category) => (
           <CategoryPill
             key={category.id}

@@ -260,20 +260,20 @@ const Index = () => {
         
         {/* Services Section - only show when services is selected */}
         {viewMode === 'services' && (
-          <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-            <div className="max-w-7xl">
+          <section className="flex w-full flex-col items-stretch mt-4 sm:mt-6 px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-7xl mx-auto">
               {/* Search Bar above title */}
-              <div className="mb-4 max-w-2xl">
+              <div className="mb-4 w-full">
                 <SearchInput
                   placeholder="Search by service, clinic, or doctor's name"
                   onSearch={setSearchQuery}
                 />
               </div>
               
-              <h2 className="text-2xl text-black font-normal tracking-[-1px]">
+              <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
                 Services & Specialists
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[18px] mt-4 max-md:max-w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-[18px]">
                 {filteredServiceCards.map((card, index) => (
                   <ServiceCard
                     key={index}
@@ -288,12 +288,12 @@ const Index = () => {
         
         {/* Clinics Section - only show when clinics is selected */}
         {viewMode === 'clinics' && (
-          <section className="flex w-full flex-col items-stretch mt-6 px-8 max-md:max-w-full max-md:px-5">
-            <div id="clinic-section" className="max-w-7xl">
-              <h2 className="text-2xl text-black font-normal whitespace-nowrap tracking-[-1px]">
-                Clinic
+          <section className="flex w-full flex-col items-stretch mt-4 sm:mt-6 px-4 sm:px-6 lg:px-8">
+            <div id="clinic-section" className="w-full max-w-7xl mx-auto">
+              <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
+                Clinics
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[18px] mt-4 max-md:max-w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-[18px]">
                 {filteredClinicCards.map((clinic, index) => (
                   <ClinicCard key={index} {...clinic} />
                 ))}

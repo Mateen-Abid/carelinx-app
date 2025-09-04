@@ -38,7 +38,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   return (
-    <article className={`bg-white overflow-hidden flex-1 min-w-[222px] max-w-[222px] h-[460px] flex flex-col px-[18px] py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
+    <article className={`bg-white overflow-hidden w-full min-w-0 h-[420px] sm:h-[460px] flex flex-col px-3 sm:px-4 lg:px-[18px] py-4 sm:py-5 lg:py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
       {isSpecial && (
         <>
           <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
@@ -53,39 +53,39 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <div className="self-stretch flex w-full gap-1.5 font-normal">
           <img
             src={clinicIcon}
-            className="aspect-[1] object-contain w-6 shrink-0 rounded-[23px]"
+            className="aspect-[1] object-contain w-5 sm:w-6 shrink-0 rounded-[23px]"
             alt={`${clinicName} logo`}
           />
-          <div className="flex flex-col items-stretch justify-center w-[129px]">
-            <div className="text-black text-base">
+          <div className="flex flex-col items-stretch justify-center min-w-0 flex-1">
+            <div className="text-black text-sm sm:text-base truncate">
               {clinicName}
             </div>
-            <div className="text-[rgba(40,40,40,1)] text-xs">
+            <div className="text-[rgba(40,40,40,1)] text-xs truncate">
               {address}
             </div>
           </div>
         </div>
         
-        <div className="flex w-[102px] max-w-full gap-[-76px] mt-3 mb-3 self-center">
-          <div className="bg-[rgba(0,255,162,1)] flex w-[102px] items-center gap-5 justify-center h-[102px] px-5 rounded-[337px]">
+        <div className="flex w-20 sm:w-24 lg:w-[102px] max-w-full mt-2 sm:mt-3 mb-2 sm:mb-3 self-center">
+          <div className="bg-[rgba(0,255,162,1)] flex w-full aspect-square items-center justify-center px-3 sm:px-4 lg:px-5 rounded-full">
             <img
               src={serviceIcon}
-              className="aspect-[1] object-contain w-[62px] self-stretch my-auto"
+              className="aspect-[1] object-contain w-12 sm:w-14 lg:w-[62px] self-stretch my-auto"
               alt={serviceName}
             />
           </div>
         </div>
         
         <div className="flex flex-col items-center text-xs font-normal justify-center">
-          <div className="text-black text-xl tracking-[-0.4px] text-center h-[40px] flex items-center">
+          <div className="text-black text-lg sm:text-xl tracking-[-0.4px] text-center min-h-[32px] sm:min-h-[40px] flex items-center px-1">
             {serviceName}
           </div>
-          <div className="items-center border flex text-black font-medium whitespace-nowrap text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
+          <div className="items-center border flex text-black font-medium text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
             <div className="text-xs leading-[18px] self-stretch my-auto">
               {specialty}
             </div>
           </div>
-          <div className="text-[rgba(98,98,98,1)] mt-1 text-center h-[16px] flex items-center">
+          <div className="text-[rgba(98,98,98,1)] mt-1 text-center min-h-[16px] flex items-center px-1 truncate w-full">
             {address}
           </div>
         </div>

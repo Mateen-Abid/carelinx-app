@@ -52,25 +52,25 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   };
 
   return (
-    <article className="bg-white flex w-full flex-col h-[320px] overflow-hidden items-stretch p-3.5 rounded-[14px]">
-      <div className="flex w-full items-center gap-[40px_100px] justify-between py-[7px]">
-        <div className="self-stretch flex items-center gap-1.5 font-normal my-auto">
+    <article className="bg-white flex w-full flex-col h-[320px] sm:h-[340px] overflow-hidden items-stretch p-3 sm:p-3.5 rounded-[14px]">
+      <div className="flex w-full items-center justify-between py-[7px] gap-2">
+        <div className="flex items-center gap-1.5 font-normal min-w-0 flex-1">
           <img
             src={logo}
-            className="aspect-[1] object-contain w-[34px] self-stretch shrink-0 my-auto rounded-[32px]"
+            className="aspect-[1] object-contain w-8 sm:w-[34px] shrink-0 rounded-[32px]"
             alt={`${name} logo`}
           />
-          <div className="self-stretch flex flex-col items-stretch justify-center my-auto">
-            <div className="text-black text-base">
+          <div className="flex flex-col items-stretch justify-center min-w-0 flex-1">
+            <div className="text-black text-sm sm:text-base truncate">
               {name}
             </div>
-            <div className="text-[rgba(40,40,40,1)] text-xs">
+            <div className="text-[rgba(40,40,40,1)] text-xs truncate">
               {address}
             </div>
           </div>
         </div>
-        <div className="items-center border shadow-[0_1px_2px_0_rgba(10,13,18,0.05)] self-stretch flex text-xs text-[#414651] font-medium text-center bg-white my-auto px-1.5 py-0.5 rounded-md border-solid border-[#D5D7DA]">
-          <div className="text-[#414651] text-xs leading-[18px] self-stretch my-auto">
+        <div className="items-center border shadow-[0_1px_2px_0_rgba(10,13,18,0.05)] flex text-xs text-[#414651] font-medium text-center bg-white px-1.5 py-0.5 rounded-md border-solid border-[#D5D7DA] shrink-0">
+          <div className="text-[#414651] text-xs leading-[18px] whitespace-nowrap">
             {type}
           </div>
         </div>
@@ -82,15 +82,15 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
         <div className="flex w-full gap-1 text-black flex-wrap">
           {services.slice(0, 5).map((service, index) => (
-            <div key={index} className="bg-[rgba(243,243,243,1)] flex items-center gap-1.5 justify-center px-2.5 py-1.5 rounded-[99px]">
+            <div key={index} className="bg-[rgba(243,243,243,1)] flex items-center gap-1 sm:gap-1.5 justify-center px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-[99px]">
               {service.icon && (
                 <img
                   src={service.icon}
-                  className="aspect-[1] object-contain w-[18px] self-stretch shrink-0 my-auto"
+                  className="aspect-[1] object-contain w-4 sm:w-[18px] shrink-0"
                   alt=""
                 />
               )}
-              <div className="self-stretch my-auto text-xs">
+              <div className="text-xs truncate max-w-20 sm:max-w-none">
                 {service.name}
               </div>
             </div>
@@ -98,42 +98,46 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex w-full items-center gap-[19px] mt-2 mb-2">
-        <div className="self-stretch flex gap-2 w-[152px] my-auto">
+      <div className="flex w-full items-center gap-2 sm:gap-4 mt-2 mb-2">
+        <div className="flex gap-2 flex-1 min-w-0">
           {doctorAvatars && (
             <img
               src={doctorAvatars}
-              className="aspect-[4.74] object-contain w-[152px] gap-[-8px]"
+              className="aspect-[4.74] object-contain w-full max-w-32 sm:max-w-[152px]"
               alt="Doctor avatars"
             />
           )}
         </div>
-        <div className="text-[rgba(40,40,40,1)] text-xs font-normal self-stretch my-auto">
+        <div className="text-[rgba(40,40,40,1)] text-xs font-normal shrink-0">
           {doctorCount}
         </div>
       </div>
       
-      <div className="flex items-center gap-2.5 text-xs text-[rgba(40,40,40,1)] font-normal mb-3">
-        <div className="self-stretch my-auto">Days Open</div>
-        <div className="items-center border self-stretch flex gap-0.5 text-black font-medium text-center bg-neutral-50 my-auto pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-          <img
-            src={daysIcon}
-            className="aspect-[1] object-contain w-3 self-stretch shrink-0 my-auto"
-            alt="Calendar icon"
-          />
-          <div className="text-xs leading-[18px] self-stretch my-auto">
-            {daysOpen}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal mb-3">
+        <div className="flex items-center gap-2">
+          <div className="shrink-0">Days Open</div>
+          <div className="items-center border flex gap-0.5 text-black font-medium text-center bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
+            <img
+              src={daysIcon}
+              className="aspect-[1] object-contain w-3 shrink-0"
+              alt="Calendar icon"
+            />
+            <div className="text-xs leading-[18px] whitespace-nowrap">
+              {daysOpen}
+            </div>
           </div>
         </div>
-        <div className="self-stretch my-auto">Timing</div>
-        <div className="items-center border self-stretch flex gap-0.5 text-black font-medium text-center bg-neutral-50 my-auto pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-          <img
-            src={timingIcon}
-            className="aspect-[1] object-contain w-3 self-stretch shrink-0 my-auto"
-            alt="Clock icon"
-          />
-          <div className="text-xs leading-[18px] self-stretch my-auto">
-            {timing}
+        <div className="flex items-center gap-2">
+          <div className="shrink-0">Timing</div>
+          <div className="items-center border flex gap-0.5 text-black font-medium text-center bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
+            <img
+              src={timingIcon}
+              className="aspect-[1] object-contain w-3 shrink-0"
+              alt="Clock icon"
+            />
+            <div className="text-xs leading-[18px] whitespace-nowrap">
+              {timing}
+            </div>
           </div>
         </div>
       </div>
@@ -148,18 +152,18 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none w-full">
+        <div className="flex flex-col sm:flex-row items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none w-full">
           <button 
             onClick={handleViewDetails}
-            className="bg-[rgba(0,255,162,1)] self-stretch flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors"
+            className="bg-[rgba(0,255,162,1)] flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center px-4 sm:px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors w-full sm:flex-1"
           >
-            <span className="self-stretch my-auto">View Details</span>
+            <span className="text-xs sm:text-sm">View Details</span>
           </button>
           <button 
             onClick={handleBookAppointment}
-            className="bg-[rgba(14,36,68,1)] self-stretch flex min-h-[42px] items-center text-white justify-center my-auto px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors"
+            className="bg-[rgba(14,36,68,1)] flex min-h-[42px] items-center text-white justify-center px-4 sm:px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors w-full sm:flex-1"
           >
-            <span className="self-stretch my-auto">Book Appointment</span>
+            <span className="text-xs sm:text-sm">Book Appointment</span>
           </button>
         </div>
       )}

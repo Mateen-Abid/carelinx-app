@@ -20,71 +20,62 @@ const Header = () => {
 
   return (
     <header className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
-      <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center gap-[40px_100px] text-white justify-between flex-wrap px-8 max-md:max-w-full max-md:px-5">
-        <div className="self-stretch flex min-w-60 items-center gap-4 whitespace-nowrap flex-wrap my-auto max-md:max-w-full">
-          <div className="self-stretch flex items-center gap-4 text-[26px] font-semibold text-center uppercase tracking-[-1.04px] w-[169px] my-auto">
-            <div className="self-stretch flex w-[169px] items-center gap-4 justify-between my-auto">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/2489908460929fcfd1c2086f35e39627355f4bf9?placeholderIfAbsent=true"
-                className="aspect-[1] object-contain w-10 self-stretch shrink-0 my-auto"
-                alt="Carelinx Logo"
-              />
-              <div className="self-stretch my-auto">
-                Carelinx
-              </div>
+      <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+          <div className="flex items-center gap-2 sm:gap-4 text-lg sm:text-xl lg:text-[26px] font-semibold text-center uppercase tracking-[-1.04px]">
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/2489908460929fcfd1c2086f35e39627355f4bf9?placeholderIfAbsent=true"
+              className="aspect-[1] object-contain w-8 sm:w-10 shrink-0"
+              alt="Carelinx Logo"
+            />
+            <div className="hidden sm:block">
+              Carelinx
             </div>
           </div>
-          <nav className="self-stretch flex min-w-60 gap-[40px_44px] text-sm font-medium tracking-[-0.28px] leading-none my-auto py-5">
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium tracking-[-0.28px] ml-4 lg:ml-8">
             <div 
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <div className="self-stretch my-auto">
-                Home
-              </div>
+              Home
             </div>
             <div 
               onClick={() => navigate('/my-bookings')}
-              className="flex items-center gap-[9px] px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <div className="self-stretch my-auto">
-                Booking
-              </div>
+              Booking
             </div>
             <div 
               onClick={() => navigate('/profile')}
-              className="flex items-center gap-1 px-2.5 py-[7px] rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <div className="self-stretch my-auto">
-                Profile
-              </div>
+              Profile
             </div>
           </nav>
         </div>
-        <div className="self-stretch flex items-center gap-4 text-sm font-normal tracking-[-0.28px] leading-none my-auto">
+        
+        <div className="flex items-center gap-2 sm:gap-4 text-sm font-normal tracking-[-0.28px]">
           {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-white">Welcome, {user.email}</span>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="hidden lg:block text-white truncate max-w-32">Welcome, {user.email}</span>
               <button 
                 onClick={signOut}
-                className="hover:text-[rgba(0,255,162,1)] transition-colors px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10"
+                className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 text-xs sm:text-sm"
               >
                 Sign Out
               </button>
             </div>
           ) : (
-            <div className="self-stretch flex gap-[19px] my-auto pl-2.5 pr-[9px] pt-[27px] pb-7">
-              <button 
-                onClick={() => navigate('/auth')}
-                className="hover:text-[rgba(0,255,162,1)] transition-colors"
-              >
-                Log in
-              </button>
-            </div>
+            <button 
+              onClick={() => navigate('/auth')}
+              className="hidden sm:block hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2"
+            >
+              Log in
+            </button>
           )}
           <button 
             onClick={() => navigate('/auth')}
-            className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors"
+            className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
           >
             Sign Up
           </button>

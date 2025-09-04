@@ -12,9 +12,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
-      <div className="relative flex w-full flex-col py-[74px] max-md:max-w-full">
+      <div className="relative flex w-full flex-col py-8 sm:py-12 lg:py-[74px] px-4 sm:px-6 lg:px-8">
         {/* Background Pattern */}
-        <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20">
+        <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20 hidden md:block">
           <div className="flex w-full gap-[40px_62px] flex-wrap max-md:max-w-full">
             {/* First row of pattern icons */}
             {[
@@ -81,43 +81,43 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
         </div>
         
         {/* Main Content */}
-        <div className="self-center z-0 flex w-[576px] max-w-full flex-col items-center">
+        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-center">
           {/* Toggle between Services and Clinics */}
-          <div className="flex justify-center">
-            <div className="flex bg-white rounded-full p-1 border border-gray-200">
+          <div className="flex justify-center w-full">
+            <div className="flex bg-white rounded-full p-1 border border-gray-200 w-full sm:w-auto">
               <button
                 onClick={() => onViewModeChange('services')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
                   viewMode === 'services'
                     ? 'bg-[rgba(0,255,162,1)] text-black'
                     : 'text-gray-600 hover:text-black'
                 }`}
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
-                Services
+                <span>Services</span>
               </button>
               <button
                 onClick={() => onViewModeChange('clinics')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
                   viewMode === 'clinics'
                     ? 'bg-[rgba(0,255,162,1)] text-black'
                     : 'text-gray-600 hover:text-black'
                 }`}
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
                 </svg>
-                Clinics
+                <span>Clinics</span>
               </button>
             </div>
           </div>
-          <p className="text-neutral-300 text-base font-normal tracking-[-0.32px] mt-4 text-center">
+          <p className="text-neutral-300 text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-center px-4">
             Quickly find doctors, clinics, or services you need.
           </p>
           {viewMode === 'services' && (
-            <div className="mt-6 w-full">
+            <div className="mt-6 w-full px-4 sm:px-0">
               <ServicesFilter 
                 selectedCategory={selectedCategory}
                 onCategoryChange={onCategoryChange}
