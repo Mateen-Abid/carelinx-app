@@ -106,10 +106,10 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   };
 
   return (
-    <div className="w-full">
-      <div className="flex items-center gap-2 justify-center flex-wrap">
+    <div className="w-full relative">
+      <div className="flex items-center gap-2 justify-center flex-wrap overflow-visible">
         {/* All button with dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative z-50" ref={dropdownRef}>
           <CategoryButton
             category={mainCategories[0]}
             isSelected={selectedCategory === 'all'}
@@ -119,7 +119,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
               <div className="py-2">
                 {allCategories.map((category) => (
                   <DropdownItem
