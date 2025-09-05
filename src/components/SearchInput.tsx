@@ -23,7 +23,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState<SearchOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'categories' | 'services'>('categories');
   const searchRef = useRef<HTMLDivElement>(null);
 
   const searchOptions: SearchOption[] = [
@@ -106,7 +106,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
-        setShowCategoryDropdown(false);
       }
     };
 
@@ -120,7 +119,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
   useEffect(() => {
     setSearchValue('');
     setShowDropdown(false);
-    setShowCategoryDropdown(false);
   }, [selectedCategory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,36 +127,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearch?.(value);
 
     if (value.trim().length > 0) {
-      let filtered;
-      if (selectedCategory !== 'all') {
-        // Filter within selected category
-        filtered = searchOptions.filter(option =>
-          option.id.startsWith(selectedCategory) &&
-          option.type === 'subcategory' &&
-          option.name.toLowerCase().includes(value.toLowerCase())
-        );
-      } else {
-        // Filter across all options
-        filtered = searchOptions.filter(option =>
-          option.name.toLowerCase().includes(value.toLowerCase()) ||
-          option.category.toLowerCase().includes(value.toLowerCase())
-        ).slice(0, 8);
-      }
+      // Filter all options when typing
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(value.toLowerCase()) ||
+        option.category.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 12);
       setFilteredOptions(filtered);
       setShowDropdown(true);
-      setShowCategoryDropdown(false);
     } else {
-      // Show category options when empty and category selected, or hide dropdown
-      if (selectedCategory !== 'all') {
-        const subcategories = getCategorySubcategories();
-        setFilteredOptions(subcategories);
-        setShowCategoryDropdown(true);
-        setShowDropdown(false);
-      } else {
-        setFilteredOptions([]);
-        setShowDropdown(false);
-        setShowCategoryDropdown(false);
-      }
+      setShowDropdown(false);
     }
   };
 
@@ -178,59 +155,42 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const handleInputFocus = () => {
     if (searchValue.trim().length > 0) {
       // Show search results if user has typed something
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        option.category.toLowerCase().includes(searchValue.toLowerCase())
+      ).slice(0, 12);
+      setFilteredOptions(filtered);
       setShowDropdown(true);
-      setShowCategoryDropdown(false);
-    } else if (selectedCategory !== 'all') {
-      // Show category subcategories when a specific category is selected
-      const subcategories = getCategorySubcategories();
-      setFilteredOptions(subcategories);
-      setShowCategoryDropdown(true);
-      setShowDropdown(false);
     } else {
-      // Show popular/all options when clicking on search with "All" selected
-      const popularOptions = searchOptions.filter(option => option.type === 'category').slice(0, 6);
-      setFilteredOptions(popularOptions);
-      setShowDropdown(true);
-      setShowCategoryDropdown(false);
+      // Show comprehensive dropdown when clicking on empty search
+      showComprehensiveDropdown();
     }
   };
 
   const handleInputClick = () => {
-    handleInputFocus(); // Same behavior as focus
+    if (searchValue.trim().length === 0) {
+      showComprehensiveDropdown();
+    } else {
+      handleInputFocus();
+    }
   };
 
-  const handleCategoryOptionClick = (option: SearchOption) => {
-    setSearchValue(option.name);
-    setShowCategoryDropdown(false);
-    setShowDropdown(false);
-    onOptionSelect?.(option);
-    onSearch?.(option.name);
+  const showComprehensiveDropdown = () => {
+    setShowDropdown(true);
+    setActiveTab('categories');
+    setFilteredOptions(searchOptions.filter(option => option.type === 'category'));
+  };
+
+  const getSubcategoriesForActiveCategory = (categoryId: string) => {
+    return searchOptions.filter(option => 
+      option.type === 'subcategory' && 
+      option.id.startsWith(categoryId)
+    );
   };
 
   return (
     <div className="w-full flex justify-center relative" ref={searchRef}>
       <div className="relative w-full max-w-2xl">
-        {/* Category Subcategory Selector */}
-        {selectedCategory !== 'all' && (
-          <div className="mb-2">
-            <button
-              onClick={() => {
-                const subcategories = getCategorySubcategories();
-                setFilteredOptions(subcategories);
-                setShowCategoryDropdown(!showCategoryDropdown);
-              }}
-              className="flex items-center justify-between w-full px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-sm text-gray-700">
-                {searchValue || `Select ${getCategoryDisplayName()} service`}
-              </span>
-              <svg className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px] mx-auto border border-gray-100 shadow-sm">
             <img
@@ -244,40 +204,54 @@ const SearchInput: React.FC<SearchInputProps> = ({
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onClick={handleInputClick}
-              placeholder={selectedCategory !== 'all' ? `Search in ${getCategoryDisplayName()}...` : placeholder}
+              placeholder={placeholder}
               className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none cursor-pointer"
             />
           </div>
         </form>
 
-        {/* Category Subcategories Dropdown */}
-        {showCategoryDropdown && selectedCategory !== 'all' && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
-            <div className="py-2">
-              {filteredOptions.map((option) => (
+        {/* Unified Dropdown - Shows when clicking or typing */}
+        {showDropdown && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-96 overflow-hidden">
+            {/* Tabs when no search query */}
+            {searchValue.trim().length === 0 && (
+              <div className="flex border-b border-gray-200">
                 <button
-                  key={option.id}
-                  onClick={() => handleCategoryOptionClick(option)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                  onClick={() => {
+                    setActiveTab('categories');
+                    setFilteredOptions(searchOptions.filter(option => option.type === 'category'));
+                  }}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === 'categories'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
                 >
-                  <div className="text-sm font-medium text-gray-900">
-                    {option.name}
-                  </div>
+                  Categories
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Search Results Dropdown - shows when typing or clicking */}
-        {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
-            <div className="py-2">
+                <button
+                  onClick={() => {
+                    setActiveTab('services');
+                    setFilteredOptions(searchOptions.filter(option => option.type === 'subcategory'));
+                  }}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === 'services'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  All Services
+                </button>
+              </div>
+            )}
+            
+            {/* Options List */}
+            <div className="py-2 max-h-80 overflow-y-auto">
               {filteredOptions.map((option) => (
                 <button
                   key={option.id}
                   onClick={() => handleOptionClick(option)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -298,6 +272,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   </div>
                 </button>
               ))}
+              
+              {filteredOptions.length === 0 && searchValue.trim().length > 0 && (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <div className="text-sm">No results found for "{searchValue}"</div>
+                  <div className="text-xs mt-1">Try searching for a different term</div>
+                </div>
+              )}
             </div>
           </div>
         )}
