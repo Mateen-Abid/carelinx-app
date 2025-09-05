@@ -21,18 +21,16 @@ const Header = () => {
   return (
     <header className="bg-[#1E3A5F] w-full overflow-hidden">
       <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          <div className="flex items-center gap-2 sm:gap-4 text-lg sm:text-xl lg:text-[26px] font-semibold text-center uppercase tracking-[-1.04px]">
-            <img
-              src="/lovable-uploads/98d21f35-691f-49cf-874c-d5b499678040.png"
-              className="aspect-[1] object-contain w-8 sm:w-10 shrink-0"
-              alt="Carelinx Logo"
-            />
-            <div className="hidden sm:block">
-              Carelinx
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#00FFA2] rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#1E3A5F]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+              </svg>
             </div>
+            <span className="text-white hidden sm:block">carelinx</span>
           </div>
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium tracking-[-0.28px] ml-4 lg:ml-8">
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium ml-4 lg:ml-6">
             <div 
               onClick={() => navigate('/')}
               className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"

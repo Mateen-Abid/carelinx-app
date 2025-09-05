@@ -243,9 +243,9 @@ const ServiceCalendar: React.FC<{
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+    <div className="bg-gray-50 rounded-lg p-3 sm:p-4 max-w-2xl">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={goToPreviousMonth}
           className="p-2 hover:bg-gray-200 rounded-full transition-colors"
@@ -253,7 +253,7 @@ const ServiceCalendar: React.FC<{
           <ChevronLeft size={20} className="text-gray-600" />
         </button>
         
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
           {format(currentDate, 'MMMM yyyy')}
         </h3>
         
@@ -266,16 +266,16 @@ const ServiceCalendar: React.FC<{
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+      <div className="grid grid-cols-7 gap-1 mb-1">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div key={day} className="text-center py-2">
+          <div key={day} className="text-center py-1">
             <span className="text-xs sm:text-sm font-medium text-gray-600">{day}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-6">
+      <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
@@ -286,7 +286,7 @@ const ServiceCalendar: React.FC<{
               onClick={() => handleDateClick(date)}
               disabled={!isAvailable || !isCurrentMonth}
               className={`
-                aspect-square p-1 sm:p-2 rounded text-sm transition-all duration-200 min-h-[32px] sm:min-h-[40px]
+                aspect-square p-1 rounded text-sm transition-all duration-200 min-h-[28px] sm:min-h-[32px]
                 ${!isCurrentMonth 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : isAvailable
