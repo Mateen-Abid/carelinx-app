@@ -206,20 +206,14 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   const DropdownItem: React.FC<{ category: ServiceCategory }> = ({ category }) => {
     const IconComponent = category.icon;
-    const hasSubcategories = category.subcategories && category.subcategories.length > 0;
     
     return (
       <button
-        onClick={() => handleCategoryClick(category)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+        onClick={() => handleCategorySelect(category.id)}
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
-          <IconComponent size={16} className="shrink-0 text-gray-500" />
-          <span>{category.name}</span>
-        </div>
-        {hasSubcategories && (
-          <ChevronRight size={14} className="shrink-0 text-gray-400" />
-        )}
+        <IconComponent size={16} className="shrink-0 text-gray-500" />
+        <span>{category.name}</span>
       </button>
     );
   };
@@ -235,52 +229,17 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     );
   };
 
-  const getCurrentCategory = () => {
-    return allCategories.find(cat => cat.id === currentView);
-  };
-
   const renderDropdownContent = () => {
-    if (currentView === 'main') {
-      return (
-        <div className="py-2">
-          {allCategories.map((category) => (
-            <DropdownItem
-              key={category.id}
-              category={category}
-            />
-          ))}
-        </div>
-      );
-    } else {
-      const currentCategory = getCurrentCategory();
-      if (!currentCategory || !currentCategory.subcategories) return null;
-
-      return (
-        <div className="py-2">
-          {/* Back button */}
-          <button
-            onClick={() => setCurrentView('main')}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 mb-1"
-          >
-            <ArrowLeft size={16} className="shrink-0" />
-            <span>Back to All Categories</span>
-          </button>
-          
-          {/* Category header */}
-          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            {currentCategory.name}
-          </div>
-          
-          {/* Subcategories */}
-          {currentCategory.subcategories.map((subcategory) => (
-            <SubcategoryItem
-              key={subcategory.id}
-              subcategory={subcategory}
-            />
-          ))}
-        </div>
-      );
-    }
+    return (
+      <div className="py-2">
+        {allCategories.map((category) => (
+          <DropdownItem
+            key={category.id}
+            category={category}
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
