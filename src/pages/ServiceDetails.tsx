@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { BookingModal } from '@/components/BookingModal';
+import BookingConfirmationModal from '@/components/BookingConfirmationModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
 import { useBooking } from '@/contexts/BookingContext';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isAfter, startOfDay } from 'date-fns';
@@ -137,12 +137,13 @@ const serviceDatabase = {
 
 const ServiceDetails = () => {
   const { serviceId } = useParams();
-  const { addAppointment } = useBooking();
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const { addAppointment, confirmAppointment } = useBooking();
+  const [isBookingConfirmationOpen, setIsBookingConfirmationOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [pendingBookingId, setPendingBookingId] = useState<string>('');
 
   const serviceData = serviceDatabase[serviceId as keyof typeof serviceDatabase];
 
@@ -158,7 +159,7 @@ const ServiceDetails = () => {
   }
 
   const handleBookAppointment = () => {
-    setIsBookingModalOpen(true);
+    setIsBookingConfirmationOpen(true);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -170,19 +171,26 @@ const ServiceDetails = () => {
     setSelectedTimeSlot(timeSlot);
     setIsTimeSlotModalOpen(false);
     
-    // Automatically save the booking since date and time are selected
+    // Create pending booking
     if (selectedDate && serviceData) {
-      addAppointment({
+      const bookingId = addAppointment({
         doctorName: serviceData.doctors[0]?.name || 'Available Doctor',
         specialty: serviceData.name,
         clinic: serviceData.clinic,
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: timeSlot,
-        status: 'upcoming'
+        status: 'pending'
       });
       
-      // Show success message
-      alert(`✅ Appointment booked successfully!\n\nDate: ${format(selectedDate, 'MMMM d, yyyy')}\nTime: ${timeSlot}\nService: ${serviceData.name}\nClinic: ${serviceData.clinic}`);
+      setPendingBookingId(bookingId);
+      setIsBookingConfirmationOpen(true);
+    }
+  };
+
+  const handleConfirmBooking = () => {
+    if (pendingBookingId) {
+      confirmAppointment(pendingBookingId);
+      setPendingBookingId('');
     }
   };
 
@@ -397,6 +405,18 @@ const ServiceCalendar: React.FC<{
           </div>
         </div>
       </section>
+
+      <BookingConfirmationModal
+        isOpen={isBookingConfirmationOpen}
+        onClose={() => setIsBookingConfirmationOpen(false)}
+        onConfirm={handleConfirmBooking}
+        bookingDetails={{
+          date: selectedDate ? format(selectedDate, 'MMMM d, yyyy') : '',
+          time: selectedTimeSlot,
+          service: serviceData.name,
+          clinic: serviceData.clinic
+        }}
+      />
 
       <TimeSlotModal
         isOpen={isTimeSlotModalOpen}

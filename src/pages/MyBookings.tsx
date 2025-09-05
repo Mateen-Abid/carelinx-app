@@ -2,32 +2,40 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BookingModal } from '@/components/BookingModal';
-import { MoreVertical, Calendar, X } from 'lucide-react';
+import { MoreVertical, Calendar, X, Clock, MapPin, User } from 'lucide-react';
+import { format } from 'date-fns';
 
 const MyBookings = () => {
-  const { getUpcomingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
+  const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
   const navigate = useNavigate();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
   
   const upcomingAppointments = getUpcomingAppointments();
+  const pendingAppointments = getPendingAppointments();
   const pastBookings = getPastAppointments();
   
   console.log('All appointments:', appointments);
+  console.log('Pending appointments:', pendingAppointments);
   console.log('Upcoming appointments:', upcomingAppointments);
   console.log('Past bookings:', pastBookings);
+
+  const handleCancelAppointment = (id: string) => {
+    if (window.confirm('Are you sure you want to cancel this appointment?')) {
+      cancelAppointment(id);
+    }
+  };
 
   const handleReschedule = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     cancelAppointment(appointment.id);
     setIsBookingModalOpen(true);
-  };
-
-  const handleCancel = (appointmentId: string) => {
-    cancelAppointment(appointmentId);
   };
 
   const AppointmentCard = ({ appointment, showStatus = false, isUpcoming = false }: { 
@@ -78,7 +86,7 @@ const MyBookings = () => {
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm"
-                    onClick={() => handleCancel(appointment.id)}
+                    onClick={() => handleCancelAppointment(appointment.id)}
                   >
                     <X className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Cancel
@@ -97,61 +105,180 @@ const MyBookings = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <div className="flex flex-col">
-            {/* Clinic Info */}
-            <div className="w-full max-w-md mx-auto lg:mx-0">
-              <div className="bg-white border rounded-lg p-4 sm:p-6 h-48 sm:h-64 relative overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop&auto=format)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-                <div className="absolute inset-0 bg-white/80 rounded-lg"></div>
-                <div className="relative z-10">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">My Bookings</h1>
-                  <p className="text-sm sm:text-base text-gray-700">
-                    View and manage all your scheduled appointments in one place.
-                  </p>
-                </div>
+      <section className="bg-white py-8 px-4 sm:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
+          <p className="text-gray-600">View and manage all your scheduled appointments</p>
+        </div>
+      </section>
+
+      {/* Tabs Section */}
+      <section className="py-8 px-4 sm:px-8">
+        <div className="max-w-4xl mx-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="pending">Pending ({pendingAppointments.length})</TabsTrigger>
+              <TabsTrigger value="upcoming">Upcoming ({upcomingAppointments.length})</TabsTrigger>
+              <TabsTrigger value="past">Past ({pastBookings.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pending">
+              <div className="space-y-4">
+                {pendingAppointments.length > 0 ? (
+                  pendingAppointments.map((appointment) => (
+                    <Card key={appointment.id} className="p-6 bg-yellow-50 border-yellow-200">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{appointment.specialty}</h3>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              <span>{appointment.doctorName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{appointment.clinic}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Pending
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{appointment.time}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancelAppointment(appointment.id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No pending appointments.</p>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </TabsContent>
 
-      {/* Upcoming Appointments */}
-      <section className="py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Upcoming Appointments</h2>
-            <p className="text-sm sm:text-base text-gray-600">Stay prepared with your confirmed appointments. Tap for details or reschedule if needed.</p>
-          </div>
-          
-          {upcomingAppointments.length > 0 ? (
-            <div className="space-y-3 sm:space-y-4">
-              {upcomingAppointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} isUpcoming={true} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg p-6 sm:p-8 text-center border">
-              <p className="text-gray-500 mb-4">No upcoming appointments scheduled.</p>
-              <Button className="mt-4" onClick={() => navigate('/')}>Book New Appointment</Button>
-            </div>
-          )}
-        </div>
-      </section>
+            <TabsContent value="upcoming">
+              <div className="space-y-4">
+                {upcomingAppointments.length > 0 ? (
+                  upcomingAppointments.map((appointment) => (
+                    <Card key={appointment.id} className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{appointment.specialty}</h3>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              <span>{appointment.doctorName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{appointment.clinic}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Confirmed
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{appointment.time}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleReschedule(appointment)}
+                        >
+                          Reschedule
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancelAppointment(appointment.id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No upcoming appointments.</p>
+                    <Button className="mt-4" onClick={() => navigate('/')}>Book New Appointment</Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
-      {/* Past Bookings */}
-      <section className="py-6 lg:py-8 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Past Bookings</h2>
-            <p className="text-sm sm:text-base text-gray-600">Check your history of completed appointments. Perfect for quick reference or records.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {pastBookings.map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} showStatus={true} />
-            ))}
-          </div>
+            <TabsContent value="past">
+              <div className="space-y-4">
+                {pastBookings.length > 0 ? (
+                  pastBookings.map((appointment) => (
+                    <Card key={appointment.id} className="p-6 opacity-75">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{appointment.specialty}</h3>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              <span>{appointment.doctorName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{appointment.clinic}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Completed
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{appointment.time}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No past appointments.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
 

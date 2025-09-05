@@ -7,16 +7,17 @@ export interface Appointment {
   clinic: string;
   date: string;
   time: string;
-  status: 'upcoming' | 'completed';
-  
+  status: 'pending' | 'upcoming' | 'completed';
   bookedAt: Date;
 }
 
 interface BookingContextType {
   appointments: Appointment[];
-  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => void;
+  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => string;
+  confirmAppointment: (appointmentId: string) => void;
   cancelAppointment: (appointmentId: string) => void;
   getUpcomingAppointments: () => Appointment[];
+  getPendingAppointments: () => Appointment[];
   getPastAppointments: () => Appointment[];
 }
 
@@ -61,6 +62,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log('Updated appointments:', updated);
       return updated;
     });
+    return newAppointment.id;
+  };
+
+  const confirmAppointment = (appointmentId: string) => {
+    setAppointments(prev => 
+      prev.map(apt => 
+        apt.id === appointmentId ? { ...apt, status: 'upcoming' as const } : apt
+      )
+    );
   };
 
   const cancelAppointment = (appointmentId: string) => {
@@ -84,6 +94,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return upcoming;
   };
 
+  const getPendingAppointments = () => {
+    return appointments.filter(apt => apt.status === 'pending');
+  };
+
   const getPastAppointments = () => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
@@ -98,8 +112,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     <BookingContext.Provider value={{
       appointments,
       addAppointment,
+      confirmAppointment,
       cancelAppointment,
       getUpcomingAppointments,
+      getPendingAppointments,
       getPastAppointments
     }}>
       {children}
