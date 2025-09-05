@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { BookingModal } from '@/components/BookingModal';
+import TimeSlotModal from '@/components/TimeSlotModal';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -136,8 +137,10 @@ const serviceDatabase = {
 const ServiceDetails = () => {
   const { serviceId } = useParams();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
 
   const serviceData = serviceDatabase[serviceId as keyof typeof serviceDatabase];
 
@@ -152,16 +155,48 @@ const ServiceDetails = () => {
     );
   }
 
-  const handleBookAppointment = (doctorName?: string, selectedDate?: Date) => {
+  const handleBookAppointment = (doctorName?: string) => {
     if (doctorName) setSelectedDoctor(doctorName);
-    if (selectedDate) setSelectedDate(selectedDate);
     setIsBookingModalOpen(true);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setIsTimeSlotModalOpen(true);
+  };
+
+  const handleTimeSlotBook = (timeSlot: string) => {
+    setSelectedTimeSlot(timeSlot);
+    setIsBookingModalOpen(true);
+  };
+
+  // Generate time slots based on service schedule
+  const getTimeSlots = (date: Date) => {
+    const dayName = format(date, 'EEE');
+    const schedule = serviceData.schedule[dayName];
+    
+    if (!schedule || schedule === 'Closed') return [];
+    
+    // Parse schedule like "09:00 - 13:00"
+    const [startTime, endTime] = schedule.split(' - ');
+    const slots = [];
+    
+    // Generate 30-minute slots
+    let current = new Date(`2000-01-01 ${startTime}`);
+    const end = new Date(`2000-01-01 ${endTime}`);
+    
+    while (current < end) {
+      slots.push(format(current, 'h:mma'));
+      current.setMinutes(current.getMinutes() + 30);
+    }
+    
+    return slots;
   };
 
 // Service Calendar Component
 const ServiceCalendar: React.FC<{ 
   serviceData: any, 
-  onDateSelect: (doctorName?: string, selectedDate?: Date) => void 
+  onDateSelect: (date: Date) => void 
 }> = ({ serviceData, onDateSelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -180,7 +215,7 @@ const ServiceCalendar: React.FC<{
     const schedule = serviceData.schedule[dayName];
     
     if (schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()))) {
-      setSelectedDate(date);
+      onDateSelect(date);
     }
   };
 
@@ -206,29 +241,6 @@ const ServiceCalendar: React.FC<{
   }
 
   const calendarDays = [...paddedDays, ...allDaysInMonth];
-
-  // Generate time slots based on service schedule
-  const getTimeSlots = (date: Date) => {
-    const dayName = format(date, 'EEE');
-    const schedule = serviceData.schedule[dayName];
-    
-    if (!schedule || schedule === 'Closed') return [];
-    
-    // Parse schedule like "09:00 - 13:00"
-    const [startTime, endTime] = schedule.split(' - ');
-    const slots = [];
-    
-    // Generate 30-minute slots
-    let current = new Date(`2000-01-01 ${startTime}`);
-    const end = new Date(`2000-01-01 ${endTime}`);
-    
-    while (current < end) {
-      slots.push(format(current, 'HH:mm'));
-      current.setMinutes(current.getMinutes() + 30);
-    }
-    
-    return slots;
-  };
 
   return (
     <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
@@ -267,7 +279,6 @@ const ServiceCalendar: React.FC<{
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
-          const isSelected = selectedDate && isSameDay(date, selectedDate);
 
           return (
             <button
@@ -279,11 +290,7 @@ const ServiceCalendar: React.FC<{
                 ${!isCurrentMonth 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : isAvailable
-                    ? `cursor-pointer hover:bg-gray-200 ${
-                        isSelected 
-                          ? 'bg-blue-600 text-white font-bold' 
-                          : 'text-gray-900 font-bold hover:font-bold'
-                      }`
+                    ? 'cursor-pointer hover:bg-gray-200 text-gray-900 font-bold hover:font-bold'
                     : 'text-gray-400 cursor-not-allowed font-normal'
                 }
               `}
@@ -294,45 +301,6 @@ const ServiceCalendar: React.FC<{
         })}
       </div>
 
-      {/* Time Slots and Booking Section */}
-      {selectedDate && (
-        <div className="mt-6 p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
-          <div className="mb-4">
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </h4>
-            <p className="text-sm text-gray-600">
-              Available Time: {serviceData.schedule[format(selectedDate, 'EEE')]}
-            </p>
-          </div>
-
-          {/* Time Slots */}
-          <div className="mb-6">
-            <h5 className="text-base font-medium text-gray-900 mb-3">Select Time</h5>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {getTimeSlots(selectedDate).map((timeSlot) => (
-                <button
-                  key={timeSlot}
-                  onClick={() => onDateSelect(undefined, selectedDate)}
-                  className="p-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
-                >
-                  {timeSlot}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Book Appointment Button */}
-          <div className="text-center">
-            <Button
-              onClick={() => onDateSelect(undefined, selectedDate)}
-              className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Book Appointment for {format(selectedDate, 'MMM d, yyyy')}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -385,7 +353,7 @@ const ServiceCalendar: React.FC<{
           {/* Calendar Component */}
           <ServiceCalendar 
             serviceData={serviceData}
-            onDateSelect={handleBookAppointment}
+            onDateSelect={handleDateSelect}
           />
         </div>
       </section>
@@ -424,6 +392,14 @@ const ServiceCalendar: React.FC<{
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         clinicName={serviceData.clinic}
+      />
+
+      <TimeSlotModal
+        isOpen={isTimeSlotModalOpen}
+        onClose={() => setIsTimeSlotModalOpen(false)}
+        selectedDate={selectedDate}
+        timeSlots={selectedDate ? getTimeSlots(selectedDate) : []}
+        onBookAppointment={handleTimeSlotBook}
       />
     </div>
   );

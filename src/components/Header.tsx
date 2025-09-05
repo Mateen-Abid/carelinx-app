@@ -19,7 +19,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
+    <header className="bg-[#1E3A5F] w-full overflow-hidden">
       <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <div className="flex items-center gap-2 sm:gap-4 text-lg sm:text-xl lg:text-[26px] font-semibold text-center uppercase tracking-[-1.04px]">
