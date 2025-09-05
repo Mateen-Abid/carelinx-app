@@ -16,7 +16,7 @@ interface ClinicCardProps {
   daysOpen: string;
   timing: string;
   logo: string;
-  doctorAvatars?: string;
+  
   daysIcon: string;
   timingIcon: string;
   isCallOnly?: boolean;
@@ -32,7 +32,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   daysOpen,
   timing,
   logo,
-  doctorAvatars,
+  
   daysIcon,
   timingIcon,
   isCallOnly = false,
@@ -98,17 +98,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex w-full items-center gap-2 sm:gap-4 mt-2 mb-2">
-        <div className="flex gap-2 flex-1 min-w-0">
-          {doctorAvatars && (
-            <img
-              src={doctorAvatars}
-              className="aspect-[4.74] object-contain w-full max-w-32 sm:max-w-[152px]"
-              alt="Doctor avatars"
-            />
-          )}
-        </div>
-        <div className="text-[rgba(40,40,40,1)] text-xs font-normal shrink-0">
+      <div className="flex w-full items-center justify-end gap-2 mt-2 mb-2">
+        <div className="text-[rgba(40,40,40,1)] text-xs font-normal">
           {doctorCount}
         </div>
       </div>

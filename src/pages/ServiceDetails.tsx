@@ -26,12 +26,12 @@ const serviceDetailsData = {
       {
         name: 'Dr. Ali Ashar',
         specialization: 'MD, Cardiologist - 8 yrs experience',
-        image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       },
       {
         name: 'Dr. Maya Patel',
         specialization: 'MD, Cardiologist - 10 yrs experience',
-        image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       }
     ]
   },
@@ -55,7 +55,7 @@ const serviceDetailsData = {
       {
         name: 'Dr. Sarah Johnson',
         specialization: 'MD, Radiologist - 12 yrs experience',
-        image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       }
     ]
   },
@@ -79,12 +79,12 @@ const serviceDetailsData = {
       {
         name: 'Dr. Tom Yaeghn',
         specialization: 'MD, Neurologist - 15 yrs experience',
-        image: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       },
       {
         name: 'Dr. Lisa Chen',
         specialization: 'MD, Neurologist - 8 yrs experience',
-        image: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       }
     ]
   },
@@ -108,7 +108,7 @@ const serviceDetailsData = {
       {
         name: 'Dr. Michael Roberts',
         specialization: 'MD, Ophthalmologist - 20 yrs experience',
-        image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       }
     ]
   },
@@ -132,7 +132,7 @@ const serviceDetailsData = {
       {
         name: 'Dr. Jennifer White',
         specialization: 'MD, Ultrasonographer - 10 yrs experience',
-        image: 'https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=150&h=150&fit=crop&crop=face&auto=format'
+        
       }
     ]
   }
@@ -228,11 +228,6 @@ const ServiceDetails = () => {
             {serviceData.doctors.map((doctor, index) => (
               <div key={index} className="bg-white rounded-lg p-6 shadow-sm border">
                 <div className="text-center">
-                  <img
-                    src={doctor.image}
-                    alt={doctor.name}
-                    className="w-20 h-20 rounded-lg object-cover mx-auto mb-4"
-                  />
                   <h3 className="font-semibold text-gray-900 text-lg mb-2">{doctor.name}</h3>
                   <p className="text-sm text-gray-600 mb-4">{doctor.specialization}</p>
                 </div>

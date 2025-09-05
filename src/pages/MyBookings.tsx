@@ -37,11 +37,6 @@ const MyBookings = () => {
   }) => (
     <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3 sm:gap-4">
-        <img
-          src={appointment.doctorImage || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'}
-          alt={appointment.doctorName}
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
-        />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{appointment.doctorName}</h3>
           <p className="text-xs sm:text-sm text-gray-600 truncate">{appointment.specialty || 'General Medicine'}</p>

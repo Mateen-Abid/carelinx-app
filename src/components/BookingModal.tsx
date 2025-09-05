@@ -69,7 +69,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         date: appointmentDate,
         time: time,
         status: 'upcoming',
-        doctorImage: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'
+        
       });
     }
     

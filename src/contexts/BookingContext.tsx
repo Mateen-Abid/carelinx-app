@@ -8,7 +8,7 @@ export interface Appointment {
   date: string;
   time: string;
   status: 'upcoming' | 'completed';
-  doctorImage?: string;
+  
   bookedAt: Date;
 }
 
@@ -33,7 +33,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       date: '2024-04-20',
       time: '2:00 PM',
       status: 'completed',
-      doctorImage: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&crop=face&auto=format',
+      
       bookedAt: new Date('2024-04-15')
     },
     {
@@ -44,7 +44,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       date: '2024-04-18',
       time: '11:00 AM',
       status: 'completed',
-      doctorImage: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=80&h=80&fit=crop&crop=face&auto=format',
+      
       bookedAt: new Date('2024-04-10')
     }
   ]);

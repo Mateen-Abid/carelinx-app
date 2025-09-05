@@ -88,7 +88,7 @@ const Index = () => {
       daysOpen: "Mon – Fri",
       timing: "9:30 AM – 12:30 AM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/eababc4cfc9b8dff4a46e824ad2fb21e1453b080?placeholderIfAbsent=true",
-      doctorAvatars: "https://api.builder.io/api/v1/image/assets/TEMP/1427b50db626e222185fa3fbc4fc6128aecb8ccc?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
     },
@@ -106,7 +106,7 @@ const Index = () => {
       daysOpen: "Mon – Sun",
       timing: "8:00 AM – 10:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/2eb4771432582a9a78fd15f6acf0415df0cd933b?placeholderIfAbsent=true",
-      doctorAvatars: "https://api.builder.io/api/v1/image/assets/TEMP/c5a070d34e3fe862f7d0e05205414423cb39ba9f?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/526777c9061a4c3515d51b72c418673fd2d49d66?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5cae8cfaf36687f1dba212d0868d625367a19974?placeholderIfAbsent=true"
     },
@@ -125,7 +125,6 @@ const Index = () => {
       daysOpen: "Mon – Sat",
       timing: "10:00 AM – 6:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/0eda78af93b2aa8948c7d7bc8f142cbb7bb940cb?placeholderIfAbsent=true",
-      doctorAvatars: "https://api.builder.io/api/v1/image/assets/TEMP/8e56e14793369a1ac3bf99381e090b847becb7c7?placeholderIfAbsent=true",
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/faa7f0a43558699e2c5d63340e5ec1ec32f3efe9?placeholderIfAbsent=true"
     },
@@ -198,7 +197,7 @@ const Index = () => {
       daysOpen: "Tue – Sun",
       timing: "9:00 AM – 5:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/8559cde1d85afa8752521dd1ea31d0054ba77f05?placeholderIfAbsent=true",
-      doctorAvatars: "https://api.builder.io/api/v1/image/assets/TEMP/8e56e14793369a1ac3bf99381e090b847becb7c7?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
     }

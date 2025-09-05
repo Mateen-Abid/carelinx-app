@@ -12,7 +12,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'X-Ray',
@@ -20,7 +20,7 @@ const services = [
     specialization: 'Cardiologist',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Brain Scan',
@@ -28,7 +28,7 @@ const services = [
     specialization: 'Neurologist',
     timing: '01:00 PM - 5:00 PM | Mon-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Retinal Care',
@@ -36,7 +36,7 @@ const services = [
     specialization: 'Retinologist',
     timing: '11:00 AM - 4:00 PM | Tue-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Ultrasound',
@@ -44,7 +44,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '03:00 PM - 6:00 PM | Tue-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'ECG',
@@ -52,7 +52,7 @@ const services = [
     specialization: 'Ultrasonographer',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=80&h=80&fit=crop&crop=face&auto=format'
+    
   }
 ];
 
@@ -62,49 +62,49 @@ const doctors = [
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'Radiology Care',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'Radiology',
     available: true,
     timing: '9:00 AM - 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. House',
     specialization: 'Dermatology',
     available: true,
     timing: '9:00 AM - 7:00 PM',
-    image: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://images.unsplash.com/photo-1594824735912-67b476d5b591?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '9:00 AM - 10:00 PM',
-    image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   },
   {
     name: 'Dr. Ali Akbar',
     specialization: 'General Medicine',
     available: true,
     timing: '8:00 PM - 9:00 PM',
-    image: 'https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=150&h=150&fit=crop&crop=face&auto=format'
+    
   }
 ];
 
@@ -188,11 +188,6 @@ const ClinicDetails = () => {
                     <div className="w-6 h-6 bg-green-500 rounded-full"></div>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{service.name}</h3>
-                  <img
-                    src={service.image}
-                    alt={service.doctor}
-                    className="w-12 h-12 rounded-full object-cover mb-2"
-                  />
                   <p className="text-sm font-medium text-gray-900">{service.doctor}</p>
                   <p className="text-xs text-gray-600 mb-2">{service.specialization}</p>
                   <p className="text-xs text-gray-500 mb-3">{service.timing}</p>
@@ -214,11 +209,6 @@ const ClinicDetails = () => {
             {doctors.map((doctor, index) => (
               <div key={index} className="bg-gray-50 rounded-lg p-4 flex flex-col justify-between h-64">
                 <div className="text-center flex-1">
-                  <img
-                    src={doctor.image}
-                    alt={doctor.name}
-                    className="w-16 h-16 rounded-lg object-cover mx-auto mb-3"
-                  />
                   <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{doctor.name}</h3>
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
