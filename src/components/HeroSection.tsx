@@ -117,7 +117,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
             Quickly find doctors, clinics, or services you need.
           </p>
           {viewMode === 'services' && (
-            <div className="mt-6 w-full px-4 sm:px-0">
+            <div className="mt-6 w-full px-4 sm:px-0 relative overflow-visible">
               <ServicesFilter 
                 selectedCategory={selectedCategory}
                 onCategoryChange={onCategoryChange}

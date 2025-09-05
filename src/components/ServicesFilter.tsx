@@ -21,6 +21,7 @@ interface ServicesFilterProps {
 const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'main' | string>('main');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const mainCategories: ServiceCategory[] = [
@@ -147,6 +148,23 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     setCurrentView('main');
   };
 
+  const updateDropdownPosition = () => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX
+      });
+    }
+  };
+
+  const handleDropdownToggle = () => {
+    if (!isDropdownOpen) {
+      updateDropdownPosition();
+    }
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
   const handleCategoryClick = (category: ServiceCategory) => {
     if (category.subcategories && category.subcategories.length > 0) {
       setCurrentView(category.id);
@@ -266,20 +284,26 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   };
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative overflow-visible">
       <div className="flex items-center gap-2 justify-center flex-wrap overflow-visible">
         {/* All button with dropdown */}
-        <div className="relative z-50" ref={dropdownRef}>
+        <div className="relative z-[60]" ref={dropdownRef}>
           <CategoryButton
             category={mainCategories[0]}
             isSelected={selectedCategory === 'all'}
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            onClick={handleDropdownToggle}
             showChevron={true}
           />
           
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
+            <div 
+              className="fixed w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
+              style={{
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`
+              }}
+            >
               {renderDropdownContent()}
             </div>
           )}
