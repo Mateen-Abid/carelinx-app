@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { BookingModal } from '@/components/BookingModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
+import { useBooking } from '@/contexts/BookingContext';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -136,6 +137,7 @@ const serviceDatabase = {
 
 const ServiceDetails = () => {
   const { serviceId } = useParams();
+  const { addAppointment } = useBooking();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
@@ -167,7 +169,21 @@ const ServiceDetails = () => {
   const handleTimeSlotBook = (timeSlot: string) => {
     setSelectedTimeSlot(timeSlot);
     setIsTimeSlotModalOpen(false);
-    setIsBookingModalOpen(true);
+    
+    // Automatically save the booking since date and time are selected
+    if (selectedDate && serviceData) {
+      addAppointment({
+        doctorName: serviceData.doctors[0]?.name || 'Available Doctor',
+        specialty: serviceData.name,
+        clinic: serviceData.clinic,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: timeSlot,
+        status: 'upcoming'
+      });
+      
+      // Show success message
+      alert(`✅ Appointment booked successfully!\n\nDate: ${format(selectedDate, 'MMMM d, yyyy')}\nTime: ${timeSlot}\nService: ${serviceData.name}\nClinic: ${serviceData.clinic}`);
+    }
   };
 
   // Generate time slots based on service schedule
@@ -381,12 +397,6 @@ const ServiceCalendar: React.FC<{
           </div>
         </div>
       </section>
-
-      <BookingModal 
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        clinicName={serviceData.clinic}
-      />
 
       <TimeSlotModal
         isOpen={isTimeSlotModalOpen}
