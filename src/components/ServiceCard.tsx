@@ -38,7 +38,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   return (
-    <article className={`bg-white overflow-hidden w-full min-w-0 h-[420px] sm:h-[460px] flex flex-col px-3 sm:px-4 lg:px-[18px] py-4 sm:py-5 lg:py-[23px] rounded-[18px] ${isSpecial ? 'relative' : ''}`}>
+    <article 
+      onClick={handleServiceClick}
+      className={`bg-white overflow-hidden w-full min-w-0 h-[420px] sm:h-[460px] flex flex-col px-3 sm:px-4 lg:px-[18px] py-4 sm:py-5 lg:py-[23px] rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
+    >
       {isSpecial && (
         <>
           <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
@@ -91,11 +94,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
       </div>
       
-      {/* Spacer to push timing and button to bottom */}
+      {/* Spacer to push timing to bottom */}
       <div className="flex-1"></div>
       
       {/* Timing section - aligned at bottom */}
-      <div className="w-full text-xs mb-3">
+      <div className="w-full text-xs">
         <div className="text-[rgba(98,98,98,1)] font-normal">
           Time
         </div>
@@ -112,16 +115,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Button section - aligned at very bottom */}
-      <button 
-        onClick={handleServiceClick}
-        className="bg-[rgba(14,36,68,1)] flex min-h-[42px] w-full items-center text-sm text-white font-normal text-center tracking-[-0.28px] leading-none justify-center px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors"
-      >
-        <span className="self-stretch my-auto">
-          View Details
-        </span>
-      </button>
     </article>
   );
 };

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookingModal } from '@/components/BookingModal';
 
 interface ClinicService {
   name: string;
@@ -39,20 +38,18 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   phoneNumber
 }) => {
   const navigate = useNavigate();
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  const handleViewDetails = () => {
+  const handleCardClick = () => {
     // Convert clinic name to a URL-friendly slug
     const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     navigate(`/clinic/${clinicSlug}`);
   };
 
-  const handleBookAppointment = () => {
-    setIsBookingModalOpen(true);
-  };
-
   return (
-    <article className="bg-white flex w-full flex-col h-[320px] sm:h-[340px] overflow-hidden items-stretch p-3 sm:p-3.5 rounded-[14px]">
+    <article 
+      onClick={handleCardClick}
+      className="bg-white flex w-full flex-col h-[320px] sm:h-[340px] overflow-hidden items-stretch p-3 sm:p-3.5 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
+    >
       <div className="flex w-full items-center justify-between py-[7px] gap-2">
         <div className="flex items-center gap-1.5 font-normal min-w-0 flex-1">
           <img
@@ -104,7 +101,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal mb-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal">
         <div className="flex items-center gap-2">
           <div className="shrink-0">Days Open</div>
           <div className="items-center border flex gap-0.5 text-black font-medium text-center bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
@@ -132,38 +129,17 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         </div>
       </div>
-      
-      {isCallOnly ? (
-        <div className="flex items-center gap-3 text-xs justify-center">
+
+      {isCallOnly && (
+        <div className="flex items-center gap-3 text-xs justify-center mt-3">
           <div className="text-[rgba(207,42,42,1)] font-normal self-stretch my-auto">
-            Call Know for an Appoinment
+            Call Know for an Appointment
           </div>
           <div className="text-[rgba(40,40,40,1)] font-medium self-stretch my-auto">
             {phoneNumber}
           </div>
         </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row items-center gap-2 text-sm font-normal text-center tracking-[-0.28px] leading-none w-full">
-          <button 
-            onClick={handleViewDetails}
-            className="bg-[rgba(0,255,162,1)] flex min-h-[42px] items-center text-[rgba(12,34,67,1)] justify-center px-4 sm:px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(0,255,162,0.9)] transition-colors w-full sm:flex-1"
-          >
-            <span className="text-xs sm:text-sm">View Details</span>
-          </button>
-          <button 
-            onClick={handleBookAppointment}
-            className="bg-[rgba(14,36,68,1)] flex min-h-[42px] items-center text-white justify-center px-4 sm:px-[18px] py-[13px] rounded-[40px] hover:bg-[rgba(14,36,68,0.9)] transition-colors w-full sm:flex-1"
-          >
-            <span className="text-xs sm:text-sm">Book Appointment</span>
-          </button>
-        </div>
       )}
-
-      <BookingModal 
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        clinicName={name}
-      />
     </article>
   );
 };
