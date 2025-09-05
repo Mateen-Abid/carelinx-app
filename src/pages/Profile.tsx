@@ -28,23 +28,12 @@ const Profile = () => {
   const { user, signOut, updateProfile, changePassword, deleteAccount } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-  
   // Redirect to auth if not logged in
   useEffect(() => {
     if (!user) {
       navigate('/auth?message=Please sign in to access your profile');
+      return;
     }
-  }, [user, navigate]);
-  
-  // Don't render anything if user is not logged in
-  if (!user) {
-    return null;
-  }
     fetchProfile();
   }, [user, navigate]);
 
