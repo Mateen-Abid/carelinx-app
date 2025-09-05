@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 import { BookingModal } from '@/components/BookingModal';
@@ -35,7 +36,7 @@ const MyBookings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
       <Header />
       
       {/* Upcoming Appointments Section */}
@@ -225,6 +226,12 @@ const MyBookings = () => {
           clinicName={selectedAppointment.clinic}
         />
       )}
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation 
+        viewMode="services" 
+        onViewModeChange={() => {}} 
+      />
     </div>
   );
 };

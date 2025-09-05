@@ -4,6 +4,7 @@ import HeroSection from '@/components/HeroSection';
 import ServicesFilter from '@/components/ServicesFilter';
 import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
+import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
 
 const Index = () => {
@@ -244,7 +245,7 @@ const Index = () => {
   const filteredClinicCards = clinicCards;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
       <Header />
       <HeroSection 
         viewMode={viewMode}
@@ -302,6 +303,12 @@ const Index = () => {
           </section>
         )}
       </main>
+      
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation 
+        viewMode={viewMode} 
+        onViewModeChange={setViewMode} 
+      />
     </div>
   );
 };

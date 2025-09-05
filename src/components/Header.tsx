@@ -55,7 +55,13 @@ const Header = () => {
         <div className="flex items-center gap-2 sm:gap-4 text-sm font-normal tracking-[-0.28px]">
           {user ? (
             <div className="flex items-center gap-2 sm:gap-4">
-              <span className="hidden lg:block text-white truncate max-w-32">Welcome, {user.email}</span>
+              <div className="hidden sm:block">
+                <span className="hidden lg:block text-white truncate max-w-32">Welcome, {user.email}</span>
+              </div>
+              <div className="block sm:hidden text-white">
+                <div className="text-sm">Hi, John Doe</div>
+                <div className="text-xs text-gray-300">Good morning</div>
+              </div>
               <button 
                 onClick={signOut}
                 className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 text-xs sm:text-sm"
@@ -73,7 +79,7 @@ const Header = () => {
           )}
           <button 
             onClick={() => navigate('/auth')}
-            className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
+            className="hidden sm:block bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
           >
             Sign Up
           </button>
