@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { BookingModal } from '@/components/BookingModal';
 import { MoreVertical, Calendar, X, Clock, MapPin, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -17,6 +19,18 @@ const MyBookings = () => {
   const upcomingAppointments = getUpcomingAppointments();
   const pendingAppointments = getPendingAppointments();
   const pastBookings = getPastAppointments();
+  
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth?message=Please sign in to view your bookings');
+    }
+  }, [user, navigate]);
+  
+  // Don't render anything if user is not logged in
+  if (!user) {
+    return null;
+  }
   
   console.log('All appointments:', appointments);
   console.log('Pending appointments:', pendingAppointments);

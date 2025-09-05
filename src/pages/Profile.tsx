@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +33,18 @@ const Profile = () => {
       navigate('/auth');
       return;
     }
-    
+  
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth?message=Please sign in to access your profile');
+    }
+  }, [user, navigate]);
+  
+  // Don't render anything if user is not logged in
+  if (!user) {
+    return null;
+  }
     fetchProfile();
   }, [user, navigate]);
 
@@ -274,6 +286,12 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation 
+        viewMode="services" 
+        onViewModeChange={() => {}} 
+      />
     </div>
   );
 };

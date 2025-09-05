@@ -93,7 +93,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (data.user) {
         toast.success('Welcome back!');
-        window.location.href = '/';
+        
+        // Check for pending booking and redirect accordingly
+        const pendingBooking = sessionStorage.getItem('pendingBooking');
+        if (pendingBooking) {
+          const bookingData = JSON.parse(pendingBooking);
+          sessionStorage.removeItem('pendingBooking');
+          window.location.href = bookingData.returnTo || '/';
+        } else {
+          window.location.href = '/';
+        }
       }
       
       return { error: null };
@@ -110,7 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         toast.error(error.message);
       } else {
         toast.success('Signed out successfully');
-        window.location.href = '/auth';
+        window.location.href = '/';
       }
     } catch (error: any) {
       toast.error(error.message);

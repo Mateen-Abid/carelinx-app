@@ -22,11 +22,20 @@ const Auth = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showResendEmail, setShowResendEmail] = useState(false);
+  const [authMessage, setAuthMessage] = useState('');
   
   const { signIn, signUp, user, resendConfirmation } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check for message in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    if (message) {
+      setAuthMessage(message);
+      setIsLogin(true); // Default to login when coming from booking flow
+    }
+    
     if (user) {
       navigate('/');
     }

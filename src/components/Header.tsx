@@ -37,18 +37,22 @@ const Header = () => {
             >
               Home
             </div>
-            <div 
-              onClick={() => navigate('/my-bookings')}
-              className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              Booking
-            </div>
-            <div 
-              onClick={() => navigate('/profile')}
-              className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              Profile
-            </div>
+            {user && (
+              <>
+                <div 
+                  onClick={() => navigate('/my-bookings')}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Booking
+                </div>
+                <div 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Profile
+                </div>
+              </>
+            )}
           </nav>
         </div>
         
@@ -70,19 +74,21 @@ const Header = () => {
               </button>
             </div>
           ) : (
-            <button 
-              onClick={() => navigate('/auth')}
-              className="hidden sm:block hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2"
-            >
-              Log in
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => navigate('/auth')}
+                className="hidden sm:block hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2"
+              >
+                Log in
+              </button>
+              <button 
+                onClick={() => navigate('/auth')}
+                className="hidden sm:block bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
+              >
+                Sign Up
+              </button>
+            </div>
           )}
-          <button 
-            onClick={() => navigate('/auth')}
-            className="hidden sm:block bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
-          >
-            Sign Up
-          </button>
         </div>
       </div>
     </header>

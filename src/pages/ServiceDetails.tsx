@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import BookingConfirmationModal from '@/components/BookingConfirmationModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
 import { useBooking } from '@/contexts/BookingContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -137,6 +138,8 @@ const serviceDatabase = {
 
 const ServiceDetails = () => {
   const { serviceId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { addAppointment, confirmAppointment } = useBooking();
   const [isBookingConfirmationOpen, setIsBookingConfirmationOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
@@ -163,11 +166,29 @@ const ServiceDetails = () => {
   };
 
   const handleDateSelect = (date: Date) => {
+    // Check if user is authenticated before allowing date selection
+    if (!user) {
+      // Store the intended action and redirect to login
+      sessionStorage.setItem('pendingBooking', JSON.stringify({
+        serviceId,
+        date: format(date, 'yyyy-MM-dd'),
+        returnTo: window.location.pathname
+      }));
+      navigate('/auth?message=Please sign in to book an appointment');
+      return;
+    }
+    
     setSelectedDate(date);
     setIsTimeSlotModalOpen(true);
   };
 
   const handleTimeSlotBook = (timeSlot: string) => {
+    // Double-check authentication before booking
+    if (!user) {
+      navigate('/auth?message=Please sign in to complete your booking');
+      return;
+    }
+    
     setSelectedTimeSlot(timeSlot);
     setIsTimeSlotModalOpen(false);
     
