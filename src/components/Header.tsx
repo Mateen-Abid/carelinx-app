@@ -19,16 +19,16 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[#1E3A5F] w-full overflow-hidden">
+    <header className="bg-[#0C2243] w-full overflow-hidden">
       <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#00FFA2] rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#1E3A5F]" fill="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 text-base sm:text-lg font-normal">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#00FFA2] rounded-md flex items-center justify-center">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
               </svg>
             </div>
-            <span className="text-white hidden sm:block">carelinx</span>
+            <span className="text-white">carelinx</span>
           </div>
           <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium ml-4 lg:ml-6">
             <div 

@@ -76,7 +76,7 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
           <Button
             onClick={handleNext}
             disabled={!selectedTimeSlot}
-            className="w-full bg-[#1E3A5F] hover:bg-[#1E3A5F]/90 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </Button>

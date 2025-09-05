@@ -155,8 +155,7 @@ const ServiceDetails = () => {
     );
   }
 
-  const handleBookAppointment = (doctorName?: string) => {
-    if (doctorName) setSelectedDoctor(doctorName);
+  const handleBookAppointment = () => {
     setIsBookingModalOpen(true);
   };
 
@@ -167,6 +166,7 @@ const ServiceDetails = () => {
 
   const handleTimeSlotBook = (timeSlot: string) => {
     setSelectedTimeSlot(timeSlot);
+    setIsTimeSlotModalOpen(false);
     setIsBookingModalOpen(true);
   };
 
@@ -310,7 +310,7 @@ const ServiceCalendar: React.FC<{
       <Header />
       
       {/* Blue Header Section with Clinic and Service Info */}
-      <section className="bg-[#1E3A5F] text-white py-8 px-4 sm:px-8">
+      <section className="bg-[#0C2243] text-white py-8 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Clinic Info */}
           <div className="flex items-center gap-3 mb-6">
@@ -376,12 +376,6 @@ const ServiceCalendar: React.FC<{
                     <p className="text-sm text-gray-600">{doctor.specialization}</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => handleBookAppointment(doctor.name)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Book Appointment
-                </button>
               </div>
             ))}
           </div>
