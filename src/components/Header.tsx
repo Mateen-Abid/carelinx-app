@@ -24,7 +24,7 @@ const Header = () => {
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <div className="flex items-center gap-2 sm:gap-4 text-lg sm:text-xl lg:text-[26px] font-semibold text-center uppercase tracking-[-1.04px]">
             <img
-              src="https://api.builder.io/api/v1/image/assets/TEMP/2489908460929fcfd1c2086f35e39627355f4bf9?placeholderIfAbsent=true"
+              src="/lovable-uploads/98d21f35-691f-49cf-874c-d5b499678040.png"
               className="aspect-[1] object-contain w-8 sm:w-10 shrink-0"
               alt="Carelinx Logo"
             />
