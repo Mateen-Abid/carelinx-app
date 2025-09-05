@@ -129,15 +129,36 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearch?.(value);
 
     if (value.trim().length > 0) {
-      const filtered = searchOptions.filter(option =>
-        option.name.toLowerCase().includes(value.toLowerCase()) ||
-        option.category.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 8); // Limit to 8 results
+      let filtered;
+      if (selectedCategory !== 'all') {
+        // Filter within selected category
+        filtered = searchOptions.filter(option =>
+          option.id.startsWith(selectedCategory) &&
+          option.type === 'subcategory' &&
+          option.name.toLowerCase().includes(value.toLowerCase())
+        );
+      } else {
+        // Filter across all options
+        filtered = searchOptions.filter(option =>
+          option.name.toLowerCase().includes(value.toLowerCase()) ||
+          option.category.toLowerCase().includes(value.toLowerCase())
+        ).slice(0, 8);
+      }
       setFilteredOptions(filtered);
       setShowDropdown(true);
+      setShowCategoryDropdown(false);
     } else {
-      setFilteredOptions([]);
-      setShowDropdown(false);
+      // Show category options when empty and category selected, or hide dropdown
+      if (selectedCategory !== 'all') {
+        const subcategories = getCategorySubcategories();
+        setFilteredOptions(subcategories);
+        setShowCategoryDropdown(true);
+        setShowDropdown(false);
+      } else {
+        setFilteredOptions([]);
+        setShowDropdown(false);
+        setShowCategoryDropdown(false);
+      }
     }
   };
 
@@ -155,14 +176,27 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const handleInputFocus = () => {
-    if (selectedCategory !== 'all') {
+    if (searchValue.trim().length > 0) {
+      // Show search results if user has typed something
+      setShowDropdown(true);
+      setShowCategoryDropdown(false);
+    } else if (selectedCategory !== 'all') {
       // Show category subcategories when a specific category is selected
       const subcategories = getCategorySubcategories();
       setFilteredOptions(subcategories);
       setShowCategoryDropdown(true);
-    } else if (searchValue.trim().length > 0 && filteredOptions.length > 0) {
+      setShowDropdown(false);
+    } else {
+      // Show popular/all options when clicking on search with "All" selected
+      const popularOptions = searchOptions.filter(option => option.type === 'category').slice(0, 6);
+      setFilteredOptions(popularOptions);
       setShowDropdown(true);
+      setShowCategoryDropdown(false);
     }
+  };
+
+  const handleInputClick = () => {
+    handleInputFocus(); // Same behavior as focus
   };
 
   const handleCategoryOptionClick = (option: SearchOption) => {
@@ -209,8 +243,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
               value={searchValue}
               onChange={handleInputChange}
               onFocus={handleInputFocus}
+              onClick={handleInputClick}
               placeholder={selectedCategory !== 'all' ? `Search in ${getCategoryDisplayName()}...` : placeholder}
-              className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
+              className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none cursor-pointer"
             />
           </div>
         </form>
@@ -234,8 +269,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
           </div>
         )}
 
-        {/* Search Results Dropdown */}
-        {showDropdown && filteredOptions.length > 0 && selectedCategory === 'all' && (
+        {/* Search Results Dropdown - shows when typing or clicking */}
+        {showDropdown && filteredOptions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
             <div className="py-2">
               {filteredOptions.map((option) => (
