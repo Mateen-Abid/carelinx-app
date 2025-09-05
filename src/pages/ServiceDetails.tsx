@@ -188,7 +188,6 @@ const ServiceCalendar: React.FC<{
     
     if (schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()))) {
       setSelectedDate(date);
-      onDateSelect(undefined, date);
     }
   };
 
@@ -204,7 +203,7 @@ const ServiceCalendar: React.FC<{
 
   // Pad the beginning of the month to start on Monday
   const startDay = monthStart.getDay();
-  const paddingDays = startDay === 0 ? 6 : startDay - 1; // Convert Sunday (0) to 6, others subtract 1
+  const paddingDays = startDay === 0 ? 6 : startDay - 1;
   
   const paddedDays = [];
   for (let i = paddingDays; i > 0; i--) {
@@ -214,6 +213,29 @@ const ServiceCalendar: React.FC<{
   }
 
   const calendarDays = [...paddedDays, ...allDaysInMonth];
+
+  // Generate time slots based on service schedule
+  const getTimeSlots = (date: Date) => {
+    const dayName = format(date, 'EEE');
+    const schedule = serviceData.schedule[dayName];
+    
+    if (!schedule || schedule === 'Closed') return [];
+    
+    // Parse schedule like "09:00 - 13:00"
+    const [startTime, endTime] = schedule.split(' - ');
+    const slots = [];
+    
+    // Generate 30-minute slots
+    let current = new Date(`2000-01-01 ${startTime}`);
+    const end = new Date(`2000-01-01 ${endTime}`);
+    
+    while (current < end) {
+      slots.push(format(current, 'HH:mm'));
+      current.setMinutes(current.getMinutes() + 30);
+    }
+    
+    return slots;
+  };
 
   return (
     <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
@@ -248,12 +270,11 @@ const ServiceCalendar: React.FC<{
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-6">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
           const isSelected = selectedDate && isSameDay(date, selectedDate);
-          const isToday = isSameDay(date, new Date());
 
           return (
             <button
@@ -261,18 +282,16 @@ const ServiceCalendar: React.FC<{
               onClick={() => handleDateClick(date)}
               disabled={!isAvailable || !isCurrentMonth}
               className={`
-                aspect-square p-1 sm:p-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
+                aspect-square p-1 sm:p-2 rounded text-sm transition-all duration-200 min-h-[32px] sm:min-h-[40px]
                 ${!isCurrentMonth 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : isAvailable
-                    ? `cursor-pointer hover:bg-blue-100 ${
+                    ? `cursor-pointer hover:bg-gray-200 ${
                         isSelected 
-                          ? 'bg-blue-600 text-white shadow-md' 
-                          : isToday 
-                            ? 'bg-blue-100 text-blue-600 border-2 border-blue-300'
-                            : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300'
+                          ? 'bg-blue-600 text-white font-bold' 
+                          : 'text-gray-900 font-bold hover:font-bold'
                       }`
-                    : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                    : 'text-gray-400 cursor-not-allowed font-normal'
                 }
               `}
             >
@@ -282,30 +301,42 @@ const ServiceCalendar: React.FC<{
         })}
       </div>
 
-      {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-4 text-xs sm:text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-600 rounded"></div>
-          <span className="text-gray-600">Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-white border border-gray-200 rounded"></div>
-          <span className="text-gray-600">Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 rounded"></div>
-          <span className="text-gray-600">Unavailable</span>
-        </div>
-      </div>
-
-      {/* Selected Date Info */}
+      {/* Time Slots and Booking Section */}
       {selectedDate && (
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="text-sm font-medium text-blue-900">
-            Selected Date: {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+        <div className="mt-6 p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+          <div className="mb-4">
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </h4>
+            <p className="text-sm text-gray-600">
+              Available Time: {serviceData.schedule[format(selectedDate, 'EEE')]}
+            </p>
           </div>
-          <div className="text-sm text-blue-700 mt-1">
-            Available Time: {serviceData.schedule[format(selectedDate, 'EEE')]}
+
+          {/* Time Slots */}
+          <div className="mb-6">
+            <h5 className="text-base font-medium text-gray-900 mb-3">Select Time</h5>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {getTimeSlots(selectedDate).map((timeSlot) => (
+                <button
+                  key={timeSlot}
+                  onClick={() => onDateSelect(undefined, selectedDate)}
+                  className="p-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+                >
+                  {timeSlot}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Book Appointment Button */}
+          <div className="text-center">
+            <Button
+              onClick={() => onDateSelect(undefined, selectedDate)}
+              className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              Book Appointment for {format(selectedDate, 'MMM d, yyyy')}
+            </Button>
           </div>
         </div>
       )}
