@@ -11,16 +11,19 @@ interface SearchInputProps {
   placeholder?: string;
   onSearch?: (value: string) => void;
   onOptionSelect?: (option: SearchOption) => void;
+  selectedCategory?: string;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
   placeholder = "Search by service, clinic, or doctor's name",
   onSearch,
-  onOptionSelect 
+  onOptionSelect,
+  selectedCategory = 'all'
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState<SearchOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const searchOptions: SearchOption[] = [
@@ -84,10 +87,26 @@ const SearchInput: React.FC<SearchInputProps> = ({
     { id: 'orthopedics-fracture-care', name: 'Fracture Care', category: 'Orthopedics', type: 'subcategory' }
   ];
 
+  const getCategorySubcategories = () => {
+    if (selectedCategory === 'all') {
+      return searchOptions.filter(option => option.type === 'subcategory');
+    }
+    return searchOptions.filter(option => 
+      option.type === 'subcategory' && 
+      option.id.startsWith(selectedCategory)
+    );
+  };
+
+  const getCategoryDisplayName = () => {
+    const category = searchOptions.find(option => option.id === selectedCategory);
+    return category ? category.name : 'All Categories';
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+        setShowCategoryDropdown(false);
       }
     };
 
@@ -96,6 +115,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Reset search when category changes
+  useEffect(() => {
+    setSearchValue('');
+    setShowDropdown(false);
+    setShowCategoryDropdown(false);
+  }, [selectedCategory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -129,14 +155,48 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const handleInputFocus = () => {
-    if (searchValue.trim().length > 0 && filteredOptions.length > 0) {
+    if (selectedCategory !== 'all') {
+      // Show category subcategories when a specific category is selected
+      const subcategories = getCategorySubcategories();
+      setFilteredOptions(subcategories);
+      setShowCategoryDropdown(true);
+    } else if (searchValue.trim().length > 0 && filteredOptions.length > 0) {
       setShowDropdown(true);
     }
+  };
+
+  const handleCategoryOptionClick = (option: SearchOption) => {
+    setSearchValue(option.name);
+    setShowCategoryDropdown(false);
+    setShowDropdown(false);
+    onOptionSelect?.(option);
+    onSearch?.(option.name);
   };
 
   return (
     <div className="w-full flex justify-center relative" ref={searchRef}>
       <div className="relative w-full max-w-2xl">
+        {/* Category Subcategory Selector */}
+        {selectedCategory !== 'all' && (
+          <div className="mb-2">
+            <button
+              onClick={() => {
+                const subcategories = getCategorySubcategories();
+                setFilteredOptions(subcategories);
+                setShowCategoryDropdown(!showCategoryDropdown);
+              }}
+              className="flex items-center justify-between w-full px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm text-gray-700">
+                {searchValue || `Select ${getCategoryDisplayName()} service`}
+              </span>
+              <svg className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px] mx-auto border border-gray-100 shadow-sm">
             <img
@@ -149,14 +209,33 @@ const SearchInput: React.FC<SearchInputProps> = ({
               value={searchValue}
               onChange={handleInputChange}
               onFocus={handleInputFocus}
-              placeholder={placeholder}
+              placeholder={selectedCategory !== 'all' ? `Search in ${getCategoryDisplayName()}...` : placeholder}
               className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
             />
           </div>
         </form>
 
-        {/* Search Dropdown */}
-        {showDropdown && filteredOptions.length > 0 && (
+        {/* Category Subcategories Dropdown */}
+        {showCategoryDropdown && selectedCategory !== 'all' && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
+            <div className="py-2">
+              {filteredOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => handleCategoryOptionClick(option)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    {option.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Search Results Dropdown */}
+        {showDropdown && filteredOptions.length > 0 && selectedCategory === 'all' && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
             <div className="py-2">
               {filteredOptions.map((option) => (

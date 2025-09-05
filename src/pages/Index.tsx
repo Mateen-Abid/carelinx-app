@@ -266,6 +266,7 @@ const Index = () => {
                 <SearchInput
                   placeholder="Search by service, clinic, or doctor's name"
                   onSearch={setSearchQuery}
+                  selectedCategory={selectedCategory}
                 />
               </div>
               
