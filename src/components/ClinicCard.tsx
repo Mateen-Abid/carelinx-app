@@ -48,7 +48,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   return (
     <article 
       onClick={handleCardClick}
-      className="bg-white flex w-full flex-col h-[200px] sm:h-[240px] overflow-hidden items-stretch p-1.5 sm:p-2 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="bg-white flex w-full flex-col h-[160px] sm:h-[180px] overflow-hidden items-stretch p-1.5 sm:p-2 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
     >
       <div className="flex w-full items-center justify-between py-1 gap-2">
         <div className="flex items-center gap-1.5 font-normal min-w-0 flex-1">
