@@ -73,7 +73,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="w-full text-xs font-normal mt-0 flex-1">
+      <div className="w-full text-xs font-normal mt-0">
         <div className="text-[rgba(40,40,40,1)] mb-0.5">
           {services.length > 0 ? (type === 'Hospital' ? 'Departments' : 'Services') : 'Specialties'}
         </div>
