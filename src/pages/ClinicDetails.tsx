@@ -153,61 +153,63 @@ const ClinicDetails = () => {
       {/* Location & Info Section */}
       <section className="py-12 px-8 bg-gray-100">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Vumo - Bangalore</h3>
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-white rounded-lg p-3 sm:p-4 lg:p-6">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Vumo - Bangalore</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
               <div className="flex items-center gap-1">
-                <span className="text-lg font-bold">5.0</span>
+                <span className="text-base sm:text-lg font-bold">5.0</span>
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                    <svg key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>
-                <span className="text-gray-600">(100)</span>
+                <span className="text-gray-600 text-sm sm:text-base">(100)</span>
               </div>
-              <span className="text-green-600">• Closed opens soon at 9:00am</span>
-              <span className="text-gray-600">• NO Rihul, Bangalore</span>
-              <span className="text-gray-600">• 15 people recently book appt.</span>
+              <div className="flex flex-col gap-1 text-xs sm:text-sm">
+                <span className="text-green-600">• Closed opens soon at 9:00am</span>
+                <span className="text-gray-600">• NO Rihul, Bangalore</span>
+                <span className="text-gray-600">• 15 people recently book appt.</span>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Address</h4>
-                <p className="text-sm text-gray-600">
+                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Address</h4>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                   1st Floor, Icon Mall, 25th, 13th Main Rd,<br />
                   Indiranagar, Bengaluru, Karnataka 560038
                 </p>
-                <Button variant="link" className="p-0 h-auto text-blue-600 text-sm">
+                <Button variant="link" className="p-0 h-auto text-blue-600 text-xs sm:text-sm mt-1">
                   Get directions
                 </Button>
               </div>
               
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Hours</h4>
-                <div className="text-sm text-gray-600">
+                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Hours</h4>
+                <div className="text-xs sm:text-sm text-gray-600">
                   <p className="flex justify-between">
                     <span>Closed</span>
                   </p>
                   <p className="flex justify-between">
                     <span>Tue - Sun</span>
-                    <span>6:00 AM – 07:30 pm</span>
+                    <span className="text-right">6:00 AM – 07:30 pm</span>
                   </p>
                 </div>
               </div>
               
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Mode of payment</h4>
-                <p className="text-sm text-gray-600">
+                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Mode of payment</h4>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                   Cash, Debit Card, Credit Card<br />
                   UPI
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => handleBookAppointment()}>Book Appointment</Button>
+            <div className="mt-4 sm:mt-6 flex justify-center sm:justify-end">
+              <Button onClick={() => handleBookAppointment()} className="w-full sm:w-auto">Book Appointment</Button>
             </div>
           </div>
         </div>
