@@ -75,7 +75,7 @@ const Header = () => {
                 <span className="hidden lg:block text-white truncate max-w-32">Welcome, {user.email}</span>
               </div>
               <div className="block sm:hidden text-white">
-                <div className="text-sm">Hi, John Doe</div>
+                <div className="text-xs">Hi, {user.email?.split('@')[0]}</div>
                 <div className="text-xs text-gray-300">Good morning</div>
               </div>
               <button 
@@ -86,16 +86,16 @@ const Header = () => {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button 
                 onClick={() => navigate('/auth')}
-                className="hidden sm:block hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2"
+                className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2 text-xs sm:text-sm"
               >
                 Log in
               </button>
               <button 
                 onClick={() => navigate('/auth')}
-                className="hidden sm:block bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-3 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
+                className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-2 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
               >
                 Sign Up
               </button>

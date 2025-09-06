@@ -278,7 +278,7 @@ const Index = () => {
         
         {/* Services Section - only show when services is selected */}
         {viewMode === 'services' && (
-          <section className="flex w-full flex-col items-stretch mt-2 sm:mt-4 px-4 sm:px-6 lg:px-8">
+          <section className="flex w-full flex-col items-stretch mt-2 sm:mt-4 px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8">
             <div className="w-full max-w-7xl mx-auto">
               {/* Search Bar above title */}
               <div className="mb-4 w-full">
@@ -307,7 +307,7 @@ const Index = () => {
         
         {/* Clinics Section - only show when clinics is selected */}
         {viewMode === 'clinics' && (
-          <section className="flex w-full flex-col items-stretch mt-2 sm:mt-4 px-4 sm:px-6 lg:px-8">
+          <section className="flex w-full flex-col items-stretch mt-2 sm:mt-4 px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8">
             <div id="clinic-section" className="w-full max-w-7xl mx-auto">
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
                 Clinics

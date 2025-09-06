@@ -184,13 +184,13 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     return (
       <button
         onClick={onClick || (() => handleCategorySelect(category.id))}
-        className={`flex items-center gap-2 justify-center px-4 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
+        className={`flex items-center gap-1.5 sm:gap-2 justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-200 text-xs sm:text-sm font-medium ${
           isSelected 
             ? 'bg-[#1E40AF] text-white shadow-sm' 
             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
         }`}
       >
-        <IconComponent size={16} className="shrink-0" />
+        <IconComponent size={14} className="shrink-0 sm:w-4 sm:h-4" />
         <span className="whitespace-nowrap">
           {category.name}
         </span>
@@ -244,7 +244,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   return (
     <div className="w-full relative overflow-visible">
-      <div className="flex items-center gap-2 justify-center flex-wrap overflow-visible">
+      <div className="flex items-center gap-2 justify-center flex-wrap overflow-visible px-2 sm:px-0">
         {/* All button with dropdown */}
         <div className="relative z-[60]" ref={dropdownRef}>
           <CategoryButton
