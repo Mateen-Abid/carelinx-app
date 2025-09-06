@@ -49,6 +49,7 @@ const MyBookings = () => {
     if (appointmentToCancel) {
       cancelAppointment(appointmentToCancel.id);
       setAppointmentToCancel(null);
+      setIsCancelModalOpen(false);
     }
   };
 
