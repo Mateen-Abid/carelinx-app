@@ -213,30 +213,56 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </h3>
                   </div>
                   
-                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {timeSlots.map((slot, index) => (
-                      <button
-                        key={index}
-                        onClick={() => slot.available && handleTimeSelect(slot.time)}
-                        disabled={!slot.available}
-                        className={cn(
-                          "w-full p-3 rounded-lg border text-left transition-colors",
-                          slot.available
-                            ? "border-gray-200 hover:border-[rgba(12,34,67,1)] hover:bg-blue-50 cursor-pointer"
-                            : "border-gray-100 bg-gray-50 cursor-not-allowed opacity-50"
-                        )}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <div className="font-medium text-gray-900">{slot.time}</div>
-                          </div>
-                          {slot.available && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                   <div className="space-y-2 max-h-80 overflow-y-auto">
+                     {timeSlots.map((slot, index) => (
+                       <button
+                         key={index}
+                         onClick={() => slot.available && handleTimeSelect(slot.time)}
+                         disabled={!slot.available}
+                         className={cn(
+                           "w-full p-3 rounded-lg border text-left transition-colors sm:block",
+                           "sm:p-3 p-2 h-auto sm:h-auto",
+                           slot.available
+                             ? "border-gray-200 hover:border-[rgba(12,34,67,1)] hover:bg-blue-50 cursor-pointer"
+                             : "border-gray-100 bg-gray-50 cursor-not-allowed opacity-50"
+                         )}
+                       >
+                         {/* Mobile compact layout */}
+                         <div className="sm:hidden flex items-center gap-3 w-full">
+                           {/* Left side - Medical icon */}
+                           <div className="w-6 h-6 bg-[#0C2243] flex items-center justify-center rounded shrink-0">
+                             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                               <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                             </svg>
+                           </div>
+                           
+                           {/* Right side - Time info */}
+                           <div className="min-w-0 flex-1">
+                             <div className="text-black text-sm font-medium mb-1">
+                               {slot.doctor}
+                             </div>
+                             <div className="text-gray-600 text-xs">
+                               {slot.time}
+                             </div>
+                           </div>
+                           
+                           {slot.available && (
+                             <div className="w-2 h-2 bg-green-500 rounded-full shrink-0"></div>
+                           )}
+                         </div>
+
+                         {/* Desktop layout */}
+                         <div className="hidden sm:flex justify-between items-center">
+                           <div>
+                             <div className="font-medium text-gray-900">{slot.time}</div>
+                           </div>
+                           {slot.available && (
+                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                           )}
+                         </div>
+                       </button>
+                     ))}
+                   </div>
                 </div>
               </div>
             </div>
