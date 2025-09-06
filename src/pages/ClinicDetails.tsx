@@ -56,57 +56,6 @@ const services = [
   }
 ];
 
-const doctors = [
-  {
-    name: 'Dr. Shahia Murphy',
-    specialization: 'General Medicine',
-    available: true,
-    timing: '9:00 AM - 10:00 PM',
-    
-  },
-  {
-    name: 'Dr. Ali Akbar',
-    specialization: 'Radiology Care',
-    available: true,
-    timing: '9:00 AM - 10:00 PM',
-    
-  },
-  {
-    name: 'Dr. Ali Akbar',
-    specialization: 'Radiology',
-    available: true,
-    timing: '9:00 AM - 5:00 PM',
-    
-  },
-  {
-    name: 'Dr. House',
-    specialization: 'Dermatology',
-    available: true,
-    timing: '9:00 AM - 7:00 PM',
-    
-  },
-  {
-    name: 'Dr. Ali Akbar',
-    specialization: 'General Medicine',
-    available: true,
-    timing: '9:00 AM - 10:00 PM',
-    
-  },
-  {
-    name: 'Dr. Ali Akbar',
-    specialization: 'General Medicine',
-    available: true,
-    timing: '9:00 AM - 10:00 PM',
-    
-  },
-  {
-    name: 'Dr. Ali Akbar',
-    specialization: 'General Medicine',
-    available: true,
-    timing: '8:00 PM - 9:00 PM',
-    
-  }
-];
 
 const ClinicDetails = () => {
   const { clinicId } = useParams();
@@ -195,34 +144,6 @@ const ClinicDetails = () => {
                     Book Appointment
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Our Doctors Section */}
-      <section className="py-12 px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Our Doctors</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            {doctors.map((doctor, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 flex flex-col justify-between h-64">
-                <div className="text-center flex-1">
-                  <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{doctor.name}</h3>
-                  <div className="flex items-center justify-center gap-1 mb-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-gray-600 line-clamp-1">{doctor.specialization}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-1 mb-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-green-600">Available</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-4 line-clamp-2">{doctor.timing}</p>
-                </div>
-                <Button size="sm" className="w-full" onClick={() => handleBookAppointment(doctor.name)}>
-                  Book Appointment
-                </Button>
               </div>
             ))}
           </div>
