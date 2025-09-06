@@ -40,7 +40,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   return (
     <article 
       onClick={handleServiceClick}
-      className={`bg-white overflow-hidden w-full min-w-0 h-[140px] sm:h-[460px] flex flex-row sm:flex-col px-3 sm:px-4 lg:px-[18px] py-3 sm:py-5 lg:py-[23px] rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
+      className={`bg-white overflow-hidden w-full min-w-0 h-[60px] sm:h-[460px] flex flex-row sm:flex-col px-4 sm:px-4 lg:px-[18px] py-3 sm:py-5 lg:py-[23px] rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
       {isSpecial && (
         <>
@@ -51,57 +51,50 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </>
       )}
       
-      {/* Service icon - mobile left side */}
-      <div className="flex w-12 sm:w-24 lg:w-[102px] shrink-0 sm:hidden mr-3">
-        <div className="bg-[rgba(0,255,162,1)] flex w-full aspect-square items-center justify-center px-2 rounded-full">
-          <img
-            src={serviceIcon}
-            className="aspect-[1] object-contain w-8 self-stretch my-auto"
-            alt={serviceName}
-          />
-        </div>
-      </div>
-
-      {/* Main content section */}
-      <div className="flex w-full flex-col sm:flex-col flex-1">
-        {/* Clinic info section */}
-        <div className="self-stretch flex w-full gap-1.5 font-normal mb-1 sm:mb-0">
-          <img
-            src={clinicIcon}
-            className="aspect-[1] object-contain w-4 sm:w-6 shrink-0 rounded-[23px]"
-            alt={`${clinicName} logo`}
-          />
-          <div className="flex flex-col items-stretch justify-center min-w-0 flex-1">
-            <div className="text-black text-xs sm:text-base truncate">
-              {clinicName}
-            </div>
-            <div className="text-[rgba(98,98,98,1)] text-xs truncate sm:block hidden">
-              {address}
-            </div>
+      {/* Mobile compact layout */}
+      <div className="sm:hidden flex items-center justify-between w-full">
+        {/* Left side - Service icon and clinic name */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-6 h-6 bg-[rgba(0,255,162,1)] flex items-center justify-center rounded-full shrink-0">
+            <img
+              src={serviceIcon}
+              className="w-4 h-4 object-contain"
+              alt={serviceName}
+            />
           </div>
-          {/* Time on mobile - right side */}
-          <div className="sm:hidden flex items-center">
-            <div className="items-center border flex gap-0.5 bg-neutral-50 pl-1 pr-1.5 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-              <img
-                src={timeIcon}
-                className="aspect-[1] object-contain w-2.5 self-stretch shrink-0 my-auto"
-                alt="Time icon"
-              />
-              <div className="text-xs leading-[18px] self-stretch my-auto">
-                {timeSchedule}
-              </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-black text-sm font-medium truncate">
+              {clinicName}
             </div>
           </div>
         </div>
         
-        {/* Service name and specialty - mobile */}
-        <div className="sm:hidden">
-          <div className="text-black text-sm font-medium truncate">
-            {serviceName}
-          </div>
-          <div className="items-center border flex text-black font-medium text-center bg-neutral-50 mt-1 px-2 py-0.5 rounded-full border-solid border-[#E9EAEB] w-fit">
-            <div className="text-xs leading-[18px]">
-              {specialty}
+        {/* Right side - Time */}
+        <div className="flex items-center gap-1 text-xs text-gray-600 shrink-0">
+          <img
+            src={timeIcon}
+            className="w-3 h-3 object-contain"
+            alt="Time icon"
+          />
+          <span>{timeSchedule}</span>
+        </div>
+      </div>
+
+      {/* Desktop layout - keep existing */}
+      <div className="hidden sm:flex w-full flex-col">
+        {/* Clinic info section */}
+        <div className="self-stretch flex w-full gap-1.5 font-normal mb-0">
+          <img
+            src={clinicIcon}
+            className="aspect-[1] object-contain w-6 shrink-0 rounded-[23px]"
+            alt={`${clinicName} logo`}
+          />
+          <div className="flex flex-col items-stretch justify-center min-w-0 flex-1">
+            <div className="text-black text-base truncate">
+              {clinicName}
+            </div>
+            <div className="text-[rgba(98,98,98,1)] text-xs truncate">
+              {address}
             </div>
           </div>
         </div>
