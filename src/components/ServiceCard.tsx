@@ -42,9 +42,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       onClick={handleServiceClick}
       className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[320px] flex flex-row sm:flex-col px-2 sm:px-2 lg:px-3 py-1.5 sm:py-2 lg:py-3 rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
-      {isSpecial && (
-        <div className="bg-[rgba(0,255,162,1)] absolute z-10 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
-      )}
       
       {/* Mobile compact layout */}
       <div className="sm:hidden flex items-center gap-3 w-full">
