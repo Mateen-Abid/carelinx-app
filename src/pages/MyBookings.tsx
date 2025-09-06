@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { BookingModal } from '@/components/BookingModal';
+import { CancelBookingModal } from '@/components/CancelBookingModal';
 import { MoreVertical, Calendar, X, Clock, MapPin, User } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -15,6 +16,8 @@ const MyBookings = () => {
   const navigate = useNavigate();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   
   const upcomingAppointments = getUpcomingAppointments();
   const pendingAppointments = getPendingAppointments();
@@ -37,9 +40,15 @@ const MyBookings = () => {
   console.log('Upcoming appointments:', upcomingAppointments);
   console.log('Past bookings:', pastBookings);
 
-  const handleCancelAppointment = (id: string) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      cancelAppointment(id);
+  const handleCancelAppointment = (appointment: Appointment) => {
+    setAppointmentToCancel(appointment);
+    setIsCancelModalOpen(true);
+  };
+
+  const confirmCancelAppointment = () => {
+    if (appointmentToCancel) {
+      cancelAppointment(appointmentToCancel.id);
+      setAppointmentToCancel(null);
     }
   };
 
@@ -103,7 +112,7 @@ const MyBookings = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleCancelAppointment(appointment.id)}
+                        onClick={() => handleCancelAppointment(appointment)}
                         className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
                       >
                         Cancel
@@ -240,6 +249,23 @@ const MyBookings = () => {
           clinicName={selectedAppointment.clinic}
         />
       )}
+
+      {/* Cancel Booking Modal */}
+      <CancelBookingModal
+        isOpen={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setAppointmentToCancel(null);
+        }}
+        onConfirm={confirmCancelAppointment}
+        appointmentDetails={appointmentToCancel ? {
+          clinic: appointmentToCancel.clinic,
+          specialty: appointmentToCancel.specialty,
+          doctorName: appointmentToCancel.doctorName,
+          date: format(new Date(appointmentToCancel.date), 'd MMM, yyyy'),
+          time: appointmentToCancel.time
+        } : undefined}
+      />
 
       {/* Bottom Navigation - Mobile Only */}
       <BottomNavigation 
