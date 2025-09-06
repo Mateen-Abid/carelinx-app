@@ -146,16 +146,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="relative flex-shrink-0">
-          {/* Mobile back arrow */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-4 top-4 z-10 sm:hidden"
-            onClick={handleClose}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          
           <Button
             variant="ghost"
             size="icon"
