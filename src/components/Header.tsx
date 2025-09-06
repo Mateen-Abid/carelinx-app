@@ -22,6 +22,18 @@ const Header = () => {
     <header className="bg-[#0C2243] w-full overflow-hidden">
       <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {/* Back arrow - only on mobile and not on home page */}
+          {location.pathname !== '/' && (
+            <button 
+              onClick={() => navigate(-1)}
+              className="sm:hidden flex items-center justify-center w-8 h-8 mr-2"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          
           <div className="flex items-center gap-2 text-base sm:text-lg font-normal">
             <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#00FFA2] rounded-md flex items-center justify-center">
               <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
