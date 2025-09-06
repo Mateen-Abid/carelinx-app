@@ -119,45 +119,45 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div className="max-w-4xl mx-auto p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-20 sm:pb-8">
         {/* Profile Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-semibold text-foreground">Your Profile</h1>
-            <p className="text-muted-foreground">Manage your personal information and keep your details up to date.</p>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Your Profile</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage your personal information and keep your details up to date.</p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm">
               <div className="flex items-center gap-2">
                 <User size={16} />
-                <span>{profile?.full_name || 'Loading...'}</span>
+                <span className="truncate">{profile?.full_name || 'Loading...'}</span>
               </div>
-              <span className="text-muted-foreground">{profile?.email}</span>
+              <span className="text-muted-foreground text-xs sm:text-sm truncate">{profile?.email}</span>
             </div>
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 hidden sm:block" />
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="flex-1 sm:flex-none">
                 <Settings size={16} />
-                Settings
+                <span className="hidden sm:inline">Settings</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={signOut}>
+              <Button variant="ghost" size="sm" onClick={signOut} className="flex-1 sm:flex-none">
                 <LogOut size={16} />
-                Sign out
+                <span className="hidden sm:inline">Sign out</span>
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Profile Information */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleProfileUpdate} className="space-y-6">
+                <form onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-6">
                   <div>
                     <Label htmlFor="email" className="text-sm font-medium">
                       Your Email
@@ -187,7 +187,7 @@ const Profile = () => {
                     />
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full lg:w-auto">
+                  <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                     {loading ? 'Updating...' : 'Update Profile'}
                   </Button>
                 </form>
@@ -195,12 +195,12 @@ const Profile = () => {
             </Card>
 
             {/* Change Password */}
-            <Card className="mt-6">
+            <Card>
               <CardHeader>
-                <CardTitle>Change Password</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Change Password</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handlePasswordChange} className="space-y-6">
+                <form onSubmit={handlePasswordChange} className="space-y-4 sm:space-y-6">
                   <div>
                     <Label htmlFor="currentPassword" className="text-sm font-medium">
                       Current Password
@@ -229,7 +229,7 @@ const Profile = () => {
                     />
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full lg:w-auto">
+                  <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                     {loading ? 'Changing...' : 'Change Password'}
                   </Button>
                 </form>
@@ -241,7 +241,7 @@ const Profile = () => {
           <div>
             <Card className="border-destructive">
               <CardHeader>
-                <CardTitle className="text-destructive">Delete Account</CardTitle>
+                <CardTitle className="text-destructive text-lg sm:text-xl">Delete Account</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -254,7 +254,7 @@ const Profile = () => {
                       Delete Account
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="mx-4 max-w-md sm:mx-auto sm:max-w-lg">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -262,9 +262,9 @@ const Profile = () => {
                         and remove your data from our servers.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive hover:bg-destructive/90">
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteAccount} className="w-full sm:w-auto bg-destructive hover:bg-destructive/90">
                         Delete Account
                       </AlertDialogAction>
                     </AlertDialogFooter>
