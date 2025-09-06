@@ -43,12 +43,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[320px] flex flex-row sm:flex-col px-2 sm:px-2 lg:px-3 py-1.5 sm:py-2 lg:py-3 rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
       {isSpecial && (
-        <>
-          <div className="hidden sm:block text-black text-lg font-semibold tracking-[-1px] absolute top-2 left-3 z-10">
-            Physical Therapy
-          </div>
-          <div className="bg-[rgba(0,255,162,1)] absolute z-10 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
-        </>
+        <div className="bg-[rgba(0,255,162,1)] absolute z-10 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
       )}
       
       {/* Mobile compact layout */}
