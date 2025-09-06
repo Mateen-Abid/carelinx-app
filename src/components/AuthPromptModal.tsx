@@ -31,15 +31,6 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md mx-auto bg-white rounded-2xl p-0 overflow-hidden">
         <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-4 z-10"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
           <div className="text-center py-8 px-6">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
               <AlertCircle className="w-8 h-8 text-red-600" />
