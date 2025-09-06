@@ -48,7 +48,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   return (
     <article 
       onClick={handleCardClick}
-      className="bg-white flex w-full flex-col h-[180px] sm:h-[200px] overflow-hidden items-stretch p-1.5 sm:p-2 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="bg-white flex w-full flex-col min-h-[180px] sm:min-h-[200px] overflow-hidden items-stretch p-3 sm:p-4 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
     >
       <div className="flex w-full items-center justify-between py-1 gap-2">
         <div className="flex items-center gap-1.5 font-normal min-w-0 flex-1">
@@ -101,7 +101,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal pb-12">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal mt-auto">
         <div className="flex items-center gap-2">
           <div className="shrink-0">Days Open</div>
           <div className="items-center border flex gap-0.5 text-black font-medium text-center bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
