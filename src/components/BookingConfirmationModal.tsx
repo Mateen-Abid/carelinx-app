@@ -22,34 +22,24 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   onConfirm,
   bookingDetails
 }) => {
-  const [timeLeft, setTimeLeft] = useState(20);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isOpen) {
-      setTimeLeft(20);
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onConfirm();
-          onClose();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isOpen, onConfirm, onClose]);
 
   const handleViewBooking = () => {
     navigate('/my-bookings');
     onClose();
   };
+
+  // Auto-close modal after 3 seconds (booking is processing on backend)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setTimeout(() => {
+      onConfirm();
+      onClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, onConfirm, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -69,19 +59,16 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
           {/* Description */}
           <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-            Your appointment booking request has been sent. We'll get back to you shortly.
+            Your appointment booking request has been submitted successfully. You will receive a confirmation shortly.
           </p>
 
-          {/* Timer */}
+          {/* Processing indicator */}
           <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              Confirming booking in <span className="font-semibold text-gray-900">{timeLeft}s</span>
+            <p className="text-sm text-gray-600 text-center">
+              Processing your booking request...
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-              <div 
-                className="bg-[#0C2243] h-2 rounded-full transition-all duration-1000" 
-                style={{ width: `${((20 - timeLeft) / 20) * 100}%` }}
-              ></div>
+              <div className="bg-[#0C2243] h-2 rounded-full animate-pulse"></div>
             </div>
           </div>
 
