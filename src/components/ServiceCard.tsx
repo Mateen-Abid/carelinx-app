@@ -44,10 +44,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     >
       {isSpecial && (
         <>
-          <div className="text-black text-lg font-semibold tracking-[-1px] z-0">
+          <div className="hidden sm:block text-black text-lg font-semibold tracking-[-1px] absolute top-2 left-3 z-10">
             Physical Therapy
           </div>
-          <div className="bg-[rgba(0,255,162,1)] absolute z-0 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
+          <div className="bg-[rgba(0,255,162,1)] absolute z-10 flex min-h-[34px] items-center gap-[7px] justify-center w-[34px] h-[34px] py-[7px] rounded-[112px] right-[9px] top-[11px]" />
         </>
       )}
       
