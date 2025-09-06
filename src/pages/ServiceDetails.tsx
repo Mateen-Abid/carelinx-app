@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import BookingConfirmationModal from '@/components/BookingConfirmationModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isAfter, startOfDay } from 'date-fns';
@@ -174,6 +175,7 @@ const ServiceDetails = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
 
   const serviceData = serviceDatabase[serviceId as keyof typeof serviceDatabase];
 
@@ -195,13 +197,13 @@ const ServiceDetails = () => {
   const handleDateSelect = (date: Date) => {
     // Check if user is authenticated before allowing date selection
     if (!user) {
-      // Store the intended action and redirect to login
+      // Store the intended action for after login
       sessionStorage.setItem('pendingBooking', JSON.stringify({
         serviceId,
         date: format(date, 'yyyy-MM-dd'),
         returnTo: window.location.pathname
       }));
-      navigate('/auth?message=Please sign in to book an appointment');
+      setIsAuthPromptOpen(true);
       return;
     }
     
@@ -212,7 +214,7 @@ const ServiceDetails = () => {
   const handleTimeSlotBook = async (timeSlot: string) => {
     // Double-check authentication before booking
     if (!user) {
-      navigate('/auth?message=Please sign in to complete your booking');
+      setIsAuthPromptOpen(true);
       return;
     }
     
@@ -480,6 +482,11 @@ const ServiceCalendar: React.FC<{
         selectedDate={selectedDate}
         timeSlots={selectedDate ? getTimeSlots(selectedDate) : []}
         onBookAppointment={handleTimeSlotBook}
+      />
+
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => setIsAuthPromptOpen(false)}
       />
     </div>
   );

@@ -28,12 +28,20 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for message in URL params
+    // Check for message and mode in URL params
     const urlParams = new URLSearchParams(window.location.search);
     const message = urlParams.get('message');
+    const mode = urlParams.get('mode');
+    
     if (message) {
       setAuthMessage(message);
-      setIsLogin(true); // Default to login when coming from booking flow
+    }
+    
+    // Set form mode based on URL parameter
+    if (mode === 'signup') {
+      setIsLogin(false);
+    } else if (mode === 'login') {
+      setIsLogin(true);
     }
     
     if (user) {
