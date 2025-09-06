@@ -48,7 +48,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   return (
     <article 
       onClick={handleCardClick}
-      className="bg-white flex w-full flex-col h-[320px] sm:h-[340px] overflow-hidden items-stretch p-3 sm:p-3.5 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="bg-white flex w-full flex-col h-[280px] sm:h-[340px] overflow-hidden items-stretch p-3 sm:p-3.5 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
     >
       <div className="flex w-full items-center justify-between py-[7px] gap-2">
         <div className="flex items-center gap-1.5 font-normal min-w-0 flex-1">
@@ -73,8 +73,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="w-full text-xs font-normal mt-2 flex-1">
-        <div className="text-[rgba(40,40,40,1)] mb-2">
+      <div className="w-full text-xs font-normal mt-1 flex-1">
+        <div className="text-[rgba(40,40,40,1)] mb-1">
           {services.length > 0 ? (type === 'Hospital' ? 'Departments' : 'Services') : 'Specialties'}
         </div>
         <div className="flex w-full gap-1 text-black flex-wrap">
@@ -95,7 +95,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex w-full items-center justify-end gap-2 mt-2 mb-2">
+      <div className="flex w-full items-center justify-end gap-2 mt-1 mb-1">
         <div className="text-[rgba(40,40,40,1)] text-xs font-normal">
           {doctorCount}
         </div>

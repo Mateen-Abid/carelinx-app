@@ -144,7 +144,7 @@ const Auth = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder={isLogin ? "olivia@untitledui.com" : "name@example.com"}
+                  placeholder="Enter email here"
                   className="mt-1 h-10 bg-muted border-border"
                   required
                 />
