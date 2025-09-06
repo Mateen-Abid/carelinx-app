@@ -61,6 +61,7 @@ const ClinicDetails = () => {
   const { clinicId } = useParams();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<string>('');
 
   // Real clinic data mapping based on the Index page data
   const clinicData = {
@@ -97,8 +98,9 @@ const ClinicDetails = () => {
     description: 'Professional healthcare services available for your medical needs.'
   };
 
-  const handleBookAppointment = (doctorName?: string) => {
+  const handleBookAppointment = (doctorName?: string, serviceName?: string) => {
     setSelectedDoctor(doctorName || 'Dr. Ishfaq');
+    setSelectedService(serviceName || 'General Consultation');
     setIsBookingModalOpen(true);
   };
 
@@ -140,7 +142,7 @@ const ClinicDetails = () => {
                   <p className="text-sm font-medium text-gray-900">{service.doctor}</p>
                   <p className="text-xs text-gray-600 mb-2">{service.specialization}</p>
                   <p className="text-xs text-gray-500 mb-3">{service.timing}</p>
-                  <Button size="sm" className="w-full" onClick={() => handleBookAppointment(service.doctor)}>
+                  <Button size="sm" className="w-full" onClick={() => handleBookAppointment(service.doctor, service.name)}>
                     Book Appointment
                   </Button>
                 </div>
@@ -220,6 +222,7 @@ const ClinicDetails = () => {
         onClose={() => setIsBookingModalOpen(false)}
         doctorName={selectedDoctor}
         clinicName={currentClinic.name}
+        serviceName={selectedService}
       />
     </div>
   );

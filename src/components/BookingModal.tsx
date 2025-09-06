@@ -22,19 +22,19 @@ interface TimeSlot {
   available: boolean;
 }
 
-const timeSlots: TimeSlot[] = [
-  { time: '5:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '6:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '7:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '8:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '9:00am', doctor: 'Dr Ishfaq', available: false },
-  { time: '10:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '11:00am', doctor: 'Dr Ishfaq', available: true },
-  { time: '12:00pm', doctor: 'Dr Ishfaq', available: true },
-  { time: '1:00pm', doctor: 'Dr Ishfaq', available: true },
-  { time: '2:00pm', doctor: 'Dr Ishfaq', available: false },
-  { time: '3:00pm', doctor: 'Dr Ishfaq', available: true },
-  { time: '4:00pm', doctor: 'Dr Ishfaq', available: true },
+const generateTimeSlots = (doctorName: string): TimeSlot[] => [
+  { time: '5:00am', doctor: doctorName, available: true },
+  { time: '6:00am', doctor: doctorName, available: true },
+  { time: '7:00am', doctor: doctorName, available: true },
+  { time: '8:00am', doctor: doctorName, available: true },
+  { time: '9:00am', doctor: doctorName, available: false },
+  { time: '10:00am', doctor: doctorName, available: true },
+  { time: '11:00am', doctor: doctorName, available: true },
+  { time: '12:00pm', doctor: doctorName, available: true },
+  { time: '1:00pm', doctor: doctorName, available: true },
+  { time: '2:00pm', doctor: doctorName, available: false },
+  { time: '3:00pm', doctor: doctorName, available: true },
+  { time: '4:00pm', doctor: doctorName, available: true },
 ];
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -49,6 +49,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [step, setStep] = useState<'date' | 'confirmation'>('date');
   const { addAppointment } = useBooking();
   const navigate = useNavigate();
+  
+  const timeSlots = generateTimeSlots(doctorName);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
