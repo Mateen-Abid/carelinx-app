@@ -49,31 +49,23 @@ serve(async (req) => {
       throw insertError
     }
 
-    // Background task: Auto-confirm booking after 20 seconds
-    const backgroundTask = async () => {
-      console.log(`Starting 20-second timer for booking ${booking.id}`)
-      
-      // Wait for 20 seconds
-      await new Promise(resolve => setTimeout(resolve, 20000))
-      
-      // Update booking status to 'confirmed'
-      const { error: updateError } = await supabaseClient
-        .from('bookings')
-        .update({ 
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString()
-        })
-        .eq('id', booking.id)
+    console.log(`Booking ${booking.id} created, confirming immediately...`)
 
-      if (updateError) {
-        console.error('Error confirming booking:', updateError)
-      } else {
-        console.log(`Booking ${booking.id} auto-confirmed after 20 seconds`)
-      }
+    // Immediately confirm the booking (simulating payment processing)
+    const { error: updateError } = await supabaseClient
+      .from('bookings')
+      .update({ 
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      })
+      .eq('id', booking.id)
+
+    if (updateError) {
+      console.error('Error confirming booking:', updateError)
+      throw updateError
     }
 
-    // Start background task without awaiting
-    EdgeRuntime.waitUntil(backgroundTask())
+    console.log(`Booking ${booking.id} confirmed successfully`)
 
     // Return immediate response
     return new Response(
