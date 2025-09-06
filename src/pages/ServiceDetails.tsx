@@ -292,11 +292,11 @@ const ServiceCalendar: React.FC<{
   };
 
   const handleDateClick = (date: Date) => {
-    // Check if the service is available on this day
+    // Check if the service is available on this day (excluding Sundays)
     const dayName = format(date, 'EEE');
     const schedule = serviceData.schedule[dayName];
     
-    if (schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()))) {
+    if (schedule && schedule !== 'Closed' && dayName !== 'Sun' && isAfter(date, startOfDay(new Date()))) {
       onDateSelect(date);
     }
   };
@@ -304,7 +304,8 @@ const ServiceCalendar: React.FC<{
   const isDateAvailable = (date: Date) => {
     const dayName = format(date, 'EEE');
     const schedule = serviceData.schedule[dayName];
-    return schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()));
+    // Exclude Sundays and past days
+    return schedule && schedule !== 'Closed' && dayName !== 'Sun' && isAfter(date, startOfDay(new Date()));
   };
 
   const monthStart = startOfMonth(currentDate);
@@ -368,11 +369,11 @@ const ServiceCalendar: React.FC<{
               onClick={() => handleDateClick(date)}
               disabled={!isAvailable || !isCurrentMonth}
               className={`
-                aspect-square p-1 rounded text-sm transition-all duration-200 min-h-[28px] sm:min-h-[32px]
+                aspect-square p-1 rounded-full text-sm transition-all duration-200 min-h-[28px] sm:min-h-[32px]
                 ${!isCurrentMonth 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : isAvailable
-                    ? 'cursor-pointer hover:bg-gray-200 text-gray-900 font-bold hover:font-bold'
+                    ? 'cursor-pointer bg-blue-100 border-2 border-blue-300 text-blue-800 font-bold hover:bg-blue-200 hover:border-blue-400 shadow-sm'
                     : 'text-gray-400 cursor-not-allowed font-normal'
                 }
               `}
