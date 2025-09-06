@@ -146,15 +146,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="relative flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-4 z-10"
-            onClick={handleClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="text-xl font-semibold text-center">
               Select a Date & Time
