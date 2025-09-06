@@ -40,7 +40,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   return (
     <article 
       onClick={handleServiceClick}
-      className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[380px] flex flex-row sm:flex-col px-3 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
+      className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[320px] flex flex-row sm:flex-col px-2 sm:px-2 lg:px-3 py-1.5 sm:py-2 lg:py-3 rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
       {isSpecial && (
         <>
@@ -91,11 +91,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
 
         {/* Desktop layout - hidden on mobile */}
-        <div className="hidden sm:flex w-20 sm:w-24 lg:w-[90px] max-w-full mt-1 sm:mt-2 mb-1 sm:mb-2 self-center">
-          <div className="bg-[rgba(0,255,162,1)] flex w-full aspect-square items-center justify-center px-3 sm:px-4 lg:px-5 rounded-full">
+        <div className="hidden sm:flex w-16 sm:w-20 lg:w-[80px] max-w-full mt-1 mb-1 self-center">
+          <div className="bg-[rgba(0,255,162,1)] flex w-full aspect-square items-center justify-center px-2 sm:px-3 lg:px-4 rounded-full">
             <img
               src={serviceIcon}
-              className="aspect-[1] object-contain w-12 sm:w-14 lg:w-[62px] self-stretch my-auto"
+              className="aspect-[1] object-contain w-8 sm:w-10 lg:w-12 self-stretch my-auto"
               alt={serviceName}
             />
           </div>
