@@ -26,11 +26,21 @@ const Index = () => {
       clinicName: "Willow Grove Clinic",
       address: "456 Oak Avenue, Suburb",
       serviceName: "X-Ray",
-      specialty: "Cardiology",
+      specialty: "Orthopedics",
       timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
+    },
+    {
+      clinicName: "Sunrise Health Clinic",
+      address: "321 Pine Road, Village",
+      serviceName: "Acne Treatment",
+      specialty: "Dermatology",
+      timeSchedule: "10:00 AM – 6:00 PM • Mon–Sat",
+      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
+      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0eda78af93b2aa8948c7d7bc8f142cbb7bb940cb?placeholderIfAbsent=true",
+      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
     },
     {
       clinicName: "Maple Leaf Center",
