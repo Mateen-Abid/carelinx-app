@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Check, X } from 'lucide-react';
+import { CalendarIcon, Check, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -144,8 +144,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden">
-        <div className="relative">
+      <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="relative flex-shrink-0">
+          {/* Mobile back arrow */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-4 z-10 sm:hidden"
+            onClick={handleClose}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          
           <Button
             variant="ghost"
             size="icon"
@@ -160,112 +170,112 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               Select a Date & Time
             </DialogTitle>
           </DialogHeader>
+        </div>
           
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Calendar Section */}
-              <div className="flex flex-col items-center">
-                <div className="text-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'April 2024'}
+        <div className="p-3 sm:p-6 flex-1 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 h-full">
+            {/* Calendar Section */}
+            <div className="flex flex-col items-center">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'April 2024'}
+                </h3>
+              </div>
+              
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                className={cn("p-3 pointer-events-auto border rounded-lg")}
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center",
+                  caption_label: "text-sm font-medium",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex",
+                  head_cell: "text-gray-500 rounded-md w-9 font-normal text-[0.8rem]",
+                  row: "flex w-full mt-2",
+                  cell: cn(
+                    "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
+                    "h-9 w-9"
+                  ),
+                  day: cn(
+                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-md",
+                    "focus:bg-accent focus:text-accent-foreground"
+                  ),
+                  day_selected: "bg-[rgba(12,34,67,1)] text-white hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white",
+                  day_today: "bg-gray-100 text-gray-900",
+                  day_outside: "text-gray-400 opacity-50",
+                  day_disabled: "text-gray-400 opacity-50",
+                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                  day_hidden: "invisible",
+                }}
+              />
+            </div>
+            
+            {/* Time Slots Section */}
+            <div className="flex flex-col min-h-0">
+              <div className="sm:border-l sm:pl-8 flex flex-col min-h-0">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {selectedDate ? format(selectedDate, 'EEEE, MMM d') : 'Sunday, Apr 21'}
                   </h3>
                 </div>
                 
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  className={cn("p-3 pointer-events-auto border rounded-lg")}
-                  classNames={{
-                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                    month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center",
-                    caption_label: "text-sm font-medium",
-                    nav: "space-x-1 flex items-center",
-                    nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                    nav_button_previous: "absolute left-1",
-                    nav_button_next: "absolute right-1",
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell: "text-gray-500 rounded-md w-9 font-normal text-[0.8rem]",
-                    row: "flex w-full mt-2",
-                    cell: cn(
-                      "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
-                      "h-9 w-9"
-                    ),
-                    day: cn(
-                      "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-md",
-                      "focus:bg-accent focus:text-accent-foreground"
-                    ),
-                    day_selected: "bg-[rgba(12,34,67,1)] text-white hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white",
-                    day_today: "bg-gray-100 text-gray-900",
-                    day_outside: "text-gray-400 opacity-50",
-                    day_disabled: "text-gray-400 opacity-50",
-                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                    day_hidden: "invisible",
-                  }}
-                />
-              </div>
-              
-              {/* Time Slots Section */}
-              <div className="flex flex-col">
-                <div className="border-l pl-8">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {selectedDate ? format(selectedDate, 'EEEE, MMM d') : 'Sunday, Apr 21'}
-                    </h3>
-                  </div>
-                  
-                   <div className="space-y-2 max-h-80 overflow-y-auto">
-                     {timeSlots.map((slot, index) => (
-                       <button
-                         key={index}
-                         onClick={() => slot.available && handleTimeSelect(slot.time)}
-                         disabled={!slot.available}
-                         className={cn(
-                           "w-full p-3 rounded-lg border text-left transition-colors sm:block",
-                           "sm:p-3 p-2 h-auto sm:h-auto",
-                           slot.available
-                             ? "border-gray-200 hover:border-[rgba(12,34,67,1)] hover:bg-blue-50 cursor-pointer"
-                             : "border-gray-100 bg-gray-50 cursor-not-allowed opacity-50"
-                         )}
-                       >
-                         {/* Mobile compact layout */}
-                         <div className="sm:hidden flex items-center gap-3 w-full">
-                           {/* Left side - Medical icon */}
-                           <div className="w-6 h-6 bg-[#0C2243] flex items-center justify-center rounded shrink-0">
-                             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                               <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                             </svg>
-                           </div>
-                           
-                           {/* Right side - Time info */}
-                           <div className="min-w-0 flex-1">
-                             <div className="text-black text-sm font-medium mb-1">
-                               {slot.doctor}
-                             </div>
-                             <div className="text-gray-600 text-xs">
-                               {slot.time}
-                             </div>
-                           </div>
-                           
-                           {slot.available && (
-                             <div className="w-2 h-2 bg-green-500 rounded-full shrink-0"></div>
-                           )}
-                         </div>
+                <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px] sm:max-h-[400px]">
+                  {timeSlots.map((slot, index) => (
+                    <button
+                      key={index}
+                      onClick={() => slot.available && handleTimeSelect(slot.time)}
+                      disabled={!slot.available}
+                      className={cn(
+                        "w-full p-3 rounded-lg border text-left transition-colors sm:block",
+                        "sm:p-3 p-2 h-auto sm:h-auto",
+                        slot.available
+                          ? "border-gray-200 hover:border-[rgba(12,34,67,1)] hover:bg-blue-50 cursor-pointer"
+                          : "border-gray-100 bg-gray-50 cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      {/* Mobile compact layout */}
+                      <div className="sm:hidden flex items-center gap-3 w-full">
+                        {/* Left side - Medical icon */}
+                        <div className="w-6 h-6 bg-[#0C2243] flex items-center justify-center rounded shrink-0">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        
+                        {/* Right side - Time info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-black text-sm font-medium mb-1">
+                            {slot.doctor}
+                          </div>
+                          <div className="text-gray-600 text-xs">
+                            {slot.time}
+                          </div>
+                        </div>
+                        
+                        {slot.available && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full shrink-0"></div>
+                        )}
+                      </div>
 
-                         {/* Desktop layout */}
-                         <div className="hidden sm:flex justify-between items-center">
-                           <div>
-                             <div className="font-medium text-gray-900">{slot.time}</div>
-                           </div>
-                           {slot.available && (
-                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                           )}
-                         </div>
-                       </button>
-                     ))}
-                   </div>
+                      {/* Desktop layout */}
+                      <div className="hidden sm:flex justify-between items-center">
+                        <div>
+                          <div className="font-medium text-gray-900">{slot.time}</div>
+                        </div>
+                        {slot.available && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
