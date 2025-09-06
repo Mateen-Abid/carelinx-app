@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Appointment {
   id: string;
@@ -7,15 +8,15 @@ export interface Appointment {
   clinic: string;
   date: string;
   time: string;
-  status: 'pending' | 'upcoming' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   bookedAt: Date;
 }
 
 interface BookingContextType {
   appointments: Appointment[];
-  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => string;
-  confirmAppointment: (appointmentId: string) => void;
-  cancelAppointment: (appointmentId: string) => void;
+  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => Promise<string>;
+  confirmAppointment: (appointmentId: string) => Promise<void>;
+  cancelAppointment: (appointmentId: string) => Promise<void>;
   getUpcomingAppointments: () => Appointment[];
   getPendingAppointments: () => Appointment[];
   getPastAppointments: () => Appointment[];
@@ -24,74 +25,134 @@ interface BookingContextType {
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    // Keep one sample past appointment for demo
-    {
-      id: '2',
-      doctorName: 'Dr. Lisa Wilson',
-      specialty: 'Cardiologist',
-      clinic: 'Cypress Wellness Center',
-      date: '2024-04-20',
-      time: '2:00 PM',
-      status: 'completed',
-      
-      bookedAt: new Date('2024-04-15')
-    },
-    {
-      id: '3',
-      doctorName: 'Dr. Steven White',
-      specialty: 'Orthopedist',
-      clinic: 'Redwood Family Practice',
-      date: '2024-04-18',
-      time: '11:00 AM',
-      status: 'completed',
-      
-      bookedAt: new Date('2024-04-10')
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  // Fetch appointments from database
+  const fetchAppointments = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('user_id', user.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching appointments:', error);
+        return;
+      }
+
+      const formattedAppointments: Appointment[] = data.map(booking => ({
+        id: booking.id,
+        doctorName: booking.doctor_name,
+        specialty: booking.specialty,
+        clinic: booking.clinic,
+        date: booking.appointment_date,
+        time: booking.appointment_time,
+        status: booking.status === 'confirmed' ? 'confirmed' : booking.status as 'pending' | 'cancelled' | 'completed',
+        bookedAt: new Date(booking.created_at)
+      }));
+
+      setAppointments(formattedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
     }
-  ]);
-
-  const addAppointment = (appointmentData: Omit<Appointment, 'id' | 'bookedAt'>) => {
-    const newAppointment: Appointment = {
-      ...appointmentData,
-      id: Date.now().toString(),
-      bookedAt: new Date(),
-    };
-    console.log('Adding new appointment:', newAppointment);
-    setAppointments(prev => {
-      const updated = [...prev, newAppointment];
-      console.log('Updated appointments:', updated);
-      return updated;
-    });
-    return newAppointment.id;
   };
 
-  const confirmAppointment = (appointmentId: string) => {
-    setAppointments(prev => 
-      prev.map(apt => 
-        apt.id === appointmentId ? { ...apt, status: 'upcoming' as const } : apt
+  // Set up real-time subscription for booking updates
+  useEffect(() => {
+    fetchAppointments();
+
+    const channel = supabase
+      .channel('bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings'
+        },
+        (payload) => {
+          console.log('Booking update received:', payload);
+          fetchAppointments(); // Refetch when bookings change
+        }
       )
-    );
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const addAppointment = async (appointmentData: Omit<Appointment, 'id' | 'bookedAt'>): Promise<string> => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+
+      // Call the edge function to process the booking
+      const { data, error } = await supabase.functions.invoke('process-booking', {
+        body: {
+          doctorName: appointmentData.doctorName,
+          specialty: appointmentData.specialty || 'General',
+          clinic: appointmentData.clinic,
+          date: appointmentData.date,
+          time: appointmentData.time,
+          userId: user.user.id
+        }
+      });
+
+      if (error) throw error;
+      
+      console.log('Booking created:', data);
+      
+      // Refresh appointments to get the new booking
+      await fetchAppointments();
+      
+      return data.bookingId;
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      throw error;
+    }
   };
 
-  const cancelAppointment = (appointmentId: string) => {
-    setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+  const confirmAppointment = async (appointmentId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+      await fetchAppointments();
+    } catch (error) {
+      console.error('Error confirming appointment:', error);
+    }
+  };
+
+  const cancelAppointment = async (appointmentId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+      await fetchAppointments();
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+    }
   };
 
   const getUpcomingAppointments = () => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
-    console.log('Today string for comparison:', todayString);
-    
-    const upcoming = appointments.filter(apt => {
+    return appointments.filter(apt => {
       const appointmentDate = apt.date; // Already in YYYY-MM-DD format
-      const isUpcoming = appointmentDate >= todayString && apt.status === 'upcoming';
-      console.log(`Appointment ${apt.id}: date=${appointmentDate}, status=${apt.status}, isUpcoming=${isUpcoming}`);
-      return isUpcoming;
+      return appointmentDate >= todayString && apt.status === 'confirmed';
     });
-    
-    console.log('Filtered upcoming appointments:', upcoming);
-    return upcoming;
   };
 
   const getPendingAppointments = () => {
@@ -104,7 +165,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     
     return appointments.filter(apt => {
       const appointmentDate = apt.date; // Already in YYYY-MM-DD format
-      return appointmentDate < todayString || apt.status === 'completed';
+      return appointmentDate < todayString || apt.status === 'completed' || apt.status === 'cancelled';
     });
   };
 

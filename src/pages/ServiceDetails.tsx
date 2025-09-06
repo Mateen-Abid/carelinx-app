@@ -209,7 +209,7 @@ const ServiceDetails = () => {
     setIsTimeSlotModalOpen(true);
   };
 
-  const handleTimeSlotBook = (timeSlot: string) => {
+  const handleTimeSlotBook = async (timeSlot: string) => {
     // Double-check authentication before booking
     if (!user) {
       navigate('/auth?message=Please sign in to complete your booking');
@@ -221,24 +221,32 @@ const ServiceDetails = () => {
     
     // Create pending booking
     if (selectedDate && serviceData) {
-      const bookingId = addAppointment({
-        doctorName: serviceData.doctors[0]?.name || 'Available Doctor',
-        specialty: serviceData.name,
-        clinic: serviceData.clinic,
-        date: format(selectedDate, 'yyyy-MM-dd'),
-        time: timeSlot,
-        status: 'pending'
-      });
-      
-      setPendingBookingId(bookingId);
-      setIsBookingConfirmationOpen(true);
+      try {
+        const bookingId = await addAppointment({
+          doctorName: serviceData.doctors[0]?.name || 'Available Doctor',
+          specialty: serviceData.name,
+          clinic: serviceData.clinic,
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          time: timeSlot,
+          status: 'pending'
+        });
+        
+        setPendingBookingId(bookingId);
+        setIsBookingConfirmationOpen(true);
+      } catch (error) {
+        console.error('Error booking appointment:', error);
+      }
     }
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (pendingBookingId) {
-      confirmAppointment(pendingBookingId);
-      setPendingBookingId('');
+      try {
+        await confirmAppointment(pendingBookingId);
+        setPendingBookingId('');
+      } catch (error) {
+        console.error('Error confirming appointment:', error);
+      }
     }
   };
 

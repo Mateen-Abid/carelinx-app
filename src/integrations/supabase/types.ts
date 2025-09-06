@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          clinic: string
+          confirmed_at: string | null
+          created_at: string
+          doctor_name: string
+          id: string
+          specialty: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          clinic: string
+          confirmed_at?: string | null
+          created_at?: string
+          doctor_name: string
+          id?: string
+          specialty: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          clinic?: string
+          confirmed_at?: string | null
+          created_at?: string
+          doctor_name?: string
+          id?: string
+          specialty?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

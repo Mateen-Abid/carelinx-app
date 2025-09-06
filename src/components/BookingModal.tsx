@@ -54,7 +54,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedDate(date);
   };
 
-  const handleTimeSelect = (time: string) => {
+  const handleTimeSelect = async (time: string) => {
     setSelectedTime(time);
     
     // Save the appointment
@@ -62,15 +62,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
       console.log('Saving appointment with date:', appointmentDate, 'time:', time);
       
-      addAppointment({
-        doctorName: doctorName,
-        specialty: serviceName,
-        clinic: clinicName,
-        date: appointmentDate,
-        time: time,
-        status: 'upcoming',
-        
-      });
+      try {
+        await addAppointment({
+          doctorName: doctorName,
+          specialty: serviceName,
+          clinic: clinicName,
+          date: appointmentDate,
+          time: time,
+          status: 'pending', // Start as pending, will be confirmed by edge function
+        });
+      } catch (error) {
+        console.error('Error booking appointment:', error);
+      }
     }
     
     setStep('confirmation');
