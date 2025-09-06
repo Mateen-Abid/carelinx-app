@@ -20,6 +20,7 @@ interface ClinicCardProps {
   timingIcon: string;
   isCallOnly?: boolean;
   phoneNumber?: string;
+  onBookingClick?: () => void;
 }
 
 const ClinicCard: React.FC<ClinicCardProps> = ({
@@ -35,14 +36,27 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   daysIcon,
   timingIcon,
   isCallOnly = false,
-  phoneNumber
+  phoneNumber,
+  onBookingClick
 }) => {
   const navigate = useNavigate();
 
-  const handleCardClick = () => {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if booking button was clicked
+    if ((e.target as HTMLElement).closest('.booking-button')) {
+      return;
+    }
+    
     // Convert clinic name to a URL-friendly slug
     const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     navigate(`/clinic/${clinicSlug}`);
+  };
+
+  const handleBookingClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onBookingClick) {
+      onBookingClick();
+    }
   };
 
   return (
@@ -129,6 +143,18 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Book Appointment Button - only show if onBookingClick is provided */}
+      {onBookingClick && (
+        <div className="mt-3 px-2">
+          <button
+            className="booking-button w-full bg-[#0C2243] text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-[#0C2243]/90 transition-colors"
+            onClick={handleBookingClick}
+          >
+            Book Appointment
+          </button>
+        </div>
+      )}
 
       {isCallOnly && (
         <div className="flex items-center gap-3 text-xs justify-center mt-3">

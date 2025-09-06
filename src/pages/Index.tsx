@@ -6,11 +6,14 @@ import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
+import { BookingModal } from '@/components/BookingModal';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedClinic, setSelectedClinic] = useState<string>('');
   const serviceCards = [
     {
       clinicName: "Central Medical Center",
@@ -227,6 +230,11 @@ const Index = () => {
     'dermatology': ['Dermatology']
   };
 
+  const handleClinicBooking = (clinicName: string) => {
+    setSelectedClinic(clinicName);
+    setIsBookingModalOpen(true);
+  };
+
   // Filter service cards based on selected category and search query
   const filteredServiceCards = useMemo(() => {
     let filtered = serviceCards;
@@ -304,11 +312,15 @@ const Index = () => {
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
                 Clinics
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-                {filteredClinicCards.map((clinic, index) => (
-                  <ClinicCard key={index} {...clinic} />
-                ))}
-              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+                 {filteredClinicCards.map((clinic, index) => (
+                   <ClinicCard 
+                     key={index} 
+                     {...clinic} 
+                     onBookingClick={() => handleClinicBooking(clinic.name)}
+                   />
+                 ))}
+               </div>
             </div>
           </section>
         )}
@@ -318,6 +330,12 @@ const Index = () => {
       <BottomNavigation 
         viewMode={viewMode} 
         onViewModeChange={setViewMode} 
+      />
+
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        clinicName={selectedClinic}
       />
     </div>
   );
