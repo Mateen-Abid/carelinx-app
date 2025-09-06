@@ -304,7 +304,7 @@ const Index = () => {
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
                 Clinics
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-2 lg:gap-2">
                 {filteredClinicCards.map((clinic, index) => (
                   <ClinicCard key={index} {...clinic} />
                 ))}
