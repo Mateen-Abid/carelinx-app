@@ -8,19 +8,17 @@ import { BookingModal } from '@/components/BookingModal';
 const services = [
   {
     name: 'ECG',
-    doctor: 'Dr. Ali Akbar',
-    specialization: 'Ultrasonographer',
+    doctor: 'Dr. Ali Ashar',
+    specialization: 'Cardiologist',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    
   },
   {
     name: 'X-Ray',
     doctor: 'Dr. Zaha Ali',
-    specialization: 'Cardiologist',
+    specialization: 'Radiologist',
     timing: '09:00 AM - 1:00 PM | Mon-Sat',
     available: true,
-    
   },
   {
     name: 'Brain Scan',
@@ -28,31 +26,27 @@ const services = [
     specialization: 'Neurologist',
     timing: '01:00 PM - 5:00 PM | Mon-Sat',
     available: true,
-    
   },
   {
     name: 'Retinal Care',
-    doctor: 'Dr. Tom Yaeghn',
-    specialization: 'Retinologist',
+    doctor: 'Dr. Sarah Johnson',
+    specialization: 'Ophthalmologist',
     timing: '11:00 AM - 4:00 PM | Tue-Sat',
     available: true,
-    
   },
   {
     name: 'Ultrasound',
-    doctor: 'Dr. Tom Yaeghn',
-    specialization: 'Ultrasonographer',
+    doctor: 'Dr. Michael Chen',
+    specialization: 'Radiologist',
     timing: '03:00 PM - 6:00 PM | Tue-Sat',
     available: true,
-    
   },
   {
-    name: 'ECG',
-    doctor: 'Dr. Ali Akbar',
-    specialization: 'Ultrasonographer',
-    timing: '09:00 AM - 1:00 PM | Mon-Sat',
+    name: 'Blood Test',
+    doctor: 'Dr. Maria Rodriguez',
+    specialization: 'Pathologist',
+    timing: '08:00 AM - 12:00 PM | Mon-Fri',
     available: true,
-    
   }
 ];
 
