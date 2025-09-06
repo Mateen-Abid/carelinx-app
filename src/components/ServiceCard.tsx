@@ -40,7 +40,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   return (
     <article 
       onClick={handleServiceClick}
-      className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[460px] flex flex-row sm:flex-col px-4 sm:px-4 lg:px-[18px] py-3 sm:py-5 lg:py-[23px] rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
+      className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[380px] flex flex-row sm:flex-col px-3 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
       {isSpecial && (
         <>
@@ -74,7 +74,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       {/* Desktop layout - keep existing */}
       <div className="hidden sm:flex w-full flex-col">
         {/* Clinic info section */}
-        <div className="self-stretch flex w-full gap-1.5 font-normal mb-0">
+        <div className="self-stretch flex w-full gap-1.5 font-normal mb-1">
           <img
             src={clinicIcon}
             className="aspect-[1] object-contain w-6 shrink-0 rounded-[23px]"
@@ -91,7 +91,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
 
         {/* Desktop layout - hidden on mobile */}
-        <div className="hidden sm:flex w-20 sm:w-24 lg:w-[102px] max-w-full mt-2 sm:mt-3 mb-2 sm:mb-3 self-center">
+        <div className="hidden sm:flex w-20 sm:w-24 lg:w-[90px] max-w-full mt-1 sm:mt-2 mb-1 sm:mb-2 self-center">
           <div className="bg-[rgba(0,255,162,1)] flex w-full aspect-square items-center justify-center px-3 sm:px-4 lg:px-5 rounded-full">
             <img
               src={serviceIcon}
