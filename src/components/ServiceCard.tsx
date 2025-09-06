@@ -40,7 +40,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   return (
     <article 
       onClick={handleServiceClick}
-      className={`bg-white overflow-hidden w-full min-w-0 h-[60px] sm:h-[460px] flex flex-row sm:flex-col px-4 sm:px-4 lg:px-[18px] py-3 sm:py-5 lg:py-[23px] rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
+      className={`bg-white overflow-hidden w-full min-w-0 h-auto sm:h-[460px] flex flex-row sm:flex-col px-4 sm:px-4 lg:px-[18px] py-3 sm:py-5 lg:py-[23px] rounded-[12px] sm:rounded-[18px] cursor-pointer hover:shadow-lg transition-shadow duration-200 ${isSpecial ? 'relative' : ''}`}
     >
       {isSpecial && (
         <>
@@ -52,31 +52,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       )}
       
       {/* Mobile compact layout */}
-      <div className="sm:hidden flex items-center justify-between w-full">
-        {/* Left side - Service icon and clinic name */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-6 h-6 bg-[rgba(0,255,162,1)] flex items-center justify-center rounded-full shrink-0">
-            <img
-              src={serviceIcon}
-              className="w-4 h-4 object-contain"
-              alt={serviceName}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-black text-sm font-medium truncate">
-              {clinicName}
-            </div>
-          </div>
+      <div className="sm:hidden flex items-center gap-3 w-full">
+        {/* Left side - Medical icon */}
+        <div className="w-6 h-6 bg-[#0C2243] flex items-center justify-center rounded shrink-0">
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+          </svg>
         </div>
         
-        {/* Right side - Time */}
-        <div className="flex items-center gap-1 text-xs text-gray-600 shrink-0">
-          <img
-            src={timeIcon}
-            className="w-3 h-3 object-contain"
-            alt="Time icon"
-          />
-          <span>{timeSchedule}</span>
+        {/* Right side - Clinic info */}
+        <div className="min-w-0 flex-1">
+          <div className="text-black text-sm font-medium mb-1">
+            {clinicName}
+          </div>
+          <div className="text-gray-600 text-xs">
+            {timeSchedule}
+          </div>
         </div>
       </div>
 
