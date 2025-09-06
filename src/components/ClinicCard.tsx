@@ -101,7 +101,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-[rgba(40,40,40,1)] font-normal mb-3">
         <div className="flex items-center gap-2">
           <div className="shrink-0">Days Open</div>
           <div className="items-center border flex gap-0.5 text-black font-medium text-center bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
