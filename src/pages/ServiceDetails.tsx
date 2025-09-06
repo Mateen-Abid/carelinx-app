@@ -133,6 +133,33 @@ const serviceDatabase = {
         specialization: 'MD, Ultrasonographer - 10 yrs experience'
       }
     ]
+  },
+  'acne-treatment': {
+    name: 'Acne Treatment',
+    specialty: 'Dermatology',
+    description: 'Our dermatologists provide comprehensive acne treatment services using the latest medical techniques and therapies. Personalized treatment plans to help clear your skin and prevent future breakouts.',
+    clinic: 'Central Medical Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '09:00 - 17:00',
+      'Tue': '10:00 - 18:00',
+      'Wed': '09:00 - 17:00',
+      'Thu': '10:00 - 18:00',
+      'Fri': '09:00 - 17:00',
+      'Sat': '10:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Sarah Johnson',
+        specialization: 'MD, Dermatologist - 12 yrs experience'
+      },
+      {
+        name: 'Dr. Michael Chen',
+        specialization: 'MD, Dermatologist - 8 yrs experience'
+      }
+    ]
   }
 };
 
