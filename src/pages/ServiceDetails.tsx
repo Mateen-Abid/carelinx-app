@@ -326,7 +326,7 @@ const ServiceCalendar: React.FC<{
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
   return (
-    <div className="bg-gray-50 rounded-lg p-2 sm:p-3 max-w-lg">
+    <div className="bg-gray-50 rounded-lg p-4 sm:p-6 max-w-sm mx-auto">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-2">
         <button
@@ -349,16 +349,16 @@ const ServiceCalendar: React.FC<{
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-0.5 mb-1">
+      <div className="grid grid-cols-7 gap-1 mb-3">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div key={day} className="text-center py-0.5">
+          <div key={day} className="text-center py-1">
             <span className="text-xs font-medium text-gray-600">{day}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-2">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
