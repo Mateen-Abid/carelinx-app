@@ -199,7 +199,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1">
                   {(() => {
                     const monthStart = startOfMonth(currentDate);
                     const monthEnd = endOfMonth(currentDate);
@@ -221,12 +221,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       const isAvailable = isAfter(date, startOfDay(new Date()));
 
                       return (
-                        <div key={index} className="aspect-square p-1">
+                        <div key={index} className="aspect-square p-0.5">
                           <button
                             onClick={() => isAvailable && isCurrentMonth && handleDateSelect(date)}
                             disabled={!isAvailable || !isCurrentMonth}
                             className={`
-                              w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
+                              w-full h-full rounded-full text-base transition-all duration-200 flex items-center justify-center
                               ${!isCurrentMonth 
                                 ? 'text-gray-300 cursor-not-allowed' 
                                 : isAvailable
