@@ -44,14 +44,17 @@ const Header = () => {
             </button>
           )}
           
-          <div className="flex items-center gap-2 text-base sm:text-lg font-normal">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-base sm:text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#00FFA2] rounded-md flex items-center justify-center">
               <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
               </svg>
             </div>
             <span className="text-white">carelinx</span>
-          </div>
+          </button>
           <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium ml-4 lg:ml-6">
             <div 
               onClick={() => navigate('/')}
