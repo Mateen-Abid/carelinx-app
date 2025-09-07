@@ -228,10 +228,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             className={`
                               w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
                               ${!isCurrentMonth 
-                                ? 'text-gray-300 cursor-not-allowed' 
+                                ? 'text-gray-300 cursor-not-allowed bg-transparent' 
                                 : isAvailable
                                   ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
-                                  : 'text-gray-400 cursor-not-allowed'
+                                  : 'text-gray-400 cursor-not-allowed bg-transparent'
                               }
                             `}
                           >
