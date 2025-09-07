@@ -169,6 +169,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 mode="single"
                 selected={selectedDate}
                 onSelect={handleDateSelect}
+                disabled={(date) => {
+                  // Disable weekends (Saturday = 6, Sunday = 0)
+                  const day = date.getDay();
+                  return day === 0 || day === 6;
+                }}
                 className={cn("p-3 pointer-events-auto border rounded-lg")}
                 classNames={{
                   months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -188,15 +193,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     "h-9 w-9"
                   ),
                   day: cn(
-                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full border-2 border-transparent",
-                    "hover:border-[rgba(12,34,67,0.3)] hover:bg-[rgba(12,34,67,0.1)] transition-all duration-200",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "bg-white shadow-sm hover:shadow-md"
+                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full border-2 border-blue-200",
+                    "bg-white shadow-md hover:border-[rgba(12,34,67,0.5)] hover:bg-[rgba(12,34,67,0.1)] transition-all duration-200",
+                    "focus:bg-accent focus:text-accent-foreground"
                   ),
                   day_selected: "bg-[rgba(12,34,67,1)] text-white border-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white shadow-lg",
-                  day_today: "bg-blue-50 text-gray-900 border-blue-200 font-semibold",
-                  day_outside: "text-gray-300 opacity-40 bg-transparent shadow-none",
-                  day_disabled: "text-gray-300 opacity-40 bg-gray-50 shadow-none cursor-not-allowed",
+                  day_today: "bg-blue-100 text-blue-900 border-blue-300 font-semibold shadow-md",
+                  day_outside: "text-gray-300 opacity-40 bg-transparent shadow-none border-transparent",
+                  day_disabled: "text-gray-300 opacity-30 bg-gray-100 shadow-none cursor-not-allowed border-gray-200",
                   day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
                   day_hidden: "invisible",
                 }}
