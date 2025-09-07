@@ -13,7 +13,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
       <div className="relative flex w-full flex-col py-8 sm:py-12 lg:py-[74px] px-4 sm:px-6 lg:px-8">
-        {/* Background Pattern */}
+        {/* Background Pattern - Desktop only */}
         <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20 hidden md:block">
           <div className="flex w-full gap-[40px_62px] flex-wrap max-md:max-w-full">
             {/* First row of pattern icons */}
@@ -80,8 +80,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
           </div>
         </div>
         
-        {/* Main Content */}
-        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-center">
+        {/* Desktop Content */}
+        <div className="self-center z-10 hidden md:flex w-full max-w-2xl flex-col items-center">
           {/* Toggle between Services and Clinics */}
           <div className="flex justify-center w-full">
             <div className="flex bg-white rounded-full p-1 border border-gray-200 w-full sm:w-auto">
@@ -122,6 +122,133 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
                 selectedCategory={selectedCategory}
                 onCategoryChange={onCategoryChange}
               />
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Content */}
+        <div className="flex md:hidden flex-col w-full z-10">
+          {/* Mobile Header with Logo and Greeting */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-[rgba(0,255,162,1)] rounded-sm flex items-center justify-center">
+                <div className="w-3 h-3 bg-white rounded-full"></div>
+              </div>
+              <span className="text-white font-semibold text-lg">carelinx</span>
+            </div>
+          </div>
+          
+          {/* Greeting */}
+          <div className="mb-6">
+            <h2 className="text-white text-lg font-medium">Hi, John Doe</h2>
+            <p className="text-gray-300 text-sm">Good morning</p>
+          </div>
+          
+          {/* Mobile Toggle Buttons */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => onViewModeChange('services')}
+              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors flex-1 ${
+                viewMode === 'services'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-[rgba(0,255,162,1)] text-black'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              <span>Services</span>
+            </button>
+            <button
+              onClick={() => onViewModeChange('clinics')}
+              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-colors flex-1 ${
+                viewMode === 'clinics'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-[rgba(0,255,162,1)] text-black'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+              </svg>
+              <span>Clinics</span>
+            </button>
+          </div>
+
+          {/* Mobile Services Grid */}
+          {viewMode === 'services' && (
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <button
+                onClick={() => onCategoryChange('all')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg transition-colors ${
+                  selectedCategory === 'all'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-6 h-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                </svg>
+                <span className="text-xs">All</span>
+              </button>
+              
+              <button
+                onClick={() => onCategoryChange('cardiology')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg transition-colors ${
+                  selectedCategory === 'cardiology'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-6 h-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                <span className="text-xs">Cardiology</span>
+              </button>
+              
+              <button
+                onClick={() => onCategoryChange('neurology')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg transition-colors ${
+                  selectedCategory === 'neurology'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-6 h-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <span className="text-xs">Neurology</span>
+              </button>
+              
+              <button
+                onClick={() => onCategoryChange('ophthalmology')}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg transition-colors ${
+                  selectedCategory === 'ophthalmology'
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-6 h-6 mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
+                <span className="text-xs">Ophthalmology</span>
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Clinic Dropdown */}
+          {viewMode === 'clinics' && (
+            <div className="mb-6">
+              <div className="relative">
+                <select className="w-full bg-gray-800 text-white p-4 rounded-lg border border-gray-600 appearance-none">
+                  <option>Acme T...</option>
+                  <option>City Medical Center</option>
+                  <option>Downtown Clinic</option>
+                  <option>Health Plus</option>
+                </select>
+                <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5z"/>
+                </svg>
+              </div>
             </div>
           )}
         </div>
