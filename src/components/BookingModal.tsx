@@ -199,7 +199,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-3">
                   {(() => {
                     const monthStart = startOfMonth(currentDate);
                     const monthEnd = endOfMonth(currentDate);
