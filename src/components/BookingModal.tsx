@@ -108,33 +108,35 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </Button>
             
             <div className="text-center py-12 px-8">
-              <div className="w-16 h-16 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-                <Check className="w-8 h-8 text-green-600" />
+              {/* Concentric circles with checkmark */}
+              <div className="relative w-24 h-24 mx-auto mb-8">
+                {/* Outer circle */}
+                <div className="absolute inset-0 bg-gray-100 rounded-full"></div>
+                {/* Middle circle */}
+                <div className="absolute inset-2 bg-gray-200 rounded-full"></div>
+                {/* Inner dark circle */}
+                <div className="absolute inset-4 bg-gray-800 rounded-full flex items-center justify-center">
+                  {/* White circle with checkmark */}
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-gray-800" />
+                  </div>
+                </div>
               </div>
               
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                Booking Successful
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Booking Request Sent
               </h2>
               
-              <div className="text-gray-600 mb-8 space-y-1">
-                <p>Your appointment has been confirmed for {selectedDate && format(selectedDate, 'MMMM d, yyyy')} at {selectedTime}</p>
-                <p className="text-sm"><strong>Service:</strong> {serviceName}</p>
-                <p className="text-sm"><strong>Clinic:</strong> {clinicName}</p>
-              </div>
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                Your appointment booking request has been sent. We'll get back to you shortly.
+              </p>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Button 
-                  className="w-full bg-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] text-white rounded-full py-3"
-                  onClick={handleClose}
-                >
-                  Done
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full rounded-full py-3"
+                  className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-full py-4 text-lg font-medium"
                   onClick={handleBookAnother}
                 >
-                  View Bookings
+                  View Booking
                 </Button>
               </div>
             </div>
