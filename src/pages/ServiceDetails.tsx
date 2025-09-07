@@ -369,11 +369,11 @@ const ServiceCalendar: React.FC<{
                 onClick={() => handleDateClick(date)}
                 disabled={!isAvailable || !isCurrentMonth}
                 className={`
-                  w-full h-full rounded text-sm transition-all duration-200 flex items-center justify-center
+                  w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
                   ${!isCurrentMonth 
                     ? 'text-gray-300 cursor-not-allowed' 
                     : isAvailable
-                      ? 'cursor-pointer text-gray-900 hover:bg-blue-100 hover:text-blue-900'
+                      ? 'cursor-pointer bg-gray-800 text-white font-bold hover:bg-gray-700'
                       : 'text-gray-400 cursor-not-allowed'
                   }
                 `}
