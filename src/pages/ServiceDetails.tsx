@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import BookingConfirmationModal from '@/components/BookingConfirmationModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
-import ServiceCalendar from '@/components/ServiceCalendar';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, isAfter, startOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Service data with descriptions and timing
 const serviceDatabase = {
@@ -177,7 +177,6 @@ const ServiceDetails = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date());
 
   const serviceData = serviceDatabase[serviceId as keyof typeof serviceDatabase];
 
@@ -196,7 +195,9 @@ const ServiceDetails = () => {
     setIsBookingConfirmationOpen(true);
   };
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    
     // Check if user is authenticated before allowing date selection
     if (!user) {
       // Store the intended action for after login
@@ -324,82 +325,28 @@ const ServiceDetails = () => {
           
           {/* Calendar Component */}
           <div className="bg-white rounded-lg border p-6 max-w-md mx-auto">
-            {/* Calendar Header */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <ChevronLeft size={18} className="text-gray-600" />
-              </button>
-              
-              <h3 className="text-base font-medium text-gray-900">
-                {format(currentDate, 'MMMM yyyy')}
-              </h3>
-              
-              <button
-                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <ChevronRight size={18} className="text-gray-600" />
-              </button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 mb-4">
-              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-                <div key={day} className="text-center py-3">
-                  <span className="text-xs font-medium text-gray-500">{day}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
-              {(() => {
-                const monthStart = startOfMonth(currentDate);
-                const monthEnd = endOfMonth(currentDate);
-                const allDaysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-                const startDay = monthStart.getDay();
-                const paddingDays = startDay === 0 ? 6 : startDay - 1;
-                const paddedDays = [];
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleDateSelect}
+              disabled={(date) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const checkDate = new Date(date);
+                checkDate.setHours(0, 0, 0, 0);
                 
-                for (let i = paddingDays; i > 0; i--) {
-                  const paddingDate = new Date(monthStart);
-                  paddingDate.setDate(paddingDate.getDate() - i);
-                  paddedDays.push(paddingDate);
-                }
+                // Check if date is in the past
+                if (checkDate < today) return true;
                 
-                const calendarDays = [...paddedDays, ...allDaysInMonth];
+                // Check clinic schedule availability
+                const dayName = format(date, 'EEE');
+                const schedule = serviceData.schedule[dayName];
+                const isClinicOpen = schedule && schedule !== 'Closed';
                 
-                return calendarDays.map((date, index) => {
-                  const isCurrentMonth = isSameMonth(date, currentDate);
-                  const dayName = format(date, 'EEE');
-                  const schedule = serviceData.schedule[dayName];
-                  const isAvailable = schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()));
-
-                  return (
-                    <div key={index} className="aspect-square p-1">
-                      <button
-                        onClick={() => isAvailable && isCurrentMonth && handleDateSelect(date)}
-                        disabled={!isAvailable || !isCurrentMonth}
-                        className={`
-                          w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
-                          ${!isCurrentMonth 
-                            ? 'text-gray-300 cursor-not-allowed' 
-                            : isAvailable
-                              ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
-                              : 'text-gray-400 cursor-not-allowed'
-                          }
-                        `}
-                      >
-                        {format(date, 'd')}
-                      </button>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+                return !isClinicOpen;
+              }}
+              className={cn("p-3 pointer-events-auto")}
+            />
           </div>
         </div>
       </section>
