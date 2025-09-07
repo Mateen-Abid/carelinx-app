@@ -230,7 +230,50 @@ const Index = () => {
     'pediatrics': ['Pediatrics'],
     'orthopedics': ['Orthopedics'],
     'emergency-care': ['Emergency Care'],
-    'dermatology': ['Dermatology']
+    'dermatology': ['Dermatology'],
+    // Cardiology subcategories
+    'cardiology-ecg': ['Cardiology'],
+    'cardiology-echo': ['Cardiology'],
+    'cardiology-stress-test': ['Cardiology'],
+    'cardiology-holter': ['Cardiology'],
+    'cardiology-angiogram': ['Cardiology'],
+    'cardiology-ct-scan': ['Cardiology'],
+    // Neurology subcategories
+    'neurology-mri': ['Neurology'],
+    'neurology-ct-scan': ['Neurology'],
+    'neurology-eeg': ['Neurology'],
+    'neurology-emg': ['Neurology'],
+    'neurology-lumbar-puncture': ['Neurology'],
+    // Ophthalmology subcategories
+    'ophthalmology-retinal-exam': ['Ophthalmology'],
+    'ophthalmology-glaucoma-test': ['Ophthalmology'],
+    'ophthalmology-cataract-surgery': ['Ophthalmology'],
+    'ophthalmology-vision-test': ['Ophthalmology'],
+    'ophthalmology-oct': ['Ophthalmology'],
+    // Dermatology subcategories
+    'dermatology-acne': ['Dermatology'],
+    'dermatology-eczema': ['Dermatology'],
+    'dermatology-psoriasis': ['Dermatology'],
+    'dermatology-rosacea': ['Dermatology'],
+    'dermatology-allergies': ['Dermatology'],
+    'dermatology-warts': ['Dermatology'],
+    'dermatology-scars': ['Dermatology'],
+    // General Medicine subcategories
+    'general-checkup': ['General Medicine'],
+    'general-blood-test': ['General Medicine'],
+    'general-vaccination': ['General Medicine'],
+    'general-health-screening': ['General Medicine'],
+    // Pediatrics subcategories
+    'pediatrics-vaccination': ['Pediatrics'],
+    'pediatrics-growth-check': ['Pediatrics'],
+    'pediatrics-development': ['Pediatrics'],
+    'pediatrics-illness': ['Pediatrics'],
+    // Orthopedics subcategories
+    'orthopedics-xray': ['Orthopedics'],
+    'orthopedics-mri': ['Orthopedics'],
+    'orthopedics-ct-scan': ['Orthopedics'],
+    'orthopedics-joint-replacement': ['Orthopedics'],
+    'orthopedics-fracture-care': ['Orthopedics']
   };
 
   const handleClinicBooking = (clinicName: string) => {
@@ -297,6 +340,11 @@ const Index = () => {
     // You can add booking logic here
   };
 
+  const handleOptionSelect = (option: any) => {
+    setSelectedCategory(option.id);
+    setSearchQuery(''); // Clear search when selecting from dropdown
+  };
+
   // Filter service cards based on selected category and search query
   const filteredServiceCards = useMemo(() => {
     let filtered = serviceCards;
@@ -347,6 +395,7 @@ const Index = () => {
                 <SearchInput
                   placeholder="Search by service, clinic, or doctor's name"
                   onSearch={setSearchQuery}
+                  onOptionSelect={handleOptionSelect}
                   selectedCategory={selectedCategory}
                 />
               </div>
