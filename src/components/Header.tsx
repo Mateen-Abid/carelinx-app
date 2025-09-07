@@ -27,7 +27,13 @@ const Header = () => {
             <button 
               onClick={() => {
                 console.log('Back button clicked, current path:', location.pathname);
-                navigate(-1);
+                // Check if there's history to go back to
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  // Fallback: navigate to home page
+                  navigate('/');
+                }
               }}
               className="sm:hidden flex items-center justify-center w-8 h-8 mr-2 hover:bg-white/10 rounded-md transition-colors"
               aria-label="Go back"
