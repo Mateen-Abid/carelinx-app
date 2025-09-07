@@ -170,9 +170,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 selected={selectedDate}
                 onSelect={handleDateSelect}
                 disabled={(date) => {
+                  // Disable past dates
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const checkDate = new Date(date);
+                  checkDate.setHours(0, 0, 0, 0);
+                  
                   // Disable weekends (Saturday = 6, Sunday = 0)
                   const day = date.getDay();
-                  return day === 0 || day === 6;
+                  
+                  return checkDate < today || day === 0 || day === 6;
                 }}
                 className={cn("p-3 pointer-events-auto border rounded-lg")}
                 classNames={{
