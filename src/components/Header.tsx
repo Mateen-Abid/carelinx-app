@@ -25,8 +25,12 @@ const Header = () => {
           {/* Back arrow - only on mobile and not on home page */}
           {location.pathname !== '/' && (
             <button 
-              onClick={() => navigate(-1)}
-              className="sm:hidden flex items-center justify-center w-8 h-8 mr-2"
+              onClick={() => {
+                console.log('Back button clicked, current path:', location.pathname);
+                navigate(-1);
+              }}
+              className="sm:hidden flex items-center justify-center w-8 h-8 mr-2 hover:bg-white/10 rounded-md transition-colors"
+              aria-label="Go back"
             >
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
