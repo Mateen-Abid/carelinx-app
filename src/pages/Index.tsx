@@ -238,6 +238,60 @@ const Index = () => {
     setIsBookingModalOpen(true);
   };
 
+  // Convert timeSchedule string to schedule object
+  const parseTimeSchedule = (timeSchedule: string): Record<string, string> => {
+    const schedule: Record<string, string> = {
+      'Sun': 'Closed',
+      'Mon': 'Closed',
+      'Tue': 'Closed', 
+      'Wed': 'Closed',
+      'Thu': 'Closed',
+      'Fri': 'Closed',
+      'Sat': 'Closed'
+    };
+
+    // Parse schedule like "9:00 AM – 1:00 PM • Mon–Sat"
+    const parts = timeSchedule.split(' • ');
+    if (parts.length === 2) {
+      const timeRange = parts[0].replace(/\s/g, '').replace('–', '-');
+      const days = parts[1];
+      
+      // Convert time format from "9:00AM-1:00PM" to "09:00 - 13:00"
+      const convertTime = (time: string) => {
+        return time.replace(/(\d{1,2}):(\d{2})(AM|PM)/g, (match, hour, minute, period) => {
+          let h = parseInt(hour);
+          if (period === 'PM' && h !== 12) h += 12;
+          if (period === 'AM' && h === 12) h = 0;
+          return h.toString().padStart(2, '0') + ':' + minute;
+        });
+      };
+      
+      const convertedTimeRange = convertTime(timeRange);
+      
+      // Parse day range like "Mon–Sat" or "Tue–Sat"
+      if (days.includes('–')) {
+        const [startDay, endDay] = days.split('–');
+        const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const startIndex = dayOrder.indexOf(startDay);
+        const endIndex = dayOrder.indexOf(endDay);
+        
+        if (startIndex !== -1 && endIndex !== -1) {
+          for (let i = startIndex; i <= endIndex; i++) {
+            schedule[dayOrder[i]] = convertedTimeRange;
+          }
+        }
+      }
+    }
+    
+    return schedule;
+  };
+
+  // Get schedule for selected clinic
+  const getSelectedClinicSchedule = (): Record<string, string> => {
+    const clinicService = serviceCards.find(card => card.clinicName === selectedClinic);
+    return clinicService ? parseTimeSchedule(clinicService.timeSchedule) : {};
+  };
+
   const handleDateSelect = (date: Date) => {
     console.log('Selected date:', date);
     // You can add booking logic here
@@ -346,6 +400,7 @@ const Index = () => {
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         clinicName={selectedClinic}
+        serviceSchedule={getSelectedClinicSchedule()}
       />
     </div>
   );

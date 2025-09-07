@@ -98,6 +98,57 @@ const ClinicDetails = () => {
     setIsBookingModalOpen(true);
   };
 
+  // Convert timing string to schedule object for selected service
+  const getSelectedServiceSchedule = (): Record<string, string> => {
+    const service = services.find(s => s.name === selectedService);
+    if (!service) return {};
+    
+    const schedule: Record<string, string> = {
+      'Sun': 'Closed',
+      'Mon': 'Closed',
+      'Tue': 'Closed', 
+      'Wed': 'Closed',
+      'Thu': 'Closed',
+      'Fri': 'Closed',
+      'Sat': 'Closed'
+    };
+
+    // Parse timing like "09:00 AM - 1:00 PM | Mon-Sat"
+    const parts = service.timing.split(' | ');
+    if (parts.length === 2) {
+      const timeRange = parts[0].replace(/\s/g, '').replace('-', ' - ');
+      const days = parts[1];
+      
+      // Convert time format from "09:00AM-1:00PM" to "09:00 - 13:00"
+      const convertTime = (time: string) => {
+        return time.replace(/(\d{1,2}):(\d{2})(AM|PM)/g, (match, hour, minute, period) => {
+          let h = parseInt(hour);
+          if (period === 'PM' && h !== 12) h += 12;
+          if (period === 'AM' && h === 12) h = 0;
+          return h.toString().padStart(2, '0') + ':' + minute;
+        });
+      };
+      
+      const convertedTimeRange = convertTime(timeRange);
+      
+      // Parse day range like "Mon-Sat"
+      if (days.includes('-')) {
+        const [startDay, endDay] = days.split('-');
+        const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const startIndex = dayOrder.indexOf(startDay);
+        const endIndex = dayOrder.indexOf(endDay);
+        
+        if (startIndex !== -1 && endIndex !== -1) {
+          for (let i = startIndex; i <= endIndex; i++) {
+            schedule[dayOrder[i]] = convertedTimeRange;
+          }
+        }
+      }
+    }
+    
+    return schedule;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -217,6 +268,7 @@ const ClinicDetails = () => {
         doctorName={selectedDoctor}
         clinicName={currentClinic.name}
         serviceName={selectedService}
+        serviceSchedule={getSelectedServiceSchedule()}
       />
     </div>
   );

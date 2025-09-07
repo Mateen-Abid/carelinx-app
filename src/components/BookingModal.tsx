@@ -13,6 +13,7 @@ interface BookingModalProps {
   doctorName?: string;
   clinicName?: string;
   serviceName?: string;
+  serviceSchedule?: Record<string, string>; // Add schedule data
 }
 
 interface TimeSlot {
@@ -41,7 +42,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   doctorName = 'Dr Ishfaq',
   clinicName = 'Central Medical Center',
-  serviceName = 'General Consultation'
+  serviceName = 'General Consultation',
+  serviceSchedule = {}
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -223,7 +225,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       const checkDate = new Date(date);
                       checkDate.setHours(0, 0, 0, 0);
                       const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-                      const isAvailable = isCurrentMonth && checkDate >= today && dayOfWeek !== 0 && dayOfWeek !== 6;
+                      
+                      // Check clinic schedule availability
+                      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                      const dayName = dayNames[dayOfWeek];
+                      const schedule = serviceSchedule[dayName];
+                      const isClinicOpen = schedule && schedule !== 'Closed';
+                      
+                      const isAvailable = isCurrentMonth && checkDate >= today && isClinicOpen;
                       
                       // Debug logging
                       if (isCurrentMonth && dayOfWeek >= 0 && dayOfWeek <= 6) {
