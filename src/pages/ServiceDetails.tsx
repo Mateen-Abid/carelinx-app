@@ -27,7 +27,7 @@ const serviceDatabase = {
       'Thu': '10:00 - 14:30',
       'Fri': '11:00 - 14:30',
       'Sat': '13:00 - 16:30',
-      'Sun': '13:00 - 16:30'
+      'Sun': 'Closed'
     },
     doctors: [
       {
