@@ -218,7 +218,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     
                     return calendarDays.map((date, index) => {
                       const isCurrentMonth = isSameMonth(date, currentDate);
-                      const isAvailable = isAfter(date, startOfDay(new Date()));
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const checkDate = new Date(date);
+                      checkDate.setHours(0, 0, 0, 0);
+                      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+                      const isAvailable = isCurrentMonth && checkDate >= today && dayOfWeek !== 0 && dayOfWeek !== 6;
 
                       return (
                         <div key={index} className="aspect-square p-0.5">
