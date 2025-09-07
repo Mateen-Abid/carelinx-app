@@ -48,9 +48,14 @@ const Header = () => {
             onClick={() => navigate('/')}
             className="flex items-center gap-2 text-base sm:text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer"
           >
-            <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#00FFA2] rounded-md flex items-center justify-center">
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#0C2243] rounded-md flex items-center justify-center">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="#00FFA2" viewBox="0 0 24 24">
+                <circle cx="6" cy="6" r="3"/>
+                <circle cx="18" cy="8" r="2"/>
+                <circle cx="12" cy="16" r="2.5"/>
+                <circle cx="16" cy="18" r="1.5"/>
+                <line x1="9" y1="6" x2="15" y2="8" stroke="#00FFA2" strokeWidth="1.5"/>
+                <line x1="14" y1="14" x2="17" y2="17" stroke="#00FFA2" strokeWidth="1.5"/>
               </svg>
             </div>
             <span className="text-white">carelinx</span>
