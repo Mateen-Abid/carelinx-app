@@ -224,6 +224,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       checkDate.setHours(0, 0, 0, 0);
                       const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
                       const isAvailable = isCurrentMonth && checkDate >= today && dayOfWeek !== 0 && dayOfWeek !== 6;
+                      
+                      // Debug logging
+                      if (isCurrentMonth && dayOfWeek >= 0 && dayOfWeek <= 6) {
+                        console.log(`Date ${format(date, 'MMM d')}: dayOfWeek=${dayOfWeek}, isAvailable=${isAvailable}`);
+                      }
 
                       return (
                         <div key={index} className="aspect-square p-0.5">
