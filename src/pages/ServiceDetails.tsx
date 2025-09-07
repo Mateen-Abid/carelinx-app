@@ -373,7 +373,7 @@ const ServiceCalendar: React.FC<{
                   ${!isCurrentMonth 
                     ? 'text-gray-300 cursor-not-allowed' 
                     : isAvailable
-                      ? 'cursor-pointer bg-gray-800 text-white font-bold hover:bg-gray-700'
+                      ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
                       : 'text-gray-400 cursor-not-allowed'
                   }
                 `}
