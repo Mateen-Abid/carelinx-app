@@ -188,13 +188,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     "h-9 w-9"
                   ),
                   day: cn(
-                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-md",
-                    "focus:bg-accent focus:text-accent-foreground"
+                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full border-2 border-transparent",
+                    "hover:border-[rgba(12,34,67,0.3)] hover:bg-[rgba(12,34,67,0.1)] transition-all duration-200",
+                    "focus:bg-accent focus:text-accent-foreground",
+                    "bg-white shadow-sm hover:shadow-md"
                   ),
-                  day_selected: "bg-[rgba(12,34,67,1)] text-white hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white",
-                  day_today: "bg-gray-100 text-gray-900",
-                  day_outside: "text-gray-400 opacity-50",
-                  day_disabled: "text-gray-400 opacity-50",
+                  day_selected: "bg-[rgba(12,34,67,1)] text-white border-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white shadow-lg",
+                  day_today: "bg-blue-50 text-gray-900 border-blue-200 font-semibold",
+                  day_outside: "text-gray-300 opacity-40 bg-transparent shadow-none",
+                  day_disabled: "text-gray-300 opacity-40 bg-gray-50 shadow-none cursor-not-allowed",
                   day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
                   day_hidden: "invisible",
                 }}
