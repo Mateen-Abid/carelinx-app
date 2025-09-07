@@ -326,60 +326,61 @@ const ServiceCalendar: React.FC<{
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 sm:p-6 max-w-sm mx-auto">
+    <div className="bg-white rounded-lg border p-4 max-w-sm mx-auto">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={goToPreviousMonth}
-          className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+          className="p-1 hover:bg-gray-100 rounded transition-colors"
         >
           <ChevronLeft size={16} className="text-gray-600" />
         </button>
         
-        <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+        <h3 className="text-sm font-medium text-gray-900">
           {format(currentDate, 'MMMM yyyy')}
         </h3>
         
         <button
           onClick={goToNextMonth}
-          className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+          className="p-1 hover:bg-gray-100 rounded transition-colors"
         >
           <ChevronRight size={16} className="text-gray-600" />
         </button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-1 mb-3">
+      <div className="grid grid-cols-7 mb-2">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div key={day} className="text-center py-1">
-            <span className="text-xs font-medium text-gray-600">{day}</span>
+          <div key={day} className="text-center py-2">
+            <span className="text-xs font-medium text-gray-500">{day}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
 
           return (
-            <button
-              key={index}
-              onClick={() => handleDateClick(date)}
-              disabled={!isAvailable || !isCurrentMonth}
-              className={`
-                w-fit h-fit px-1 py-0.5 rounded-full text-xs transition-all duration-200 flex items-center justify-center mx-auto
-                ${!isCurrentMonth 
-                  ? 'text-gray-300 cursor-not-allowed' 
-                  : isAvailable
-                    ? 'cursor-pointer bg-gray-300 text-black font-bold hover:bg-gray-400'
-                    : 'text-gray-400 cursor-not-allowed font-normal'
-                }
-              `}
-            >
-              {format(date, 'd')}
-            </button>
+            <div key={index} className="aspect-square p-1">
+              <button
+                onClick={() => handleDateClick(date)}
+                disabled={!isAvailable || !isCurrentMonth}
+                className={`
+                  w-full h-full rounded text-sm transition-all duration-200 flex items-center justify-center
+                  ${!isCurrentMonth 
+                    ? 'text-gray-300 cursor-not-allowed' 
+                    : isAvailable
+                      ? 'cursor-pointer text-gray-900 hover:bg-blue-100 hover:text-blue-900'
+                      : 'text-gray-400 cursor-not-allowed'
+                  }
+                `}
+              >
+                {format(date, 'd')}
+              </button>
+            </div>
           );
         })}
       </div>
