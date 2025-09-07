@@ -6,6 +6,7 @@ import ServiceCard from '@/components/ServiceCard';
 import ClinicCard from '@/components/ClinicCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
+import ServiceCalendar from '@/components/ServiceCalendar';
 import { BookingModal } from '@/components/BookingModal';
 
 const Index = () => {
@@ -235,6 +236,11 @@ const Index = () => {
     setIsBookingModalOpen(true);
   };
 
+  const handleDateSelect = (date: Date) => {
+    console.log('Selected date:', date);
+    // You can add booking logic here
+  };
+
   // Filter service cards based on selected category and search query
   const filteredServiceCards = useMemo(() => {
     let filtered = serviceCards;
@@ -312,6 +318,13 @@ const Index = () => {
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
                 Clinics
               </h2>
+              
+              {/* Calendar Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Select Appointment Date</h3>
+                <ServiceCalendar onDateSelect={handleDateSelect} />
+              </div>
+              
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
                  {filteredClinicCards.map((clinic, index) => (
                    <ClinicCard 
