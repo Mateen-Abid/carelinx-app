@@ -127,13 +127,23 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearch?.(value);
 
     if (value.trim().length > 0) {
-      // Filter only subcategories when typing
-      const filtered = searchOptions.filter(option =>
-        option.type === 'subcategory' &&
-        (option.name.toLowerCase().includes(value.toLowerCase()) ||
-         option.category.toLowerCase().includes(value.toLowerCase()))
-      ).slice(0, 12);
-      setFilteredOptions(filtered);
+      // Filter subcategories based on selected category and search term
+      let filtered;
+      if (selectedCategory === 'all') {
+        filtered = searchOptions.filter(option =>
+          option.type === 'subcategory' &&
+          (option.name.toLowerCase().includes(value.toLowerCase()) ||
+           option.category.toLowerCase().includes(value.toLowerCase()))
+        );
+      } else {
+        // Only show subcategories from the selected category
+        filtered = searchOptions.filter(option =>
+          option.type === 'subcategory' &&
+          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
+          option.name.toLowerCase().includes(value.toLowerCase())
+        );
+      }
+      setFilteredOptions(filtered.slice(0, 12));
       setShowDropdown(true);
     } else {
       setShowDropdown(false);
@@ -156,15 +166,25 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const handleInputFocus = () => {
     if (searchValue.trim().length > 0) {
       // Show search results if user has typed something
-      const filtered = searchOptions.filter(option =>
-        option.type === 'subcategory' &&
-        (option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-         option.category.toLowerCase().includes(searchValue.toLowerCase()))
-      ).slice(0, 12);
-      setFilteredOptions(filtered);
+      let filtered;
+      if (selectedCategory === 'all') {
+        filtered = searchOptions.filter(option =>
+          option.type === 'subcategory' &&
+          (option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+           option.category.toLowerCase().includes(searchValue.toLowerCase()))
+        );
+      } else {
+        // Only show subcategories from the selected category
+        filtered = searchOptions.filter(option =>
+          option.type === 'subcategory' &&
+          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
+          option.name.toLowerCase().includes(searchValue.toLowerCase())
+        );
+      }
+      setFilteredOptions(filtered.slice(0, 12));
       setShowDropdown(true);
     } else {
-      // Show all subcategories when clicking on empty search
+      // Show subcategories for selected category when clicking on empty search
       showAllSubcategories();
     }
   };
@@ -187,8 +207,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const showAllSubcategories = () => {
     setShowDropdown(true);
-    // Only show subcategories, no main categories
-    const subcategories = searchOptions.filter(option => option.type === 'subcategory');
+    // Show subcategories based on selected category
+    let subcategories;
+    if (selectedCategory === 'all') {
+      subcategories = searchOptions.filter(option => option.type === 'subcategory');
+    } else {
+      subcategories = searchOptions.filter(option => 
+        option.type === 'subcategory' && 
+        option.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
     setFilteredOptions(subcategories);
   };
 
