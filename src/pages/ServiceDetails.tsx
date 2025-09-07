@@ -326,39 +326,39 @@ const ServiceCalendar: React.FC<{
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 sm:p-4 max-w-2xl">
+    <div className="bg-gray-50 rounded-lg p-2 sm:p-3 max-w-lg">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={goToPreviousMonth}
-          className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+          className="p-1 hover:bg-gray-200 rounded-full transition-colors"
         >
-          <ChevronLeft size={20} className="text-gray-600" />
+          <ChevronLeft size={16} className="text-gray-600" />
         </button>
         
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+        <h3 className="text-sm sm:text-base font-semibold text-gray-900">
           {format(currentDate, 'MMMM yyyy')}
         </h3>
         
         <button
           onClick={goToNextMonth}
-          className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+          className="p-1 hover:bg-gray-200 rounded-full transition-colors"
         >
-          <ChevronRight size={20} className="text-gray-600" />
+          <ChevronRight size={16} className="text-gray-600" />
         </button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div key={day} className="text-center py-1">
-            <span className="text-xs sm:text-sm font-medium text-gray-600">{day}</span>
+          <div key={day} className="text-center py-0.5">
+            <span className="text-xs font-medium text-gray-600">{day}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);
@@ -369,7 +369,7 @@ const ServiceCalendar: React.FC<{
               onClick={() => handleDateClick(date)}
               disabled={!isAvailable || !isCurrentMonth}
               className={`
-                aspect-square p-0.5 rounded-full text-xs transition-all duration-200 min-h-[22px] sm:min-h-[26px] flex items-center justify-center
+                aspect-square p-0.5 rounded-full text-xs transition-all duration-200 min-h-[18px] sm:min-h-[20px] flex items-center justify-center
                 ${!isCurrentMonth 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : isAvailable
