@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Check, X, ArrowLeft } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import ServiceCalendar from '@/components/ServiceCalendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useBooking } from '@/contexts/BookingContext';
@@ -51,8 +51,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const navigate = useNavigate();
   
   const timeSlots = generateTimeSlots(doctorName);
-
-  const handleDateSelect = (date: Date | undefined) => {
+  
+  const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
   };
 
@@ -163,57 +163,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div className="flex flex-col items-center">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'April 2024'}
+                  Select Date
                 </h3>
               </div>
               
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                disabled={(date) => {
-                  // Disable past dates
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const checkDate = new Date(date);
-                  checkDate.setHours(0, 0, 0, 0);
-                  
-                  // Disable weekends (Saturday = 6, Sunday = 0)
-                  const day = date.getDay();
-                  
-                  return checkDate < today || day === 0 || day === 6;
-                }}
-                className={cn("p-3 pointer-events-auto border rounded-lg")}
-                classNames={{
-                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                  month: "space-y-4",
-                  caption: "flex justify-center pt-1 relative items-center",
-                  caption_label: "text-sm font-medium",
-                  nav: "space-x-1 flex items-center",
-                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                  nav_button_previous: "absolute left-1",
-                  nav_button_next: "absolute right-1",
-                  table: "w-full border-collapse space-y-1",
-                  head_row: "flex",
-                  head_cell: "text-gray-500 rounded-md w-9 font-normal text-[0.8rem]",
-                  row: "flex w-full mt-2",
-                  cell: cn(
-                    "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
-                    "h-9 w-9"
-                  ),
-                  day: cn(
-                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full border-2 border-blue-200",
-                    "bg-white shadow-md hover:border-[rgba(12,34,67,0.5)] hover:bg-[rgba(12,34,67,0.1)] transition-all duration-200",
-                    "focus:bg-accent focus:text-accent-foreground"
-                  ),
-                  day_selected: "bg-[rgba(12,34,67,1)] text-white border-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] hover:text-white focus:bg-[rgba(12,34,67,1)] focus:text-white shadow-lg",
-                  day_today: "bg-blue-100 text-blue-900 border-blue-300 font-semibold shadow-md",
-                  day_outside: "text-gray-300 opacity-40 bg-transparent shadow-none border-transparent",
-                  day_disabled: "text-gray-300 opacity-30 bg-gray-100 shadow-none cursor-not-allowed border-gray-200",
-                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                  day_hidden: "invisible",
-                }}
-              />
+              <ServiceCalendar onDateSelect={handleDateSelect} />
             </div>
             
             {/* Time Slots Section */}
