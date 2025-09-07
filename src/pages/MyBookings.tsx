@@ -197,9 +197,9 @@ const MyBookings = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Past Bookings</h2>
           <p className="text-sm text-gray-600 mb-6">Your completed appointment history for reference and records.</p>
           
-          {pastBookings.length > 0 ? (
+          {pastBookings.filter(appointment => appointment.status !== 'cancelled').length > 0 ? (
             <div className="space-y-3">
-              {pastBookings.map((appointment) => (
+              {pastBookings.filter(appointment => appointment.status !== 'cancelled').map((appointment) => (
                 <div key={appointment.id} className="bg-white rounded-lg p-4 shadow-sm border opacity-75">
                   <div className="flex items-start gap-3">
                     {/* Clinic Icon */}
@@ -228,7 +228,7 @@ const MyBookings = () => {
                       </div>
                     </div>
                     
-                    {/* Completed Status */}
+                    {/* Status Badge */}
                     <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
                       Completed
                     </div>
