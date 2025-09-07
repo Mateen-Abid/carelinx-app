@@ -29,26 +29,23 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
     onClose();
   };
 
-  // Auto-close modal after 3 seconds (booking is processing on backend)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timer = setTimeout(() => {
-      onConfirm();
-      onClose();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [isOpen, onConfirm, onClose]);
+  // Removed auto-close functionality as requested
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md w-full mx-auto p-0 gap-0 bg-white rounded-2xl overflow-hidden">
         <div className="text-center p-8 pb-6">
-          {/* Success Icon */}
-          <div className="w-16 h-16 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center">
-            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-              <Check className="w-5 h-5 text-white" />
+          {/* Success Icon - Concentric circles with shield */}
+          <div className="w-20 h-20 mx-auto mb-6 relative">
+            {/* Outer light gray circle */}
+            <div className="absolute inset-0 bg-gray-200 rounded-full"></div>
+            {/* Middle gray circle */}
+            <div className="absolute inset-2 bg-gray-300 rounded-full"></div>
+            {/* Inner dark circle with shield */}
+            <div className="absolute inset-4 bg-black rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 bg-white rounded flex items-center justify-center">
+                <Check className="w-3 h-3 text-black" />
+              </div>
             </div>
           </div>
 
@@ -58,27 +55,9 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
           </h2>
 
           {/* Description */}
-          <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-            Your appointment booking request has been submitted successfully. You will receive a confirmation shortly.
+          <p className="text-gray-600 text-sm mb-8 leading-relaxed max-w-xs mx-auto">
+            Your appointment booking request has been sent. We'll get back to you shortly.
           </p>
-
-          {/* Processing indicator */}
-          <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 text-center">
-              Processing your booking request...
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-              <div className="bg-[#0C2243] h-2 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Booking Details */}
-          <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 text-sm">
-            <p><strong>Date:</strong> {bookingDetails.date}</p>
-            <p><strong>Time:</strong> {bookingDetails.time}</p>
-            <p><strong>Service:</strong> {bookingDetails.service}</p>
-            <p><strong>Clinic:</strong> {bookingDetails.clinic}</p>
-          </div>
 
           {/* View Booking Button */}
           <Button
