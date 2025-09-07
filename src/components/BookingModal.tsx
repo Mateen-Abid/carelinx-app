@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { Check, X } from 'lucide-react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
+import { Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import ServiceCalendar from '@/components/ServiceCalendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useBooking } from '@/contexts/BookingContext';
@@ -47,6 +46,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [step, setStep] = useState<'date' | 'confirmation'>('date');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const { addAppointment } = useBooking();
   const navigate = useNavigate();
   
@@ -161,13 +161,88 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 h-full">
             {/* Calendar Section */}
             <div className="flex flex-col items-center">
-              <div className="text-center mb-4">
+              <div className="text-center mb-6">
                 <h3 className="text-lg font-medium text-gray-900">
                   Select Date
                 </h3>
               </div>
               
-              <ServiceCalendar onDateSelect={handleDateSelect} />
+              <div className="bg-white rounded-lg border p-6 max-w-md">
+                {/* Calendar Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <ChevronLeft size={18} className="text-gray-600" />
+                  </button>
+                  
+                  <h4 className="text-base font-medium text-gray-900">
+                    {format(currentDate, 'MMMM yyyy')}
+                  </h4>
+                  
+                  <button
+                    onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <ChevronRight size={18} className="text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Day Headers */}
+                <div className="grid grid-cols-7 mb-4">
+                  {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
+                    <div key={day} className="text-center py-3">
+                      <span className="text-xs font-medium text-gray-500">{day}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {(() => {
+                    const monthStart = startOfMonth(currentDate);
+                    const monthEnd = endOfMonth(currentDate);
+                    const allDaysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+                    const startDay = monthStart.getDay();
+                    const paddingDays = startDay === 0 ? 6 : startDay - 1;
+                    const paddedDays = [];
+                    
+                    for (let i = paddingDays; i > 0; i--) {
+                      const paddingDate = new Date(monthStart);
+                      paddingDate.setDate(paddingDate.getDate() - i);
+                      paddedDays.push(paddingDate);
+                    }
+                    
+                    const calendarDays = [...paddedDays, ...allDaysInMonth];
+                    
+                    return calendarDays.map((date, index) => {
+                      const isCurrentMonth = isSameMonth(date, currentDate);
+                      const isAvailable = isAfter(date, startOfDay(new Date()));
+
+                      return (
+                        <div key={index} className="aspect-square p-1">
+                          <button
+                            onClick={() => isAvailable && isCurrentMonth && handleDateSelect(date)}
+                            disabled={!isAvailable || !isCurrentMonth}
+                            className={`
+                              w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
+                              ${!isCurrentMonth 
+                                ? 'text-gray-300 cursor-not-allowed' 
+                                : isAvailable
+                                  ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }
+                            `}
+                          >
+                            {format(date, 'd')}
+                          </button>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
             </div>
             
             {/* Time Slots Section */}
