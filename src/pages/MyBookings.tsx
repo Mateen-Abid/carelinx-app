@@ -45,11 +45,17 @@ const MyBookings = () => {
     setIsCancelModalOpen(true);
   };
 
-  const confirmCancelAppointment = () => {
+  const confirmCancelAppointment = async () => {
     if (appointmentToCancel) {
-      cancelAppointment(appointmentToCancel.id);
-      setAppointmentToCancel(null);
-      setIsCancelModalOpen(false);
+      try {
+        await cancelAppointment(appointmentToCancel.id);
+        setAppointmentToCancel(null);
+        setIsCancelModalOpen(false);
+        console.log('Appointment cancelled successfully');
+      } catch (error) {
+        console.error('Failed to cancel appointment:', error);
+        alert('Failed to cancel appointment. Please try again.');
+      }
     }
   };
 

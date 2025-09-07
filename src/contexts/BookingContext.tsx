@@ -133,15 +133,27 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const cancelAppointment = async (appointmentId: string): Promise<void> => {
     try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
-        .eq('id', appointmentId);
+        .eq('id', appointmentId)
+        .eq('user_id', user.user.id); // Ensure user can only cancel their own bookings
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Appointment cancelled successfully');
       await fetchAppointments();
     } catch (error) {
       console.error('Error cancelling appointment:', error);
+      throw error; // Re-throw to let the UI handle the error
     }
   };
 
