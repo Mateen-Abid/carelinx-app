@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          booking_id: string
+          clinic_name: string
+          comment: string | null
+          created_at: string
+          doctor_name: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          clinic_name: string
+          comment?: string | null
+          created_at?: string
+          doctor_name: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          clinic_name?: string
+          comment?: string | null
+          created_at?: string
+          doctor_name?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
