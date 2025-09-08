@@ -171,15 +171,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   };
 
   const handleAllButtonClick = () => {
-    // If "All" is already selected, still reset the filter to ensure all services show
-    if (selectedCategory === 'all') {
-      onCategoryChange('all');
-      setIsDropdownOpen(false);
-      setCurrentView('main');
-    } else {
-      // If not selected, toggle dropdown
-      handleDropdownToggle();
-    }
+    // Always show dropdown when All button is clicked
+    handleDropdownToggle();
   };
 
   const handleCategoryClick = (category: ServiceCategory) => {
