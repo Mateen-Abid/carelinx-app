@@ -51,12 +51,16 @@ const Auth = () => {
 
   const validatePassword = (password: string) => {
     return {
-      hasMinLength: password.length >= 6,
+      hasMinLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     };
   };
 
   const passwordValidation = validatePassword(formData.password);
-  const isPasswordValid = passwordValidation.hasMinLength;
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,10 +224,26 @@ const Auth = () => {
               )}
 
               {!isLogin && (
-                <div className="text-xs">
+                <div className="text-xs space-y-1">
                   <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-green-600' : 'text-muted-foreground'}`}>
                     {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
-                    <span>6+ characters</span>
+                    <span>8+ characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordValidation.hasUpperCase ? <Check size={12} /> : <X size={12} />}
+                    <span>Uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordValidation.hasLowerCase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordValidation.hasLowerCase ? <Check size={12} /> : <X size={12} />}
+                    <span>Lowercase letter</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
+                    <span>Number</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {passwordValidation.hasSpecialChar ? <Check size={12} /> : <X size={12} />}
+                    <span>Special character</span>
                   </div>
                 </div>
               )}
