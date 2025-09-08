@@ -85,27 +85,27 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
         <div className="self-center z-10 flex w-full max-w-2xl flex-col items-center">
           {/* Toggle between Services and Clinics */}
           <div className="flex justify-center w-full">
-            <div className="flex bg-[rgba(0,255,162,1)] rounded-lg p-1 border border-gray-200 gap-1">
+            <div className="flex bg-[rgba(0,255,162,1)] rounded-full p-1 border border-gray-200 w-full sm:w-auto">
               <button
                 onClick={() => onViewModeChange('services')}
-                className={`flex flex-col items-center justify-center gap-1 w-16 h-16 sm:w-20 sm:h-20 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
                   viewMode === 'services'
                     ? 'bg-[rgba(12,34,67,1)] text-white'
                     : 'text-gray-600 hover:text-black'
                 }`}
                >
-                <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Stethoscope className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Services</span>
               </button>
               <button
                 onClick={() => onViewModeChange('clinics')}
-                className={`flex flex-col items-center justify-center gap-1 w-16 h-16 sm:w-20 sm:h-20 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
                   viewMode === 'clinics'
                     ? 'bg-[rgba(12,34,67,1)] text-white'
                     : 'text-gray-600 hover:text-black'
                 }`}
               >
-                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Building2 className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Clinics</span>
               </button>
             </div>
