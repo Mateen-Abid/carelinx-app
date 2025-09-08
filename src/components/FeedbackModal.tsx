@@ -69,6 +69,11 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
       });
 
       onClose();
+      
+      // Auto-refresh page after feedback submission
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
@@ -83,6 +88,11 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
 
   const handleSkip = () => {
     onClose();
+    
+    // Auto-refresh page after skipping feedback
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
