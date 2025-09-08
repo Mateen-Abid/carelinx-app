@@ -89,12 +89,12 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         (payload) => {
           console.log('Booking update received:', payload);
           
-          // Check if status changed from pending to confirmed
+          // Check if feedback should be shown (after 5 seconds, booking still pending)
           if (payload.eventType === 'UPDATE' && 
-              payload.old?.status === 'pending' && 
-              payload.new?.status === 'confirmed') {
+              payload.new?.show_feedback === true && 
+              payload.new?.status === 'pending') {
             
-            console.log('Status changed from pending to confirmed, showing feedback modal');
+            console.log('Feedback modal triggered for pending booking');
             
             // Show feedback modal
             setFeedbackModal({

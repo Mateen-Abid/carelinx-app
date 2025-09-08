@@ -33,6 +33,28 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
     setHoveredRating(starIndex);
   };
 
+  const confirmBookingAndClose = async () => {
+    try {
+      // Confirm the booking
+      await supabase
+        .from('bookings')
+        .update({ 
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString()
+        })
+        .eq('id', bookingId);
+        
+      onClose();
+      
+      // Auto-refresh page 
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (rating === 0) {
       toast({
@@ -68,12 +90,8 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
         description: "Your rating helps us improve our services.",
       });
 
-      onClose();
-      
-      // Auto-refresh page after feedback submission
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Confirm booking and refresh
+      await confirmBookingAndClose();
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
@@ -86,17 +104,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
     }
   };
 
-  const handleSkip = () => {
-    onClose();
-    
-    // Auto-refresh page after skipping feedback
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+  const handleSkip = async () => {
+    // Confirm booking and refresh when skipping
+    await confirmBookingAndClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={confirmBookingAndClose}>
       <DialogContent className="sm:max-w-md mx-auto bg-white rounded-2xl shadow-xl border-0 p-0">
         <div className="p-6 text-center">
           {/* Star Rating */}

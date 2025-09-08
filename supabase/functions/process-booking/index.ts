@@ -51,34 +51,35 @@ serve(async (req) => {
 
     console.log(`Booking ${booking.id} created with pending status`)
 
-    // Background task to confirm booking after 10 seconds
-    const confirmBookingTask = async () => {
+    // Background task to trigger feedback modal after 5 seconds
+    const showFeedbackTask = async () => {
       try {
-        console.log(`Starting 10-second wait for booking ${booking.id}...`)
-        await new Promise(resolve => setTimeout(resolve, 10000)) // Wait 10 seconds
+        console.log(`Starting 5-second wait for booking ${booking.id} feedback...`)
+        await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds
         
-        console.log(`Confirming booking ${booking.id}...`)
+        console.log(`Triggering feedback modal for booking ${booking.id}...`)
+        // Update a flag to trigger the feedback modal (booking still pending)
         const { error: updateError } = await supabaseClient
           .from('bookings')
           .update({ 
-            status: 'confirmed',
-            confirmed_at: new Date().toISOString()
+            show_feedback: true,
+            feedback_triggered_at: new Date().toISOString()
           })
           .eq('id', booking.id)
           .eq('status', 'pending') // Only update if still pending
 
         if (updateError) {
-          console.error('Error confirming booking:', updateError)
+          console.error('Error triggering feedback modal:', updateError)
         } else {
-          console.log(`Booking ${booking.id} confirmed successfully after 10 seconds`)
+          console.log(`Feedback modal triggered for booking ${booking.id} after 5 seconds`)
         }
       } catch (error) {
-        console.error('Error in background confirmation task:', error)
+        console.error('Error in feedback trigger task:', error)
       }
     }
 
     // Start background task without waiting for it
-    EdgeRuntime.waitUntil(confirmBookingTask())
+    EdgeRuntime.waitUntil(showFeedbackTask())
 
     // Return immediate response
     return new Response(
