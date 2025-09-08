@@ -82,7 +82,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'bookings'
         },
@@ -90,7 +90,12 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           console.log('Booking update received:', payload);
           
           // Check if status changed from pending to confirmed
-          if (payload.old?.status === 'pending' && payload.new?.status === 'confirmed') {
+          if (payload.eventType === 'UPDATE' && 
+              payload.old?.status === 'pending' && 
+              payload.new?.status === 'confirmed') {
+            
+            console.log('Status changed from pending to confirmed, showing feedback modal');
+            
             // Show feedback modal
             setFeedbackModal({
               isOpen: true,
@@ -100,7 +105,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
             });
           }
           
-          fetchAppointments(); // Refetch when bookings change
+          // Refetch appointments to update the UI in real-time
+          fetchAppointments();
         }
       )
       .subscribe();
