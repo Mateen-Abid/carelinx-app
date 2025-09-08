@@ -18,1072 +18,203 @@ const Index = () => {
   const [selectedClinic, setSelectedClinic] = useState<string>('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const serviceCards = [
-    // Panorama Medical Clinic - Facial Cleaning Services
     {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Laser Sessions",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
+      clinicName: "Central Medical Center",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "ECG",
+      specialty: "Cardiology",
+      timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Plasma Sessions",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
+      clinicName: "Willow Grove Clinic",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "X-Ray",
+      specialty: "Orthopedics",
+      timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
+      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Scar Treatments",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Fat Reduction",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Cosmetic Injections",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Dark Circles Lightening",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Fractional Laser Sessions",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Chemical Peeling Sessions",
-      specialty: "Facial Cleaning Services",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    // Panorama Medical Clinic - Dental
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Teeth Whitening",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Teeth Cleaning",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Polishing & Scaling",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Dental Fillings",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Dentures",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      serviceName: "Orthodontics",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    // Esan Clinic - Dermatology
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Laser Hair Removal",
+      clinicName: "Sunrise Health Clinic",
+      address: "321 Pine Road, Village",
+      serviceName: "Acne Treatment",
       specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Filler Injections",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Botox Injections",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Carbon Laser",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Cold Peeling",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Bleaching",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
+      timeSchedule: "10:00 AM – 6:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
+      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0eda78af93b2aa8948c7d7bc8f142cbb7bb940cb?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Skin Rejuvenation",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
+      clinicName: "Maple Leaf Center",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "Brain Scans",
+      specialty: "Neurology",
+      timeSchedule: "11:00 AM – 4:00 PM • Tue–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
+      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Scar & Stretch Marks Removal",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Skin Tightening & Wrinkle Removal",
-      specialty: "Dermatology",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    // Esan Clinic - Dental
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Gum Surgery & Dental Implants",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Crowns & Dental Prosthetics",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Orthodontics (Teeth & Jaw Alignment)",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Root Canal & Endodontics",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Fillings & Conservative Dentistry",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Oral Health Care Department",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Pediatric Dentistry",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      serviceName: "Cosmetic Veneers (Veneers)",
-      specialty: "Dental",
-      timeSchedule: "8:00 AM – 7:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/1363bccdfe0551b35e6864044b3c04f7955c05cc?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    // Union Medical Complex Clinic - Dental
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Dental Prosthetics / Tooth Restorations",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Oral and Dental Surgery",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
+      clinicName: "Cedar Medical",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "Retinal Care",
+      specialty: "Ophthalmology",
+      timeSchedule: "8:00 AM – 3:00 PM • Mon–Fri",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Intraoral Camera Service",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Laser Teeth Whitening",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Root Canal Treatment",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Pediatric Dental Treatment",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Gum Treatment / Periodontal Care",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
+      clinicName: "Cedar Medical",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "Ultrasound",
+      specialty: "General Medicine",
+      timeSchedule: "8:00 AM – 3:00 PM • Mon–Fri",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
       clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
     },
     {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Orthodontics",
-      specialty: "Orthodontics",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Hollywood Smile",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
+      clinicName: "Central Medical Center",
+      address: "456 Oak Avenue, Suburb",
+      serviceName: "ECG",
+      specialty: "Cardiology",
+      timeSchedule: "9:00 AM – 1:00 PM • Mon–Sat",
       serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
+      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/42cc8425ab2bbb1620eb029ddb06c36d22bd80f2?placeholderIfAbsent=true",
       timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      serviceName: "Cosmetic Fillings",
-      specialty: "Dental",
-      timeSchedule: "9:00 AM – 5:00 PM • Mon–Fri",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/12f78639ed398eea08bacccf51d5b1703fdb88be?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Orthodontics
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Clear Aligners",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Metal Braces",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Surgical Orthodontics",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Auxiliary Orthodontics",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Pediatric Orthodontics",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Temporary Anchorage Devices (TADs)",
-      specialty: "Orthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Dental Implants
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Bone Grafting",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Sinus Lifting",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Biohorizons Dental Implants (USA)",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Peri-implantitis Treatment",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Implant Removal",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Straumann Dental Implants (Switzerland)",
-      specialty: "Dental Implants",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Pediatric Dentistry
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Preventive Care",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Crowns for Damaged Teeth",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Emergency Trauma Management",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Early Caries Management",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Fillings & Pulp Therapy",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Care for Special Needs Children",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Jaw Growth Monitoring",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Examination & Assessment",
-      specialty: "Pediatric Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Fixed & Removable Prosthodontics
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Complete & Partial Removable Dentures",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Implant-Supported Fixed Prosthesis",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Implant-Supported Removable Prosthesis",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Full & Partial Crowns",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Post and Core for Restorations",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Bridges",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "In-Office Teeth Whitening",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "At-Home Teeth Whitening",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Porcelain Veneers",
-      specialty: "Fixed & Removable Prosthodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Restorative & Cosmetic Dentistry
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Cosmetic Fillings",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Tooth Reconstruction",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Crowns",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Aesthetic Veneers",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "In-Office Whitening",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Take-Home Whitening",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Stain Removal Without Tooth Preparation",
-      specialty: "Restorative & Cosmetic Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Root Canal & Endodontics
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Root Canal Treatment for All Teeth",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Emergency Root Canal Treatment",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Retreatment of Failed Root Canals",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Removal of Intracanal Posts",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Abscess Treatment",
-      specialty: "Root Canal & Endodontics",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Periodontal Treatment
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Gum Disease & Periodontal Pocket Treatment",
-      specialty: "Periodontal Treatment",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Scaling and Stain Removal",
-      specialty: "Periodontal Treatment",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Surgical Gummy Smile Correction",
-      specialty: "Periodontal Treatment",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Gum Contouring and Depigmentation with Laser",
-      specialty: "Periodontal Treatment",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Tooth Splinting",
-      specialty: "Periodontal Treatment",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - Oral & Maxillofacial Surgery
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Simple & Surgical Tooth Extractions",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Orthognathic (Jaw) Surgery",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Removal of Cysts (Lipomas/Fatty Masses)",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Correction of Congenital Malformations",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Salivary Gland Tumor Treatment",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Oral & Facial Aesthetic Surgery",
-      specialty: "Oral & Maxillofacial Surgery",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/0a65e481a18b05309845cc62fc429d3b42e45f65?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/6a76054f615e0ac0851c4c4a2938cea4bc19eb7d?placeholderIfAbsent=true"
-    },
-    // Oracare Clinic - General Dentistry
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Check-up & Diagnosis",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Conservative Dental Treatment",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/98f642929a4c5963f7039d165a12bcbcdef809e6?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fba9f5c34174e55cebc5ae70ca57a34463363641?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Emergency Dental Care",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/b32e79093777398252b538f29c56d6c3703971b0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/71b169a0b04713839d08e2448c9ba93cf8d77765?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Dental Cleaning",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/01168c3ef0e4f5d3a553a609724c5788a35f3338?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/fe1f48e298b5d5935a1497c688af45a202d5fd1d?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Root Canal Therapy",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/3eba5b80760cad1e903ec218bff4bbc5e6657151?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/de0ff59b32803763263a3ee001bd0a8d93830146?placeholderIfAbsent=true"
-    },
-    {
-      clinicName: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      serviceName: "Tooth Extraction",
-      specialty: "General Dentistry",
-      timeSchedule: "8:00 AM – 6:00 PM • Mon–Sat",
-      serviceIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5eafa4583b40a9e3f4eca31a09124a4cd4b653e0?placeholderIfAbsent=true",
-      clinicIcon: "https://api.builder.io/api/v1/image/assets/TEMP/f497f709c4f622587a853dae6e3ab218eeddcdd9?placeholderIfAbsent=true",
-      timeIcon: "https://api.builder.io/api/v1/image/assets/TEMP/ae8c431b709a8da187d4b49d77f470f1b8e19975?placeholderIfAbsent=true"
     }
   ];
 
   const clinicCards = [
     {
-      name: "Panorama Medical Clinic",
-      address: "123 Medical District, City Center",
-      type: "Medical Clinic",
+      name: "Central Medical Center",
+      address: "456 Oak Avenue, Suburb",
+      type: "Medical Center",
       services: [
-        { name: "Facial Cleaning Services", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0678807531022174230ccdef75b23ab0e00ebd73?placeholderIfAbsent=true" },
-        { name: "Dental", icon: "https://api.builder.io/api/v1/image/assets/TEMP/4e372a066ba413333951a22ee2b3141eb45645d6?placeholderIfAbsent=true" }
+        { name: "General Medicine", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0678807531022174230ccdef75b23ab0e00ebd73?placeholderIfAbsent=true" },
+        { name: "Pediatrics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/4e372a066ba413333951a22ee2b3141eb45645d6?placeholderIfAbsent=true" },
+        { name: "Orthopedics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/2526d3dcb5f6ff1819819411edf8cfba7ff309cc?placeholderIfAbsent=true" },
+        { name: "Emergency Care", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0254cc92113d67bb61b90eecb83e3db232fd2248?placeholderIfAbsent=true" }
       ],
-      doctorCount: "8 Doctors available",
-      daysOpen: "Mon – Sat",
-      timing: "9:00 AM – 6:00 PM",
+      doctorCount: "18 Doctor available",
+      daysOpen: "Mon – Fri",
+      timing: "9:30 AM – 12:30 AM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/eababc4cfc9b8dff4a46e824ad2fb21e1453b080?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
     },
     {
-      name: "Esan Clinic",
-      address: "456 Health Avenue, Medical Center",
-      type: "Clinic",
+      name: "Green Valley Hospital",
+      address: "789 Maple Street, Townsville",
+      type: "Hospital",
       services: [
-        { name: "Dermatology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/f51781fee441fbe2c5816df27e7258e6f8a00b92?placeholderIfAbsent=true" },
-        { name: "Dental", icon: "https://api.builder.io/api/v1/image/assets/TEMP/b2d1ef3b4e58b8f7649ec48acfb93ca0a3e9ae32?placeholderIfAbsent=true" }
+        { name: "Cardiology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/f51781fee441fbe2c5816df27e7258e6f8a00b92?placeholderIfAbsent=true" },
+        { name: "Maternity Care", icon: "https://api.builder.io/api/v1/image/assets/TEMP/b2d1ef3b4e58b8f7649ec48acfb93ca0a3e9ae32?placeholderIfAbsent=true" },
+        { name: "Neurology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/ef2c216a1e831a8b96e2a864fe104dcfd0d0af5a?placeholderIfAbsent=true" },
+        { name: "Oncology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/a1877dac1615ad3f837f3f9e74506af3cc28f231?placeholderIfAbsent=true" }
       ],
-      doctorCount: "12 Doctors available",
-      daysOpen: "Mon – Sat",
-      timing: "8:00 AM – 7:00 PM",
+      doctorCount: "30 Doctors available",
+      daysOpen: "Mon – Sun",
+      timing: "8:00 AM – 10:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/2eb4771432582a9a78fd15f6acf0415df0cd933b?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/526777c9061a4c3515d51b72c418673fd2d49d66?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/5cae8cfaf36687f1dba212d0868d625367a19974?placeholderIfAbsent=true"
     },
     {
-      name: "Union Medical Complex Clinic",
-      address: "789 Union Street, Healthcare District",
-      type: "Medical Complex",
+      name: "Sunrise Health Clinic",
+      address: "321 Pine Road, Village",
+      type: "Clinic",
       services: [
-        { name: "Dental", icon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true" }
+        { name: "Dermatology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true" },
+        { name: "Gynecology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/fe39b153c852b4408c74f864631bb123dc030526?placeholderIfAbsent=true" },
+        { name: "Gastroenterology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/632209998a4d7dc59a41cbde006e3f96b55d49ed?placeholderIfAbsent=true" },
+        { name: "Psychiatry", icon: "https://api.builder.io/api/v1/image/assets/TEMP/fd65996b62e21131fdaa60425c8ef06375371ae0?placeholderIfAbsent=true" },
+        { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/6c3fb934dc9976408fd4171ddda651c95f1c7c63?placeholderIfAbsent=true" }
       ],
-      doctorCount: "6 Doctors available",
-      daysOpen: "Mon – Fri",
-      timing: "9:00 AM – 5:00 PM",
+      doctorCount: "5 Doctors available",
+      daysOpen: "Mon – Sat",
+      timing: "10:00 AM – 6:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/0eda78af93b2aa8948c7d7bc8f142cbb7bb940cb?placeholderIfAbsent=true",
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/8237fc4aa983b224301359c5a386d7dfbf1c0de7?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/faa7f0a43558699e2c5d63340e5ec1ec32f3efe9?placeholderIfAbsent=true"
     },
     {
-      name: "Oracare Clinic",
-      address: "321 Dental Plaza, Specialist Center",
-      type: "Dental Clinic",
+      name: "Sunset Medical Center",
+      address: "144 Maple Drive, City",
+      type: "Hospital",
       services: [
-        { name: "Orthodontics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0678807531022174230ccdef75b23ab0e00ebd73?placeholderIfAbsent=true" },
-        { name: "Dental Implants", icon: "https://api.builder.io/api/v1/image/assets/TEMP/4e372a066ba413333951a22ee2b3141eb45645d6?placeholderIfAbsent=true" },
-        { name: "Pediatric Dentistry", icon: "https://api.builder.io/api/v1/image/assets/TEMP/f67b415b2fad6be12e05e6f7da32bf13402850bc?placeholderIfAbsent=true" },
-        { name: "General Dentistry", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0254cc92113d67bb61b90eecb83e3db232fd2248?placeholderIfAbsent=true" },
+        { name: "Pediatrics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0678807531022174230ccdef75b23ab0e00ebd73?placeholderIfAbsent=true" },
+        { name: "Cardiology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/4e372a066ba413333951a22ee2b3141eb45645d6?placeholderIfAbsent=true" },
+        { name: "Orthopedics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/f67b415b2fad6be12e05e6f7da32bf13402850bc?placeholderIfAbsent=true" },
+        { name: "Neurology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/0254cc92113d67bb61b90eecb83e3db232fd2248?placeholderIfAbsent=true" },
         { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/11ed68343948aed58a8dee6e931125145ce5e8a7?placeholderIfAbsent=true" }
       ],
-      doctorCount: "15 Doctors available",
-      daysOpen: "Mon – Sat",
-      timing: "8:00 AM – 6:00 PM",
+      doctorCount: "10 Doctors available",
+      daysOpen: "Mon – Fri",
+      timing: "8:00 AM – 8:00 PM",
       logo: "https://api.builder.io/api/v1/image/assets/TEMP/e497bc291b663898a61854b8c0ee6a78ec503465?placeholderIfAbsent=true",
+      daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
+      timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
+    },
+    {
+      name: "Sunset Medical Center",
+      address: "144 Maple Drive, City",
+      type: "Hospital",
+      services: [
+        { name: "Pediatrics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/f51781fee441fbe2c5816df27e7258e6f8a00b92?placeholderIfAbsent=true" },
+        { name: "Cardiology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/5cc296decf7d204892a712d06f267a61593f7a71?placeholderIfAbsent=true" },
+        { name: "Orthopedics", icon: "https://api.builder.io/api/v1/image/assets/TEMP/773f55ab32be04baf644ce5877ea01d4f92fb881?placeholderIfAbsent=true" },
+        { name: "Neurology", icon: "https://api.builder.io/api/v1/image/assets/TEMP/b2d1ef3b4e58b8f7649ec48acfb93ca0a3e9ae32?placeholderIfAbsent=true" },
+        { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/884ad743078544c631a4e9df3d1b2b7109b3a04a?placeholderIfAbsent=true" }
+      ],
+      doctorCount: "10 Doctors available",
+      daysOpen: "Mon – Fri",
+      timing: "8:00 AM – 8:00 PM",
+      logo: "https://api.builder.io/api/v1/image/assets/TEMP/c44df649f5dfdd36697f713f08a0531d6209c2d3?placeholderIfAbsent=true",
+      daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
+      timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
+    },
+    {
+      name: "Lakeside Wellness Center",
+      address: "267 River Lane, Town",
+      type: "Wellness",
+      services: [
+        { name: "Nutrition", icon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true" },
+        { name: "Physical Therapy", icon: "https://api.builder.io/api/v1/image/assets/TEMP/fe39b153c852b4408c74f864631bb123dc030526?placeholderIfAbsent=true" },
+        { name: "Chiropractic", icon: "https://api.builder.io/api/v1/image/assets/TEMP/632209998a4d7dc59a41cbde006e3f96b55d49ed?placeholderIfAbsent=true" },
+        { name: "Acupuncture", icon: "https://api.builder.io/api/v1/image/assets/TEMP/1be7a1ffed610ca72836f6a3de8f0a9eb24d320d?placeholderIfAbsent=true" },
+        { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/c83950a613573292f4969d0887ea863401551486?placeholderIfAbsent=true" }
+      ],
+      doctorCount: "3 Doctors available",
+      daysOpen: "Tue – Sun",
+      timing: "9:00 AM – 5:00 PM",
+      logo: "https://api.builder.io/api/v1/image/assets/TEMP/0eda78af93b2aa8948c7d7bc8f142cbb7bb940cb?placeholderIfAbsent=true",
+      daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
+      timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
+    },
+    {
+      name: "Lakeside Wellness Center",
+      address: "267 River Lane, Town",
+      type: "Wellness",
+      services: [
+        { name: "Nutrition", icon: "https://api.builder.io/api/v1/image/assets/TEMP/167cf20a85528f7b30a107496f66cf315880b522?placeholderIfAbsent=true" },
+        { name: "Physical Therapy", icon: "https://api.builder.io/api/v1/image/assets/TEMP/fe39b153c852b4408c74f864631bb123dc030526?placeholderIfAbsent=true" },
+        { name: "Chiropractic", icon: "https://api.builder.io/api/v1/image/assets/TEMP/632209998a4d7dc59a41cbde006e3f96b55d49ed?placeholderIfAbsent=true" },
+        { name: "Acupuncture", icon: "https://api.builder.io/api/v1/image/assets/TEMP/1be7a1ffed610ca72836f6a3de8f0a9eb24d320d?placeholderIfAbsent=true" },
+        { name: "More", icon: "https://api.builder.io/api/v1/image/assets/TEMP/c83950a613573292f4969d0887ea863401551486?placeholderIfAbsent=true" }
+      ],
+      doctorCount: "3 Doctors available",
+      daysOpen: "Tue – Sun",
+      timing: "9:00 AM – 5:00 PM",
+      logo: "https://api.builder.io/api/v1/image/assets/TEMP/8559cde1d85afa8752521dd1ea31d0054ba77f05?placeholderIfAbsent=true",
+      
       daysIcon: "https://api.builder.io/api/v1/image/assets/TEMP/785f5ffc2826d77b0acd4a7daf2c2399dd96c3fa?placeholderIfAbsent=true",
       timingIcon: "https://api.builder.io/api/v1/image/assets/TEMP/cf0135087d9fd9cac8a10d7fae222ff9d6d7795d?placeholderIfAbsent=true"
     }
@@ -1092,112 +223,57 @@ const Index = () => {
   // Mapping for service categories to match the specialty names
   const serviceMapping: { [key: string]: string[] } = {
     'all': [],
-    'facial-cleaning-services': ['Facial Cleaning Services'],
-    'dental': ['Dental'],
-    'dentistry': ['Dental'],
+    'cardiology': ['Cardiology'],
+    'neurology': ['Neurology'],
+    'ophthalmology': ['Ophthalmology'],
+    'general-medicine': ['General Medicine'],
+    'pediatrics': ['Pediatrics'],
+    'orthopedics': ['Orthopedics'],
+    'emergency-care': ['Emergency Care'],
     'dermatology': ['Dermatology'],
-    'orthodontics': ['Orthodontics'],
-    'dental-implants': ['Dental Implants'],
-    'pediatric-dentistry': ['Pediatric Dentistry'],
-    'fixed-removable-prosthodontics': ['Fixed & Removable Prosthodontics'],
-    'restorative-cosmetic-dentistry': ['Restorative & Cosmetic Dentistry'],
-    'root-canal-endodontics': ['Root Canal & Endodontics'],
-    'periodontal-treatment': ['Periodontal Treatment'],
-    'oral-maxillofacial-surgery': ['Oral & Maxillofacial Surgery'],
-    'general-dentistry': ['General Dentistry'],
-    // Facial Cleaning Services subcategories
-    'laser-sessions': ['Facial Cleaning Services'],
-    'plasma-sessions': ['Facial Cleaning Services'],
-    'scar-treatments': ['Facial Cleaning Services'],
-    'fat-reduction': ['Facial Cleaning Services'],
-    'cosmetic-injections': ['Facial Cleaning Services'],
-    'dark-circles-lightening': ['Facial Cleaning Services'],
-    'fractional-laser-sessions': ['Facial Cleaning Services'],
-    'chemical-peeling-sessions': ['Facial Cleaning Services'],
-    // Dental subcategories
-    'teeth-whitening': ['Dental'],
-    'teeth-cleaning': ['Dental'],
-    'polishing-scaling': ['Dental'],
-    'dental-fillings': ['Dental'],
-    'dentures': ['Dental'],
-    'orthodontics-teeth-jaw': ['Dental'],
+    // Cardiology subcategories
+    'cardiology-ecg': ['Cardiology'],
+    'cardiology-echo': ['Cardiology'],
+    'cardiology-stress-test': ['Cardiology'],
+    'cardiology-holter': ['Cardiology'],
+    'cardiology-angiogram': ['Cardiology'],
+    'cardiology-ct-scan': ['Cardiology'],
+    // Neurology subcategories
+    'neurology-mri': ['Neurology'],
+    'neurology-ct-scan': ['Neurology'],
+    'neurology-eeg': ['Neurology'],
+    'neurology-emg': ['Neurology'],
+    'neurology-lumbar-puncture': ['Neurology'],
+    // Ophthalmology subcategories
+    'ophthalmology-retinal-exam': ['Ophthalmology'],
+    'ophthalmology-glaucoma-test': ['Ophthalmology'],
+    'ophthalmology-cataract-surgery': ['Ophthalmology'],
+    'ophthalmology-vision-test': ['Ophthalmology'],
+    'ophthalmology-oct': ['Ophthalmology'],
     // Dermatology subcategories
-    'laser-hair-removal': ['Dermatology'],
-    'filler-injections': ['Dermatology'],
-    'botox-injections': ['Dermatology'],
-    'carbon-laser': ['Dermatology'],
-    'cold-peeling': ['Dermatology'],
-    'bleaching': ['Dermatology'],
-    'skin-rejuvenation': ['Dermatology'],
-    'scar-stretch-marks-removal': ['Dermatology'],
-    'skin-tightening-wrinkle-removal': ['Dermatology'],
-    // Orthodontics subcategories
-    'clear-aligners': ['Orthodontics'],
-    'metal-braces': ['Orthodontics'],
-    'surgical-orthodontics': ['Orthodontics'],
-    'auxiliary-orthodontics': ['Orthodontics'],
-    'pediatric-orthodontics': ['Orthodontics'],
-    'temporary-anchorage-devices': ['Orthodontics'],
-    // Dental Implants subcategories
-    'bone-grafting': ['Dental Implants'],
-    'sinus-lifting': ['Dental Implants'],
-    'biohorizons-dental-implants': ['Dental Implants'],
-    'peri-implantitis-treatment': ['Dental Implants'],
-    'dental-implant-removal': ['Dental Implants'],
-    'straumann-dental-implants': ['Dental Implants'],
-    // Pediatric Dentistry subcategories
-    'preventive-care': ['Pediatric Dentistry'],
-    'crowns-for-damaged-teeth': ['Pediatric Dentistry'],
-    'emergency-trauma-management': ['Pediatric Dentistry'],
-    'early-caries-management': ['Pediatric Dentistry'],
-    'fillings-pulp-therapy': ['Pediatric Dentistry'],
-    'care-for-special-needs-children': ['Pediatric Dentistry'],
-    'jaw-growth-monitoring': ['Pediatric Dentistry'],
-    'dental-examination-assessment': ['Pediatric Dentistry'],
-    // Fixed & Removable Prosthodontics subcategories
-    'complete-partial-removable-dentures': ['Fixed & Removable Prosthodontics'],
-    'implant-supported-fixed-prosthesis': ['Fixed & Removable Prosthodontics'],
-    'implant-supported-removable-prosthesis': ['Fixed & Removable Prosthodontics'],
-    'full-partial-crowns': ['Fixed & Removable Prosthodontics'],
-    'post-and-core-for-restorations': ['Fixed & Removable Prosthodontics'],
-    'dental-bridges': ['Fixed & Removable Prosthodontics'],
-    'in-office-teeth-whitening': ['Fixed & Removable Prosthodontics'],
-    'at-home-teeth-whitening': ['Fixed & Removable Prosthodontics'],
-    'porcelain-veneers': ['Fixed & Removable Prosthodontics'],
-    // Restorative & Cosmetic Dentistry subcategories
-    'cosmetic-fillings': ['Restorative & Cosmetic Dentistry'],
-    'tooth-reconstruction': ['Restorative & Cosmetic Dentistry'],
-    'dental-crowns': ['Restorative & Cosmetic Dentistry'],
-    'aesthetic-veneers': ['Restorative & Cosmetic Dentistry'],
-    'in-office-whitening': ['Restorative & Cosmetic Dentistry'],
-    'take-home-whitening': ['Restorative & Cosmetic Dentistry'],
-    'stain-removal-without-tooth-preparation': ['Restorative & Cosmetic Dentistry'],
-    // Root Canal & Endodontics subcategories
-    'root-canal-treatment-for-all-teeth': ['Root Canal & Endodontics'],
-    'emergency-root-canal-treatment': ['Root Canal & Endodontics'],
-    'retreatment-of-failed-root-canals': ['Root Canal & Endodontics'],
-    'removal-of-intracanal-posts': ['Root Canal & Endodontics'],
-    'abscess-treatment': ['Root Canal & Endodontics'],
-    // Periodontal Treatment subcategories
-    'gum-disease-periodontal-pocket-treatment': ['Periodontal Treatment'],
-    'scaling-and-stain-removal': ['Periodontal Treatment'],
-    'surgical-gummy-smile-correction': ['Periodontal Treatment'],
-    'gum-contouring-and-depigmentation-with-laser': ['Periodontal Treatment'],
-    'tooth-splinting': ['Periodontal Treatment'],
-    // Oral & Maxillofacial Surgery subcategories
-    'simple-surgical-tooth-extractions': ['Oral & Maxillofacial Surgery'],
-    'orthognathic-jaw-surgery': ['Oral & Maxillofacial Surgery'],
-    'removal-of-cysts-lipomas-fatty-masses': ['Oral & Maxillofacial Surgery'],
-    'correction-of-congenital-malformations': ['Oral & Maxillofacial Surgery'],
-    'salivary-gland-tumor-treatment': ['Oral & Maxillofacial Surgery'],
-    'oral-facial-aesthetic-surgery': ['Oral & Maxillofacial Surgery'],
-    // General Dentistry subcategories
-    'dental-check-up-diagnosis': ['General Dentistry'],
-    'conservative-dental-treatment': ['General Dentistry'],
-    'emergency-dental-care': ['General Dentistry'],
-    'dental-cleaning': ['General Dentistry'],
-    'root-canal-therapy': ['General Dentistry'],
-    'tooth-extraction': ['General Dentistry']
+    'dermatology-acne': ['Dermatology'],
+    'dermatology-eczema': ['Dermatology'],
+    'dermatology-psoriasis': ['Dermatology'],
+    'dermatology-rosacea': ['Dermatology'],
+    'dermatology-allergies': ['Dermatology'],
+    'dermatology-warts': ['Dermatology'],
+    'dermatology-scars': ['Dermatology'],
+    // General Medicine subcategories
+    'general-checkup': ['General Medicine'],
+    'general-blood-test': ['General Medicine'],
+    'general-vaccination': ['General Medicine'],
+    'general-health-screening': ['General Medicine'],
+    // Pediatrics subcategories
+    'pediatrics-vaccination': ['Pediatrics'],
+    'pediatrics-growth-check': ['Pediatrics'],
+    'pediatrics-development': ['Pediatrics'],
+    'pediatrics-illness': ['Pediatrics'],
+    // Orthopedics subcategories
+    'orthopedics-xray': ['Orthopedics'],
+    'orthopedics-mri': ['Orthopedics'],
+    'orthopedics-ct-scan': ['Orthopedics'],
+    'orthopedics-joint-replacement': ['Orthopedics'],
+    'orthopedics-fracture-care': ['Orthopedics']
   };
 
   const handleCategoryChange = (categoryId: string) => {
