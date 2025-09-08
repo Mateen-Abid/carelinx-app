@@ -13,13 +13,15 @@ interface SearchInputProps {
   onSearch?: (value: string) => void;
   onOptionSelect?: (option: SearchOption) => void;
   selectedCategory?: string;
+  currentSearchQuery?: string;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
   placeholder = "Search by service, clinic, or doctor's name",
   onSearch,
   onOptionSelect,
-  selectedCategory = 'all'
+  selectedCategory = 'all',
+  currentSearchQuery = ''
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState<SearchOption[]>([]);
@@ -65,8 +67,20 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const getCategoryDisplayName = () => {
-    const category = searchOptions.find(option => option.id === selectedCategory);
-    return category ? category.name : 'All Categories';
+    const categoryMap: { [key: string]: string } = {
+      'all': 'All Categories',
+      'dentistry': 'Dental',
+      'dermatology': 'Dermatology'
+    };
+    return categoryMap[selectedCategory] || 'All Categories';
+  };
+
+  const getPlaceholderText = () => {
+    // Use currentSearchQuery to show the actual filter status
+    if (currentSearchQuery && currentSearchQuery.trim()) {
+      return `Filtering by: "${currentSearchQuery}" - Click to clear`;
+    }
+    return `Search in ${getCategoryDisplayName()}...`;
   };
 
   useEffect(() => {
@@ -88,6 +102,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
     setShowDropdown(false);
   }, [selectedCategory]);
 
+  // Sync search value with current search query
+  useEffect(() => {
+    setSearchValue(currentSearchQuery);
+  }, [currentSearchQuery]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
@@ -103,10 +122,28 @@ const SearchInput: React.FC<SearchInputProps> = ({
            option.category.toLowerCase().includes(value.toLowerCase()))
         );
       } else {
+        // Map category ID to category name for proper matching
+        const categoryNameMap: { [key: string]: string } = {
+          'dentistry': 'Dental',
+          'dermatology': 'Dermatology',
+          'facial-cleaning-services': 'Facial Cleaning Services',
+          'orthodontics': 'Orthodontics',
+          'dental-implants': 'Dental Implants',
+          'pediatric-dentistry': 'Pediatric Dentistry',
+          'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
+          'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
+          'root-canal-endodontics': 'Root Canal & Endodontics',
+          'periodontal-treatment': 'Periodontal Treatment',
+          'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
+          'general-dentistry': 'General Dentistry'
+        };
+        
+        const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
+        
         // Only show subcategories from the selected category
         filtered = searchOptions.filter(option =>
           option.type === 'subcategory' &&
-          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
+          option.category.toLowerCase() === categoryName.toLowerCase() &&
           option.name.toLowerCase().includes(value.toLowerCase())
         );
       }
@@ -141,27 +178,44 @@ const SearchInput: React.FC<SearchInputProps> = ({
            option.category.toLowerCase().includes(searchValue.toLowerCase()))
         );
       } else {
+        // Map category ID to category name for proper matching
+        const categoryNameMap: { [key: string]: string } = {
+          'dentistry': 'Dental',
+          'dermatology': 'Dermatology',
+          'facial-cleaning-services': 'Facial Cleaning Services',
+          'orthodontics': 'Orthodontics',
+          'dental-implants': 'Dental Implants',
+          'pediatric-dentistry': 'Pediatric Dentistry',
+          'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
+          'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
+          'root-canal-endodontics': 'Root Canal & Endodontics',
+          'periodontal-treatment': 'Periodontal Treatment',
+          'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
+          'general-dentistry': 'General Dentistry'
+        };
+        
+        const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
+        
         // Only show subcategories from the selected category
         filtered = searchOptions.filter(option =>
           option.type === 'subcategory' &&
-          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
+          option.category.toLowerCase() === categoryName.toLowerCase() &&
           option.name.toLowerCase().includes(searchValue.toLowerCase())
         );
       }
       setFilteredOptions(filtered.slice(0, 12));
       setShowDropdown(true);
     } else {
-      // Show subcategories for selected category when clicking on empty search
+      // Show subcategories for selected category when focusing on empty search
       showAllSubcategories();
     }
   };
 
   const handleInputClick = () => {
-    if (searchValue.trim().length === 0) {
-      showAllSubcategories();
-    } else {
-      handleInputFocus();
-    }
+    // Always clear search and show all subcategories when clicking
+    setSearchValue('');
+    onSearch?.(''); // Clear the search filter
+    showAllSubcategories();
   };
 
   const handleDropdownToggle = () => {
@@ -179,9 +233,27 @@ const SearchInput: React.FC<SearchInputProps> = ({
     if (selectedCategory === 'all') {
       subcategories = searchOptions.filter(option => option.type === 'subcategory');
     } else {
+      // Map category ID to category name for proper matching
+      const categoryNameMap: { [key: string]: string } = {
+        'dentistry': 'Dental',
+        'dermatology': 'Dermatology',
+        'facial-cleaning-services': 'Facial Cleaning Services',
+        'orthodontics': 'Orthodontics',
+        'dental-implants': 'Dental Implants',
+        'pediatric-dentistry': 'Pediatric Dentistry',
+        'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
+        'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
+        'root-canal-endodontics': 'Root Canal & Endodontics',
+        'periodontal-treatment': 'Periodontal Treatment',
+        'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
+        'general-dentistry': 'General Dentistry'
+      };
+      
+      const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
+      
       subcategories = searchOptions.filter(option => 
         option.type === 'subcategory' && 
-        option.category.toLowerCase() === selectedCategory.toLowerCase()
+        option.category.toLowerCase() === categoryName.toLowerCase()
       );
     }
     setFilteredOptions(subcategories);
@@ -203,7 +275,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onClick={handleInputClick}
-              placeholder={placeholder}
+              placeholder={getPlaceholderText()}
               className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
             />
             <button

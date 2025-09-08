@@ -1,275 +1,219 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { BookingModal } from '@/components/BookingModal';
+import { Stethoscope, User, Clock, Calendar } from 'lucide-react';
+import { clinicsData, Clinic } from '@/data/clinicsData';
 
-// Mock data for services and doctors
-const services = [
-  {
-    name: 'ECG',
-    doctor: 'Dr. Ali Ashar',
-    specialization: 'Cardiologist',
-    timing: '09:00 AM - 1:00 PM | Mon-Sat',
-    available: true,
-  },
-  {
-    name: 'X-Ray',
-    doctor: 'Dr. Zaha Ali',
-    specialization: 'Radiologist',
-    timing: '09:00 AM - 1:00 PM | Mon-Sat',
-    available: true,
-  },
-  {
-    name: 'Brain Scan',
-    doctor: 'Dr. Tom Yaeghn',
-    specialization: 'Neurologist',
-    timing: '01:00 PM - 5:00 PM | Mon-Sat',
-    available: true,
-  },
-  {
-    name: 'Retinal Care',
-    doctor: 'Dr. Sarah Johnson',
-    specialization: 'Ophthalmologist',
-    timing: '11:00 AM - 4:00 PM | Tue-Sat',
-    available: true,
-  },
-  {
-    name: 'Ultrasound',
-    doctor: 'Dr. Michael Chen',
-    specialization: 'Radiologist',
-    timing: '03:00 PM - 6:00 PM | Tue-Sat',
-    available: true,
-  },
-  {
-    name: 'Blood Test',
-    doctor: 'Dr. Maria Rodriguez',
-    specialization: 'Pathologist',
-    timing: '08:00 AM - 12:00 PM | Mon-Fri',
-    available: true,
-  }
-];
+// Custom Tooth Icon Component
+const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
+  <img 
+    src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png" 
+    width={size} 
+    height={size} 
+    alt="Tooth icon"
+    className={className}
+  />
+);
+
+// Service category interface
+interface ServiceCategory {
+  id: string;
+  name: string;
+  icon: React.ComponentType<any>;
+}
+
+// Service card interface
+interface ServiceCard {
+  id: string;
+  name: string;
+  category: string;
+  time: string;
+  date: string;
+  icon: string;
+}
 
 
 const ClinicDetails = () => {
   const { clinicId } = useParams();
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<string>('');
+  const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Real clinic data mapping based on the Index page data
-  const clinicData = {
-    'central-medical-center': {
-      name: 'Central Medical Center',
-      address: '456 Oak Avenue, Suburb',
-      description: 'A comprehensive healthcare facility providing quality medical services with state-of-the-art equipment and experienced medical professionals dedicated to your health and wellness.'
-    },
-    'green-valley-hospital': {
-      name: 'Green Valley Hospital',
-      address: '789 Maple Street, Townsville',
-      description: 'Modern hospital offering advanced medical care with specialized departments and 24/7 emergency services, committed to delivering exceptional patient care in a comfortable environment.'
-    },
-    'sunrise-health-clinic': {
-      name: 'Sunrise Health Clinic',
-      address: '321 Pine Road, Village',
-      description: 'Community-focused healthcare clinic providing personalized medical services with a team of caring professionals dedicated to maintaining your health and preventing illness.'
-    },
-    'sunset-medical-center': {
-      name: 'Sunset Medical Center',
-      address: '144 Maple Drive, City',
-      description: 'Full-service medical center offering comprehensive healthcare solutions with cutting-edge technology and a multidisciplinary approach to patient care and treatment.'
-    },
-    'lakeside-wellness-center': {
-      name: 'Lakeside Wellness Center',
-      address: '267 River Lane, Town',
-      description: 'Holistic wellness center combining traditional medical care with preventive health services, focusing on overall well-being and lifestyle medicine for optimal health outcomes.'
-    }
-  };
-
-  const currentClinic = clinicData[clinicId as keyof typeof clinicData] || {
+  // Get clinic data from the imported data
+  const currentClinic = clinicsData.find(clinic => clinic.id === clinicId) || {
+    id: 'unknown',
     name: 'Medical Center',
     address: 'Location not specified',
-    description: 'Professional healthcare services available for your medical needs.'
+    type: 'Medical Clinic',
+    logo: '',
+    timing: '9:00 AM – 6:00 PM',
+    daysOpen: 'Mon – Sat',
+    doctorCount: 'Multiple Doctors',
+    categories: {}
   };
 
-  const handleBookAppointment = (doctorName?: string, serviceName?: string) => {
-    setSelectedDoctor(doctorName || 'Dr. Ishfaq');
-    setSelectedService(serviceName || 'General Consultation');
-    setIsBookingModalOpen(true);
-  };
+  // Debug logging
+  console.log('ClinicDetails - clinicId:', clinicId);
+  console.log('ClinicDetails - currentClinic:', currentClinic);
+  console.log('ClinicDetails - all clinic IDs:', clinicsData.map(c => c.id));
 
-  // Convert timing string to schedule object for selected service
-  const getSelectedServiceSchedule = (): Record<string, string> => {
-    const service = services.find(s => s.name === selectedService);
-    if (!service) return {};
+  // Service categories for filtering
+  const serviceCategories: ServiceCategory[] = [
+    { id: 'all', name: 'All', icon: Stethoscope },
+    { id: 'dermatology', name: 'Dermatology', icon: User },
+    { id: 'dentistry', name: 'Dental', icon: ToothIcon }
+  ];
+
+  // Generate service cards from clinic data
+  const serviceCards: ServiceCard[] = useMemo(() => {
+    const cards: ServiceCard[] = [];
     
-    const schedule: Record<string, string> = {
-      'Sun': 'Closed',
-      'Mon': 'Closed',
-      'Tue': 'Closed', 
-      'Wed': 'Closed',
-      'Thu': 'Closed',
-      'Fri': 'Closed',
-      'Sat': 'Closed'
-    };
-
-    // Parse timing like "09:00 AM - 1:00 PM | Mon-Sat"
-    const parts = service.timing.split(' | ');
-    if (parts.length === 2) {
-      const timeRange = parts[0].replace(/\s/g, '').replace('-', ' - ');
-      const days = parts[1];
-      
-      // Convert time format from "09:00AM-1:00PM" to "09:00 - 13:00"
-      const convertTime = (time: string) => {
-        return time.replace(/(\d{1,2}):(\d{2})(AM|PM)/g, (match, hour, minute, period) => {
-          let h = parseInt(hour);
-          if (period === 'PM' && h !== 12) h += 12;
-          if (period === 'AM' && h === 12) h = 0;
-          return h.toString().padStart(2, '0') + ':' + minute;
-        });
-      };
-      
-      const convertedTimeRange = convertTime(timeRange);
-      
-      // Parse day range like "Mon-Sat"
-      if (days.includes('-')) {
-        const [startDay, endDay] = days.split('-');
-        const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const startIndex = dayOrder.indexOf(startDay);
-        const endIndex = dayOrder.indexOf(endDay);
+    Object.entries(currentClinic.categories).forEach(([categoryName, services]) => {
+      services.forEach(service => {
+        // Generate mock time and date data
+        const times = ['10:15 am - 10:30 am', '9:45 am - 10:00 am', '11:00 am - 11:15 am', '2:30 pm - 2:45 pm'];
+        const dates = ['24 Aug, 2025', '15 Sep, 2026', '28 Aug, 2025', '5 Sep, 2025'];
+        const icons = ['👋', '❤️', '🦷', '👁️', '🧠', '💉'];
         
-        if (startIndex !== -1 && endIndex !== -1) {
-          for (let i = startIndex; i <= endIndex; i++) {
-            schedule[dayOrder[i]] = convertedTimeRange;
-          }
-        }
-      }
+        cards.push({
+          id: service.id,
+          name: service.name,
+          category: categoryName,
+          time: times[Math.floor(Math.random() * times.length)],
+          date: dates[Math.floor(Math.random() * dates.length)],
+          icon: icons[Math.floor(Math.random() * icons.length)]
+        });
+      });
+    });
+    
+    return cards;
+  }, [currentClinic]);
+
+  // Filter service cards based on selected category
+  const filteredServiceCards = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return serviceCards;
     }
     
-    return schedule;
+    return serviceCards.filter(card => {
+      if (selectedCategory === 'dermatology') {
+        return card.category.toLowerCase().includes('dermatology') || 
+               card.category.toLowerCase().includes('facial') ||
+               card.name.toLowerCase().includes('acne') ||
+               card.name.toLowerCase().includes('skin');
+      }
+      if (selectedCategory === 'dentistry') {
+        return card.category.toLowerCase().includes('dental') ||
+               card.name.toLowerCase().includes('teeth') ||
+               card.name.toLowerCase().includes('dental');
+      }
+      return card.category === selectedCategory;
+    });
+  }, [serviceCards, selectedCategory]);
+
+  // Handle service selection and navigate to service details
+  const handleServiceSelect = (service: ServiceCard) => {
+    // Navigate to the service details page using the service ID
+    navigate(`/service/${service.id}`);
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Hero Section */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="max-w-3xl">
-            {/* Clinic Info */}
-            <div className="bg-white border rounded-lg p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">{currentClinic.name}</h1>
-              <div className="flex items-center gap-2 text-gray-600 mb-4">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
-                <span>{currentClinic.address}</span>
+      {/* Clinic Header Section */}
+      <section className="bg-[#0C2243] text-white py-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-4">
+            {/* Clinic Icon */}
+            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#0C2243] rounded flex items-center justify-center">
+                <div className="w-4 h-4 bg-white rounded"></div>
               </div>
-              <p className="text-gray-700 leading-relaxed">{currentClinic.description}</p>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{currentClinic.name}</h1>
+              <p className="text-sm text-gray-300">{currentClinic.address}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services & Specialists Section */}
-      <section className="py-12 px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Services & Specialists</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {services.map((service, index) => (
-              <div key={index} className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                    <div className="w-6 h-6 bg-green-500 rounded-full"></div>
+      {/* Services Section */}
+      <section className="py-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Services</h2>
+          
+          {/* Service Filter Buttons */}
+          <div className="flex gap-3 mb-6">
+            {serviceCategories.map((category) => {
+              const IconComponent = category.icon;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    selectedCategory === category.id
+                      ? 'bg-[#0C2243] text-white'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <IconComponent size={16} />
+                  {category.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Service Cards */}
+          <div className="space-y-3">
+            {filteredServiceCards.map((service) => (
+              <div
+                key={service.id}
+                className="bg-white rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleServiceSelect(service)}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Service Icon */}
+                  <div className="w-12 h-12 bg-[#00FFA2] rounded-full flex items-center justify-center text-2xl">
+                    {service.icon}
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{service.name}</h3>
-                  <p className="text-sm font-medium text-gray-900">{service.doctor}</p>
-                  <p className="text-xs text-gray-600 mb-2">{service.specialization}</p>
-                  <p className="text-xs text-gray-500 mb-3">{service.timing}</p>
-                  <Button size="sm" className="w-full" onClick={() => handleBookAppointment(service.doctor, service.name)}>
-                    Book Appointment
-                  </Button>
+                  
+                  {/* Service Details */}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 text-lg">{service.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                        {service.category}
+                      </span>
+                    </div>
+                    
+                    {/* Time and Date */}
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{service.time}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{service.date}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {filteredServiceCards.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <p>No services found for the selected category.</p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Location & Info Section */}
-      <section className="py-12 px-8 bg-gray-100">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg p-3 sm:p-4 lg:p-6">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Vumo - Bangalore</h3>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-              <div className="flex items-center gap-1">
-                <span className="text-base sm:text-lg font-bold">5.0</span>
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <span className="text-gray-600 text-sm sm:text-base">(100)</span>
-              </div>
-              <div className="flex flex-col gap-1 text-xs sm:text-sm">
-                <span className="text-green-600">• Closed opens soon at 9:00am</span>
-                <span className="text-gray-600">• NO Rihul, Bangalore</span>
-                <span className="text-gray-600">• 15 people recently book appt.</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Address</h4>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  1st Floor, Icon Mall, 25th, 13th Main Rd,<br />
-                  Indiranagar, Bengaluru, Karnataka 560038
-                </p>
-                <Button variant="link" className="p-0 h-auto text-blue-600 text-xs sm:text-sm mt-1">
-                  Get directions
-                </Button>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Hours</h4>
-                <div className="text-xs sm:text-sm text-gray-600">
-                  <p className="flex justify-between">
-                    <span>Closed</span>
-                  </p>
-                  <p className="flex justify-between">
-                    <span>Tue - Sun</span>
-                    <span className="text-right">6:00 AM – 07:30 pm</span>
-                  </p>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Mode of payment</h4>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Cash, Debit Card, Credit Card<br />
-                  UPI
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 sm:mt-6 flex justify-center sm:justify-end">
-              <Button onClick={() => handleBookAppointment()} className="w-full sm:w-auto">Book Appointment</Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <BookingModal 
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        doctorName={selectedDoctor}
-        clinicName={currentClinic.name}
-        serviceName={selectedService}
-        serviceSchedule={getSelectedServiceSchedule()}
-      />
     </div>
   );
 };

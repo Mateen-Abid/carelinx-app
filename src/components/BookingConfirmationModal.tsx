@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
@@ -28,8 +28,6 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
     navigate('/my-bookings');
     onClose();
   };
-
-  // Removed auto-close functionality as requested
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

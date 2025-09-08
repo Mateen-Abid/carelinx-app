@@ -241,6 +241,7 @@ const ServiceDetails = () => {
       try {
         await confirmAppointment(pendingBookingId);
         setPendingBookingId('');
+        setIsBookingConfirmationOpen(false);
       } catch (error) {
         console.error('Error confirming appointment:', error);
       }

@@ -7,6 +7,7 @@ interface ClinicService {
 }
 
 interface ClinicCardProps {
+  id?: string; // Add clinic ID
   name: string;
   address: string;
   type: string;
@@ -24,6 +25,7 @@ interface ClinicCardProps {
 }
 
 const ClinicCard: React.FC<ClinicCardProps> = ({
+  id,
   name,
   address,
   type,
@@ -47,9 +49,14 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
       return;
     }
     
-    // Convert clinic name to a URL-friendly slug
-    const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    navigate(`/clinic/${clinicSlug}`);
+    // Use the clinic ID if available, otherwise fallback to name-based slug
+    if (id) {
+      navigate(`/clinic/${id}`);
+    } else {
+      // Fallback: Convert clinic name to a URL-friendly slug
+      const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+      navigate(`/clinic/${clinicSlug}`);
+    }
   };
 
   const handleBookingClick = (e: React.MouseEvent) => {

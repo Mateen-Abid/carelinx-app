@@ -177,6 +177,14 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       console.log('Booking created:', data);
       
+      // Show feedback modal immediately after booking creation
+      setFeedbackModal({
+        isOpen: true,
+        bookingId: data.bookingId,
+        clinicName: appointmentData.clinic,
+        doctorName: appointmentData.doctorName
+      });
+      
       // Refresh appointments to get the new booking
       await fetchAppointments();
       

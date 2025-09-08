@@ -10,6 +10,7 @@ interface ServiceCardProps {
   serviceIcon: string;
   clinicIcon: string;
   timeIcon: string;
+  serviceId?: string; // Add service ID for proper navigation
   isSpecial?: boolean;
 }
 
@@ -22,19 +23,20 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   serviceIcon,
   clinicIcon,
   timeIcon,
+  serviceId,
   isSpecial = false
 }) => {
   const navigate = useNavigate();
 
-  // Convert service name to URL-friendly ID
-  const getServiceId = (name: string) => {
-    return name.toLowerCase().replace(/\s+/g, '-');
-  };
-
-  // Navigate to service details page
+  // Navigate to service details page using the actual service ID
   const handleServiceClick = () => {
-    const serviceId = getServiceId(serviceName);
-    navigate(`/service/${serviceId}`);
+    if (serviceId) {
+      navigate(`/service/${serviceId}`);
+    } else {
+      // Fallback to name-based ID if serviceId is not provided
+      const fallbackId = serviceName.toLowerCase().replace(/\s+/g, '-');
+      navigate(`/service/${fallbackId}`);
+    }
   };
 
   return (
@@ -57,6 +59,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           <div className="text-black text-sm font-medium mb-1">
             {clinicName}
           </div>
+          {/* Service name tag */}
+          <div className="bg-[#0C2243] text-white px-2 py-0.5 rounded-full text-xs font-medium mb-1 inline-block">
+            {serviceName}
+          </div>
           <div className="text-gray-600 text-xs">
             {timeSchedule}
           </div>
@@ -75,6 +81,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           <div className="flex flex-col min-w-0 flex-1">
             <div className="text-black text-sm font-medium truncate">
               {clinicName}
+            </div>
+            {/* Service name tag */}
+            <div className="bg-[#0C2243] text-white px-2 py-0.5 rounded-full text-xs font-medium mb-1 inline-block w-fit">
+              {serviceName}
             </div>
             <div className="text-gray-600 text-xs truncate">
               {address}

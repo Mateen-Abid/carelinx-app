@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface FeedbackModalProps {
@@ -33,15 +32,6 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
     setHoveredRating(starIndex);
   };
 
-  const confirmBookingAndClose = async () => {
-    // Just close the modal - booking is already confirmed on frontend and database
-    onClose();
-    
-    // Auto-refresh page to sync any remaining state
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-  };
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -54,51 +44,27 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
     }
 
     setIsSubmitting(true);
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        throw new Error('User not authenticated');
-      }
-
-      const { error } = await supabase
-        .from('feedback' as any)
-        .insert({
-          booking_id: bookingId,
-          user_id: user.user.id,
-          rating: rating,
-          clinic_name: clinicName,
-          doctor_name: doctorName,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-
+    
+    // Simulate a brief loading state
+    setTimeout(() => {
       toast({
         title: "Thank you for your feedback!",
         description: "Your rating helps us improve our services.",
       });
 
-      // Confirm booking and refresh
-      await confirmBookingAndClose();
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      toast({
-        title: "Error submitting feedback",
-        description: "Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
+      // Close modal without saving to database
+      onClose();
       setIsSubmitting(false);
-    }
+    }, 1000);
   };
 
-  const handleSkip = async () => {
-    // Confirm booking and refresh when skipping
-    await confirmBookingAndClose();
+  const handleSkip = () => {
+    // Just close the modal when skipping
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={confirmBookingAndClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md mx-auto bg-white rounded-2xl shadow-xl border-0 p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Rate your experience</DialogTitle>

@@ -35,7 +35,8 @@ const Index = () => {
             timeSchedule: `${clinic.timing} • ${clinic.daysOpen}`,
             serviceIcon: defaultIcon,
             clinicIcon: clinic.logo,
-            timeIcon: timeIcon
+            timeIcon: timeIcon,
+            serviceId: service.id // Add the actual service ID
           });
         });
       });
@@ -51,6 +52,7 @@ const Index = () => {
     const timingIcon = "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=20&h=20&fit=crop&crop=center&auto=format";
 
     return clinicsData.map(clinic => ({
+      id: clinic.id, // Add the clinic ID
       name: clinic.name,
       address: clinic.address,
       type: clinic.type,
@@ -71,15 +73,20 @@ const Index = () => {
   const serviceMapping: { [key: string]: string[] } = useMemo(() => {
     const mapping: { [key: string]: string[] } = { 'all': [] };
     
+    // Map category IDs to their actual category names
+    const categoryMap: { [key: string]: string } = {
+      'dermatology': 'Dermatology',
+      'dentistry': 'Dental'
+    };
+    
     // Add main categories
-    getAllCategories().forEach(category => {
-      const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '');
-      mapping[categoryId] = [category];
+    Object.entries(categoryMap).forEach(([categoryId, categoryName]) => {
+      mapping[categoryId] = [categoryName];
     });
     
-    // Add individual services
+    // Add individual services - when a specific service is selected, show only that service
     getAllServices().forEach(service => {
-      mapping[service.id] = [service.category];
+      mapping[service.id] = [service.name];
     });
     
     return mapping;
@@ -166,15 +173,30 @@ const Index = () => {
   const filteredServiceCards = useMemo(() => {
     let filtered = serviceCards;
     
-    // Filter by category
+    // Filter by category first
     if (selectedCategory !== 'all') {
-      const allowedSpecialties = serviceMapping[selectedCategory] || [];
-      filtered = filtered.filter(card => 
-        allowedSpecialties.includes(card.specialty)
-      );
+      const allowedItems = serviceMapping[selectedCategory] || [];
+      
+      if (allowedItems.length > 0) {
+        // Check if it's a main category (like 'Dermatology', 'Dental')
+        const isMainCategory = allowedItems.length === 1 && 
+          (allowedItems[0] === 'Dermatology' || allowedItems[0] === 'Dental');
+        
+        if (isMainCategory) {
+          // Filter by specialty for main categories
+          filtered = filtered.filter(card => 
+            card.specialty === allowedItems[0]
+          );
+        } else {
+          // Filter by specific service name
+          filtered = filtered.filter(card => 
+            allowedItems.includes(card.serviceName)
+          );
+        }
+      }
     }
     
-    // Filter by search query
+    // Then filter by search query within the category
     if (searchQuery.trim()) {
       filtered = filtered.filter(card =>
         card.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -184,7 +206,7 @@ const Index = () => {
     }
     
     return filtered;
-  }, [selectedCategory, searchQuery, serviceCards]);
+  }, [selectedCategory, searchQuery, serviceCards, serviceMapping]);
 
   // Show all clinic cards (no filtering needed)
   const filteredClinicCards = clinicCards;
@@ -214,11 +236,12 @@ const Index = () => {
                   onSearch={setSearchQuery}
                   onOptionSelect={handleOptionSelect}
                   selectedCategory={selectedCategory}
+                  currentSearchQuery={searchQuery}
                 />
               </div>
               
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-4">
-                Services & Specialists
+                Services available at
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
                 {filteredServiceCards.map((card, index) => (
