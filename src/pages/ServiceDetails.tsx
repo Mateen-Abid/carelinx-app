@@ -162,6 +162,307 @@ const serviceDatabase = {
         specialization: 'MD, Dermatologist - 8 yrs experience'
       }
     ]
+  },
+  // Dermatology Services
+  'laser-sessions': {
+    name: 'Laser Sessions',
+    specialty: 'Dermatology',
+    description: 'Advanced laser therapy sessions for various skin conditions and cosmetic treatments. Our expert dermatologists use state-of-the-art laser technology for optimal results.',
+    clinic: 'Central Medical Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '09:00 - 17:00',
+      'Tue': '10:00 - 18:00',
+      'Wed': '09:00 - 17:00',
+      'Thu': '10:00 - 18:00',
+      'Fri': '09:00 - 17:00',
+      'Sat': '10:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Sarah Johnson',
+        specialization: 'MD, Dermatologist - 12 yrs experience'
+      }
+    ]
+  },
+  'plasma-sessions': {
+    name: 'Plasma Sessions',
+    specialty: 'Dermatology',
+    description: 'Innovative plasma treatment sessions for skin rejuvenation and various dermatological conditions. Non-invasive procedures with excellent results.',
+    clinic: 'Willow Grove Clinic',
+    clinicLogo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '09:00 - 16:00',
+      'Tue': '10:00 - 17:00',
+      'Wed': '09:00 - 16:00',
+      'Thu': '10:00 - 17:00',
+      'Fri': '09:00 - 16:00',
+      'Sat': '10:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Emily Davis',
+        specialization: 'MD, Dermatologist - 9 yrs experience'
+      }
+    ]
+  },
+  'scar-treatments': {
+    name: 'Scar Treatments',
+    specialty: 'Dermatology',
+    description: 'Comprehensive scar treatment services using advanced techniques to minimize and improve the appearance of scars. Personalized treatment plans for optimal results.',
+    clinic: 'Maple Leaf Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '789 Pine Street, Downtown',
+    schedule: {
+      'Mon': '10:00 - 17:00',
+      'Tue': '11:00 - 18:00',
+      'Wed': '10:00 - 17:00',
+      'Thu': '11:00 - 18:00',
+      'Fri': '10:00 - 17:00',
+      'Sat': '10:00 - 15:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Michael Chang',
+        specialization: 'MD, Dermatologist - 11 yrs experience'
+      }
+    ]
+  },
+  'fat-reduction': {
+    name: 'Fat Reduction',
+    specialty: 'Dermatology',
+    description: 'Non-invasive fat reduction treatments using advanced technology. Safe and effective procedures for body contouring and aesthetic enhancement.',
+    clinic: 'Cedar Medical',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '321 Elm Road, Uptown',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Amanda Wilson',
+        specialization: 'MD, Cosmetic Dermatologist - 7 yrs experience'
+      }
+    ]
+  },
+  'cosmetic-injections': {
+    name: 'Cosmetic Injections',
+    specialty: 'Dermatology',
+    description: 'Professional cosmetic injection services including Botox, fillers, and other aesthetic treatments. Expert application for natural-looking results.',
+    clinic: 'Central Medical Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '09:00 - 17:00',
+      'Tue': '10:00 - 18:00',
+      'Wed': '09:00 - 17:00',
+      'Thu': '10:00 - 18:00',
+      'Fri': '09:00 - 17:00',
+      'Sat': '10:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Rachel Green',
+        specialization: 'MD, Aesthetic Dermatologist - 10 yrs experience'
+      }
+    ]
+  },
+  // Dental Services
+  'teeth-whitening': {
+    name: 'Teeth Whitening',
+    specialty: 'Dentistry',
+    description: 'Professional teeth whitening services to brighten your smile. Safe and effective treatments using the latest whitening technology.',
+    clinic: 'Central Medical Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. James Miller',
+        specialization: 'DDS, General Dentist - 15 yrs experience'
+      }
+    ]
+  },
+  'teeth-cleaning': {
+    name: 'Teeth Cleaning',
+    specialty: 'Dentistry',
+    description: 'Professional dental cleaning services to maintain optimal oral health. Regular cleanings help prevent cavities and gum disease.',
+    clinic: 'Willow Grove Clinic',
+    clinicLogo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Lisa Thompson',
+        specialization: 'DDS, Dental Hygienist - 8 yrs experience'
+      }
+    ]
+  },
+  'polishing-&-scaling': {
+    name: 'Polishing & Scaling',
+    specialty: 'Dentistry',
+    description: 'Professional dental polishing and scaling services to remove plaque and tartar buildup. Essential for maintaining healthy teeth and gums.',
+    clinic: 'Maple Leaf Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '789 Pine Street, Downtown',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Robert Lee',
+        specialization: 'DDS, Periodontist - 12 yrs experience'
+      }
+    ]
+  },
+  'dental-fillings': {
+    name: 'Dental Fillings',
+    specialty: 'Dentistry',
+    description: 'High-quality dental filling services using modern materials. Restore damaged teeth with durable and aesthetic fillings.',
+    clinic: 'Cedar Medical',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '321 Elm Road, Uptown',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Maria Rodriguez',
+        specialization: 'DDS, Restorative Dentist - 10 yrs experience'
+      }
+    ]
+  },
+  'dentures': {
+    name: 'Dentures',
+    specialty: 'Dentistry',
+    description: 'Custom-fitted denture services for complete or partial tooth replacement. Comfortable and natural-looking dentures to restore your smile.',
+    clinic: 'Central Medical Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. David Kim',
+        specialization: 'DDS, Prosthodontist - 18 yrs experience'
+      }
+    ]
+  },
+  'orthodontics': {
+    name: 'Orthodontics',
+    specialty: 'Dentistry',
+    description: 'Comprehensive orthodontic services including braces and aligners. Straighten your teeth for a beautiful and healthy smile.',
+    clinic: 'Willow Grove Clinic',
+    clinicLogo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '456 Oak Avenue, Suburb',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Jennifer Park',
+        specialization: 'DDS, Orthodontist - 14 yrs experience'
+      }
+    ]
+  },
+  'pediatric-dentistry': {
+    name: 'Pediatric Dentistry',
+    specialty: 'Dentistry',
+    description: 'Specialized dental care for children and adolescents. Creating positive dental experiences for young patients with gentle and caring treatment.',
+    clinic: 'Maple Leaf Center',
+    clinicLogo: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '789 Pine Street, Downtown',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Sarah Martinez',
+        specialization: 'DDS, Pediatric Dentist - 9 yrs experience'
+      }
+    ]
+  },
+  'root-canal-and-endodontics': {
+    name: 'Root Canal & Endodontics',
+    specialty: 'Dentistry',
+    description: 'Expert root canal treatment and endodontic services to save damaged teeth. Advanced techniques for comfortable and effective treatment.',
+    clinic: 'Cedar Medical',
+    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
+    address: '321 Elm Road, Uptown',
+    schedule: {
+      'Mon': '08:00 - 16:00',
+      'Tue': '09:00 - 17:00',
+      'Wed': '08:00 - 16:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '08:00 - 16:00',
+      'Sat': '09:00 - 13:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Thomas Anderson',
+        specialization: 'DDS, Endodontist - 16 yrs experience'
+      }
+    ]
   }
 };
 
