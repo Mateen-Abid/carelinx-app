@@ -160,10 +160,10 @@ const Header = () => {
           <div className="flex flex-col items-center justify-center pt-2">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer mb-2"
+              className="flex items-center gap-3 text-xl font-normal hover:opacity-80 transition-opacity cursor-pointer mb-3"
             >
-              <div className="w-7 h-7 bg-[#0C2243] rounded-md flex items-center justify-center">
-                <svg className="w-4 h-4" fill="#00FFA2" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#0C2243] rounded-md flex items-center justify-center">
+                <svg className="w-6 h-6" fill="#00FFA2" viewBox="0 0 24 24">
                   <circle cx="6" cy="6" r="3"/>
                   <circle cx="18" cy="8" r="2"/>
                   <circle cx="12" cy="16" r="2.5"/>
