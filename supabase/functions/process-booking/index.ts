@@ -51,11 +51,11 @@ serve(async (req) => {
 
     console.log(`Booking ${booking.id} created with pending status`)
 
-    // Background task to confirm booking after 20 seconds
+    // Background task to confirm booking after 10 seconds
     const confirmBookingTask = async () => {
       try {
-        console.log(`Starting 20-second wait for booking ${booking.id}...`)
-        await new Promise(resolve => setTimeout(resolve, 20000)) // Wait 20 seconds
+        console.log(`Starting 10-second wait for booking ${booking.id}...`)
+        await new Promise(resolve => setTimeout(resolve, 10000)) // Wait 10 seconds
         
         console.log(`Confirming booking ${booking.id}...`)
         const { error: updateError } = await supabaseClient
@@ -70,7 +70,7 @@ serve(async (req) => {
         if (updateError) {
           console.error('Error confirming booking:', updateError)
         } else {
-          console.log(`Booking ${booking.id} confirmed successfully after 20 seconds`)
+          console.log(`Booking ${booking.id} confirmed successfully after 10 seconds`)
         }
       } catch (error) {
         console.error('Error in background confirmation task:', error)
