@@ -339,37 +339,42 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     <div className="w-full relative overflow-visible">
       <div className="flex items-center gap-2 sm:gap-3 justify-center overflow-x-auto overflow-y-visible px-2 sm:px-0 pb-2">
         <div className="flex gap-2 sm:gap-3 min-w-max">
-        {/* All button with dropdown */}
-        <div className="relative z-[60]" ref={dropdownRef}>
-          <CategoryButton
-            category={mainCategories[0]}
-            isSelected={selectedCategory === 'all'}
-            onClick={handleAllButtonClick}
-            showChevron={true}
-          />
-          
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <div 
-              className="fixed w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
-              style={{
-                top: `${dropdownPosition.top}px`,
-                left: `${dropdownPosition.left}px`
-              }}
-            >
-              {renderDropdownContent()}
-            </div>
-          )}
-        </div>
-
-          {/* Other main category buttons */}
-          {mainCategories.slice(1).map((category) => (
+          {/* All button with dropdown */}
+          <div className="relative z-[60]" ref={dropdownRef}>
             <CategoryButton
-              key={category.id}
-              category={category}
-              isSelected={selectedCategory === category.id}
+              category={mainCategories[0]}
+              isSelected={selectedCategory === 'all'}
+              onClick={handleAllButtonClick}
+              showChevron={true}
             />
-          ))}
+            
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div 
+                className="fixed w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`
+                }}
+              >
+                {renderDropdownContent()}
+              </div>
+            )}
+          </div>
+
+          {/* Dental button */}
+          <CategoryButton
+            key="dental"
+            category={mainCategories.find(cat => cat.id === 'dental')!}
+            isSelected={selectedCategory === 'dental'}
+          />
+
+          {/* Dermatology button */}
+          <CategoryButton
+            key="dermatology"
+            category={mainCategories.find(cat => cat.id === 'dermatology')!}
+            isSelected={selectedCategory === 'dermatology'}
+          />
         </div>
       </div>
     </div>
