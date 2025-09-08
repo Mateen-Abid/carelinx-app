@@ -207,22 +207,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearch?.(value);
 
     if (value.trim().length > 0) {
-      // Filter subcategories based on selected category and search term
-      let filtered;
-      if (selectedCategory === 'all') {
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          (option.name.toLowerCase().includes(value.toLowerCase()) ||
-           option.category.toLowerCase().includes(value.toLowerCase()))
-        );
-      } else {
-        // Only show subcategories from the selected category
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
-          option.name.toLowerCase().includes(value.toLowerCase())
-        );
-      }
+      // Always show all categories and subcategories when searching
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(value.toLowerCase()) ||
+        option.category.toLowerCase().includes(value.toLowerCase())
+      );
       setFilteredOptions(filtered.slice(0, 12));
       setShowDropdown(true);
     } else {
@@ -245,22 +234,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const handleInputFocus = () => {
     if (searchValue.trim().length > 0) {
-      // Show search results if user has typed something
-      let filtered;
-      if (selectedCategory === 'all') {
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          (option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-           option.category.toLowerCase().includes(searchValue.toLowerCase()))
-        );
-      } else {
-        // Only show subcategories from the selected category
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          option.category.toLowerCase() === selectedCategory.toLowerCase() &&
-          option.name.toLowerCase().includes(searchValue.toLowerCase())
-        );
-      }
+      // Always show all categories and subcategories when searching
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        option.category.toLowerCase().includes(searchValue.toLowerCase())
+      );
       setFilteredOptions(filtered.slice(0, 12));
       setShowDropdown(true);
     } else {
