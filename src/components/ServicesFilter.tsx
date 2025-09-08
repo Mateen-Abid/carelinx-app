@@ -136,11 +136,22 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
       }
     };
 
+    const handleScroll = () => {
+      if (isDropdownOpen) {
+        updateDropdownPosition();
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
-  }, []);
+  }, [isDropdownOpen]);
 
   const handleCategorySelect = (categoryId: string) => {
     // Reset to 'all' when 'all' is selected to clear any subcategory filters
@@ -157,8 +168,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX
+        top: rect.bottom + 8,
+        left: rect.left
       });
     }
   };
