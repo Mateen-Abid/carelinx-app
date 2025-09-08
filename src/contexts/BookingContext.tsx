@@ -78,31 +78,22 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     const initializeBookings = async () => {
       await fetchAppointments();
       
-      // Check for existing pending bookings created within the last minute (recently created)
+      // Check for existing pending bookings and trigger feedback modal
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
-        const oneMinuteAgo = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
-        
-        const { data: recentPendingBookings } = await supabase
+        const { data: pendingBookings } = await supabase
           .from('bookings')
           .select('*')
           .eq('user_id', user.user.id)
           .eq('status', 'pending')
-          .gte('created_at', oneMinuteAgo) // Only bookings created in the last minute
           .order('created_at', { ascending: false })
           .limit(1); // Get the most recent pending booking
         
-        if (recentPendingBookings && recentPendingBookings.length > 0) {
-          const pendingBooking = recentPendingBookings[0];
-          console.log('Found recently created pending booking, starting 5-second timer for feedback modal');
+        if (pendingBookings && pendingBookings.length > 0) {
+          const pendingBooking = pendingBookings[0];
+          console.log('Found existing pending booking, starting 5-second timer for feedback modal');
           
-          // Calculate remaining time (5 seconds from creation)
-          const createdAt = new Date(pendingBooking.created_at).getTime();
-          const now = Date.now();
-          const elapsedTime = now - createdAt;
-          const remainingTime = Math.max(0, 5000 - elapsedTime); // 5 seconds minus elapsed time
-          
-          // Start timer with remaining time
+          // Start 5-second timer to show feedback modal and confirm booking
           setTimeout(async () => {
             console.log('5 seconds elapsed, showing feedback modal and confirming booking on frontend');
             
