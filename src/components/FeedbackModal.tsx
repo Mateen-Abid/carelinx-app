@@ -51,7 +51,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
       }
 
       const { error } = await supabase
-        .from('feedback')
+        .from('feedback' as any)
         .insert({
           booking_id: bookingId,
           user_id: user.user.id,

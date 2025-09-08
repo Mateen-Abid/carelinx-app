@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import FeedbackModal from '@/components/FeedbackModal';
 
 export interface Appointment {
   id: string;
@@ -26,6 +27,17 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    bookingId: string;
+    clinicName: string;
+    doctorName: string;
+  }>({
+    isOpen: false,
+    bookingId: '',
+    clinicName: '',
+    doctorName: ''
+  });
 
   // Fetch appointments from database
   const fetchAppointments = async () => {
@@ -70,12 +82,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'bookings'
         },
         (payload) => {
           console.log('Booking update received:', payload);
+          
+          // Check if status changed from pending to confirmed
+          if (payload.old?.status === 'pending' && payload.new?.status === 'confirmed') {
+            // Show feedback modal
+            setFeedbackModal({
+              isOpen: true,
+              bookingId: payload.new.id,
+              clinicName: payload.new.clinic,
+              doctorName: payload.new.doctor_name
+            });
+          }
+          
           fetchAppointments(); // Refetch when bookings change
         }
       )
@@ -181,6 +205,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  const closeFeedbackModal = () => {
+    setFeedbackModal({
+      isOpen: false,
+      bookingId: '',
+      clinicName: '',
+      doctorName: ''
+    });
+  };
+
   return (
     <BookingContext.Provider value={{
       appointments,
@@ -192,6 +225,13 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       getPastAppointments
     }}>
       {children}
+      <FeedbackModal
+        isOpen={feedbackModal.isOpen}
+        onClose={closeFeedbackModal}
+        bookingId={feedbackModal.bookingId}
+        clinicName={feedbackModal.clinicName}
+        doctorName={feedbackModal.doctorName}
+      />
     </BookingContext.Provider>
   );
 };
