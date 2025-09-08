@@ -22,7 +22,9 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           doctor_name: string
+          feedback_triggered_at: string | null
           id: string
+          show_feedback: boolean | null
           specialty: string
           status: string
           updated_at: string
@@ -35,7 +37,9 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           doctor_name: string
+          feedback_triggered_at?: string | null
           id?: string
+          show_feedback?: boolean | null
           specialty: string
           status?: string
           updated_at?: string
@@ -48,7 +52,9 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           doctor_name?: string
+          feedback_triggered_at?: string | null
           id?: string
+          show_feedback?: boolean | null
           specialty?: string
           status?: string
           updated_at?: string
