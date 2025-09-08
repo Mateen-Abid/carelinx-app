@@ -112,6 +112,9 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={confirmBookingAndClose}>
       <DialogContent className="sm:max-w-md mx-auto bg-white rounded-2xl shadow-xl border-0 p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Rate your experience</DialogTitle>
+        </DialogHeader>
         <div className="p-6 text-center">
           {/* Star Rating */}
           <div className="flex justify-center gap-2 mb-6">
