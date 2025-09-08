@@ -82,13 +82,13 @@ const Header = () => {
             ) : (
               <div className="flex items-center gap-1 sm:gap-2">
                 <button 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?mode=login')}
                   className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2 text-xs sm:text-sm"
                 >
                   Log in
                 </button>
                 <button 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?mode=signup')}
                   className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-2 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
                 >
                   Sign Up
@@ -130,13 +130,13 @@ const Header = () => {
           {!user && (
             <div className="absolute right-4 top-4 flex items-center gap-1">
               <button 
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/auth?mode=login')}
                 className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 py-2 text-xs"
               >
                 Log in
               </button>
               <button 
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/auth?mode=signup')}
                 className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-4 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs whitespace-nowrap"
               >
                 Sign Up
