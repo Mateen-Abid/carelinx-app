@@ -51,15 +51,12 @@ const Auth = () => {
 
   const validatePassword = (password: string) => {
     return {
-      hasUpperLower: /(?=.*[a-z])(?=.*[A-Z])/.test(password),
-      hasSymbol: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      hasMinLength: password.length >= 8,
-      hasNumber: /\d/.test(password),
+      hasMinLength: password.length >= 6,
     };
   };
 
   const passwordValidation = validatePassword(formData.password);
-  const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+  const isPasswordValid = passwordValidation.hasMinLength;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,22 +220,10 @@ const Auth = () => {
               )}
 
               {!isLogin && (
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className={`flex items-center gap-1 ${passwordValidation.hasUpperLower ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {passwordValidation.hasUpperLower ? <Check size={12} /> : <X size={12} />}
-                    <span>Upper & lower case</span>
-                  </div>
-                  <div className={`flex items-center gap-1 ${passwordValidation.hasSymbol ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {passwordValidation.hasSymbol ? <Check size={12} /> : <X size={12} />}
-                    <span>Symbol (!@#$)</span>
-                  </div>
+                <div className="text-xs">
                   <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-green-600' : 'text-muted-foreground'}`}>
                     {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
-                    <span>8+ characters</span>
-                  </div>
-                  <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
-                    <span>Number (1234)</span>
+                    <span>6+ characters</span>
                   </div>
                 </div>
               )}
