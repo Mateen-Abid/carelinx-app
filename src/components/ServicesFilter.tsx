@@ -191,7 +191,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
         }`}
       >
         <IconComponent size={16} className="shrink-0 sm:w-5 sm:h-5 mb-1" />
-        <span className="text-[9px] sm:text-[10px] leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
+        <span className="text-[8px] sm:text-[10px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
           {category.name}
         </span>
         {showChevron && (
