@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, Brain, Eye, Stethoscope, Baby, Bone, Plus, Palette, ChevronDown, Activity, Scissors, UserCheck, Shield, Users2, Flower2, Microscope, Apple, Zap, ChevronRight, ArrowLeft, Smile } from 'lucide-react';
+import { Heart, Brain, Eye, Stethoscope, Baby, Bone, Plus, Palette, ChevronDown, Activity, Scissors, UserCheck, Shield, Users2, Flower2, Microscope, Apple, Zap, ChevronRight, ArrowLeft, Smile, User } from 'lucide-react';
 
 interface ServiceSubcategory {
   id: string;
@@ -26,8 +26,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   const mainCategories: ServiceCategory[] = [
     { id: 'all', name: 'All', icon: Stethoscope },
-    { id: 'dentistry', name: 'Dental', icon: Smile },
-    { id: 'dermatology', name: 'Dermatology', icon: Palette }
+    { id: 'dentistry', name: 'Dental', icon: Shield },
+    { id: 'dermatology', name: 'Dermatology', icon: User }
   ];
 
   const allCategories: ServiceCategory[] = [
@@ -106,7 +106,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     { 
       id: 'dermatology', 
       name: 'Dermatology', 
-      icon: Palette,
+      icon: User,
       subcategories: [
         { id: 'dermatology-acne', name: 'Acne & Pimples' },
         { id: 'dermatology-eczema', name: 'Eczema & Dermatitis' },
@@ -120,7 +120,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     { 
       id: 'dentistry', 
       name: 'Dental', 
-      icon: Smile,
+      icon: Shield,
       subcategories: [
         { id: 'dentistry-cleaning', name: 'Dental Cleaning' },
         { id: 'dentistry-filling', name: 'Dental Filling' },
