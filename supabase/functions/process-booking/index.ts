@@ -51,35 +51,8 @@ serve(async (req) => {
 
     console.log(`Booking ${booking.id} created with pending status`)
 
-    // Background task to trigger feedback modal after 5 seconds
-    const showFeedbackTask = async () => {
-      try {
-        console.log(`Starting 5-second wait for booking ${booking.id} feedback...`)
-        await new Promise(resolve => setTimeout(resolve, 5000)) // Wait 5 seconds
-        
-        console.log(`Triggering feedback modal for booking ${booking.id}...`)
-        // Update a flag to trigger the feedback modal (booking still pending)
-        const { error: updateError } = await supabaseClient
-          .from('bookings')
-          .update({ 
-            show_feedback: true,
-            feedback_triggered_at: new Date().toISOString()
-          })
-          .eq('id', booking.id)
-          .eq('status', 'pending') // Only update if still pending
-
-        if (updateError) {
-          console.error('Error triggering feedback modal:', updateError)
-        } else {
-          console.log(`Feedback modal triggered for booking ${booking.id} after 5 seconds`)
-        }
-      } catch (error) {
-        console.error('Error in feedback trigger task:', error)
-      }
-    }
-
-    // Start background task without waiting for it
-    EdgeRuntime.waitUntil(showFeedbackTask())
+    // No background tasks needed - frontend will handle the flow
+    console.log(`Booking ${booking.id} created and ready for frontend handling`)
 
     // Return immediate response
     return new Response(

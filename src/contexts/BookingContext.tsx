@@ -73,7 +73,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Set up real-time subscription for booking updates
+  // Set up real-time subscription and frontend timer for feedback modal
   useEffect(() => {
     fetchAppointments();
 
@@ -89,20 +89,20 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         (payload) => {
           console.log('Booking update received:', payload);
           
-          // Check if feedback should be shown (after 5 seconds, booking still pending)
-          if (payload.eventType === 'UPDATE' && 
-              payload.new?.show_feedback === true && 
-              payload.new?.status === 'pending') {
+          // When a new booking is created (pending), start 5-second timer for feedback modal
+          if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
+            console.log('New pending booking created, starting 5-second timer for feedback modal');
             
-            console.log('Feedback modal triggered for pending booking');
-            
-            // Show feedback modal
-            setFeedbackModal({
-              isOpen: true,
-              bookingId: payload.new.id,
-              clinicName: payload.new.clinic,
-              doctorName: payload.new.doctor_name
-            });
+            // Start 5-second timer to show feedback modal
+            setTimeout(() => {
+              console.log('5 seconds elapsed, showing feedback modal for pending booking');
+              setFeedbackModal({
+                isOpen: true,
+                bookingId: payload.new.id,
+                clinicName: payload.new.clinic,
+                doctorName: payload.new.doctor_name
+              });
+            }, 5000); // 5 seconds
           }
           
           // Refetch appointments to update the UI in real-time
