@@ -24,9 +24,27 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Custom Tooth Icon Component
+  const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M8 2c-2 0-4 2-4 5v4c0 3 0 6 2 8 1 1 2 1 3 1s2 0 3-1c2-2 2-5 2-8V7c0-3-2-5-4-5-1 0-2 0-2 0z"/>
+      <path d="M16 2c-2 0-4 2-4 5v4c0 3 0 6 2 8 1 1 2 1 3 1s2 0 3-1c2-2 2-5 2-8V7c0-3-2-5-4-5-1 0-2 0-2 0z"/>
+    </svg>
+  );
+
   const mainCategories: ServiceCategory[] = [
     { id: 'all', name: 'All', icon: Stethoscope },
-    { id: 'dentistry', name: 'Dental', icon: Shield },
+    { id: 'dentistry', name: 'Dental', icon: ToothIcon },
     { id: 'dermatology', name: 'Dermatology', icon: User }
   ];
 
@@ -120,7 +138,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     { 
       id: 'dentistry', 
       name: 'Dental', 
-      icon: Shield,
+      icon: ToothIcon,
       subcategories: [
         { id: 'dentistry-cleaning', name: 'Dental Cleaning' },
         { id: 'dentistry-filling', name: 'Dental Filling' },
