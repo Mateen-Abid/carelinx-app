@@ -184,20 +184,20 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     return (
       <button
         onClick={onClick || (() => handleCategorySelect(category.id))}
-        className={`flex items-center gap-1.5 sm:gap-2 justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-200 text-xs sm:text-sm font-medium ${
+        className={`flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-lg transition-all duration-200 text-xs font-medium relative ${
           isSelected 
             ? 'bg-[#1E40AF] text-white shadow-sm' 
             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
         }`}
       >
-        <IconComponent size={14} className="shrink-0 sm:w-4 sm:h-4" />
-        <span className="whitespace-nowrap">
+        <IconComponent size={16} className="shrink-0 sm:w-5 sm:h-5 mb-1" />
+        <span className="text-[10px] sm:text-xs leading-tight text-center px-1">
           {category.name}
         </span>
         {showChevron && (
           <ChevronDown 
-            size={14} 
-            className={`shrink-0 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+            size={12} 
+            className={`absolute top-1 right-1 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
           />
         )}
       </button>
@@ -244,7 +244,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   return (
     <div className="w-full relative overflow-visible">
-      <div className="flex items-center gap-2 justify-center flex-wrap overflow-visible px-2 sm:px-0">
+      <div className="flex items-center gap-2 sm:gap-3 justify-center overflow-x-auto overflow-y-visible px-2 sm:px-0 pb-2">
+        <div className="flex gap-2 sm:gap-3 min-w-max">
         {/* All button with dropdown */}
         <div className="relative z-[60]" ref={dropdownRef}>
           <CategoryButton
@@ -268,14 +269,15 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           )}
         </div>
 
-        {/* Other main category buttons */}
-        {mainCategories.slice(1).map((category) => (
-          <CategoryButton
-            key={category.id}
-            category={category}
-            isSelected={selectedCategory === category.id}
-          />
-        ))}
+          {/* Other main category buttons */}
+          {mainCategories.slice(1).map((category) => (
+            <CategoryButton
+              key={category.id}
+              category={category}
+              isSelected={selectedCategory === category.id}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
