@@ -142,11 +142,11 @@ const Header = () => {
             </div>
           )}
           
-          {/* Left-aligned Logo and Greeting */}
-          <div className="flex flex-col justify-center pt-2 pl-2">
+          {/* Centered Logo and Greeting */}
+          <div className="flex flex-col justify-center items-center pt-2">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer mb-2 self-start"
+              className="flex items-center gap-2 text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer mb-2"
             >
               <div className="w-8 h-8 bg-[#0C2243] rounded-md flex items-center justify-center">
                 <svg className="w-5 h-5" fill="#00FFA2" viewBox="0 0 24 24">
@@ -163,7 +163,7 @@ const Header = () => {
             
             {/* Greeting Text */}
             {user && (
-              <div className="text-left pl-2">
+              <div className="text-center">
                 <div className="text-sm text-white">Hi, {user.email?.split('@')[0]}</div>
                 <div className="text-sm text-gray-300">Good morning</div>
               </div>
