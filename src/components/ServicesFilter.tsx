@@ -37,81 +37,56 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   const mainCategories: ServiceCategory[] = [
     { id: 'all', name: 'All', icon: Stethoscope },
-    { id: 'dentistry', name: 'Dental', icon: ToothIcon },
-    { id: 'dermatology', name: 'Dermatology', icon: User }
+    { id: 'facial-cleaning-services', name: 'Facial Cleaning', icon: User },
+    { id: 'dental', name: 'Dental', icon: ToothIcon },
+    { id: 'dermatology', name: 'Dermatology', icon: User },
+    { id: 'orthodontics', name: 'Orthodontics', icon: ToothIcon }
   ];
 
   const allCategories: ServiceCategory[] = [
     { id: 'all', name: 'All', icon: Stethoscope },
     { 
-      id: 'cardiology', 
-      name: 'Cardiology', 
-      icon: Heart,
+      id: 'facial-cleaning-services', 
+      name: 'Facial Cleaning Services', 
+      icon: User,
       subcategories: [
-        { id: 'cardiology-ecg', name: 'ECG' },
-        { id: 'cardiology-echo', name: 'Echocardiogram' },
-        { id: 'cardiology-stress-test', name: 'Stress Test' },
-        { id: 'cardiology-holter', name: 'Holter Monitor' },
-        { id: 'cardiology-angiogram', name: 'Angiogram' },
-        { id: 'cardiology-ct-scan', name: 'Cardiac CT Scan' }
+        { id: 'laser-sessions', name: 'Laser Sessions' },
+        { id: 'plasma-sessions', name: 'Plasma Sessions' },
+        { id: 'scar-treatments', name: 'Scar Treatments' },
+        { id: 'fat-reduction', name: 'Fat Reduction' },
+        { id: 'cosmetic-injections', name: 'Cosmetic Injections' },
+        { id: 'dark-circles-lightening', name: 'Dark Circles Lightening' },
+        { id: 'fractional-laser-sessions', name: 'Fractional Laser Sessions' },
+        { id: 'chemical-peeling-sessions', name: 'Chemical Peeling Sessions' }
       ]
     },
     { 
-      id: 'neurology', 
-      name: 'Neurology', 
-      icon: Brain,
+      id: 'dental', 
+      name: 'Dental', 
+      icon: ToothIcon,
       subcategories: [
-        { id: 'neurology-mri', name: 'Brain MRI' },
-        { id: 'neurology-ct-scan', name: 'Brain CT Scan' },
-        { id: 'neurology-eeg', name: 'EEG' },
-        { id: 'neurology-emg', name: 'EMG' },
-        { id: 'neurology-lumbar-puncture', name: 'Lumbar Puncture' }
-      ]
-    },
-    { 
-      id: 'ophthalmology', 
-      name: 'Ophthalmology', 
-      icon: Eye,
-      subcategories: [
-        { id: 'ophthalmology-retinal-exam', name: 'Retinal Examination' },
-        { id: 'ophthalmology-glaucoma-test', name: 'Glaucoma Test' },
-        { id: 'ophthalmology-cataract-surgery', name: 'Cataract Surgery' },
-        { id: 'ophthalmology-vision-test', name: 'Vision Test' },
-        { id: 'ophthalmology-oct', name: 'OCT Scan' }
-      ]
-    },
-    { 
-      id: 'general-medicine', 
-      name: 'General Medicine', 
-      icon: Stethoscope,
-      subcategories: [
-        { id: 'general-checkup', name: 'General Checkup' },
-        { id: 'general-blood-test', name: 'Blood Test' },
-        { id: 'general-vaccination', name: 'Vaccination' },
-        { id: 'general-health-screening', name: 'Health Screening' }
-      ]
-    },
-    { 
-      id: 'pediatrics', 
-      name: 'Pediatrics', 
-      icon: Baby,
-      subcategories: [
-        { id: 'pediatrics-vaccination', name: 'Child Vaccination' },
-        { id: 'pediatrics-growth-check', name: 'Growth Check' },
-        { id: 'pediatrics-development', name: 'Development Assessment' },
-        { id: 'pediatrics-illness', name: 'Childhood Illness' }
-      ]
-    },
-    { 
-      id: 'orthopedics', 
-      name: 'Orthopedics', 
-      icon: Bone,
-      subcategories: [
-        { id: 'orthopedics-xray', name: 'X-Ray' },
-        { id: 'orthopedics-mri', name: 'MRI' },
-        { id: 'orthopedics-ct-scan', name: 'CT Scan' },
-        { id: 'orthopedics-joint-replacement', name: 'Joint Replacement' },
-        { id: 'orthopedics-fracture-care', name: 'Fracture Care' }
+        { id: 'teeth-whitening', name: 'Teeth Whitening' },
+        { id: 'teeth-cleaning', name: 'Teeth Cleaning' },
+        { id: 'polishing-scaling', name: 'Polishing & Scaling' },
+        { id: 'dental-fillings', name: 'Dental Fillings' },
+        { id: 'dentures', name: 'Dentures' },
+        { id: 'orthodontics-teeth-jaw', name: 'Orthodontics (Teeth & Jaw Alignment)' },
+        { id: 'gum-surgery-dental-implants', name: 'Gum Surgery & Dental Implants' },
+        { id: 'crowns-dental-prosthetics', name: 'Crowns & Dental Prosthetics' },
+        { id: 'root-canal-endodontics', name: 'Root Canal & Endodontics' },
+        { id: 'fillings-conservative-dentistry', name: 'Fillings & Conservative Dentistry' },
+        { id: 'oral-health-care-department', name: 'Oral Health Care Department' },
+        { id: 'pediatric-dentistry', name: 'Pediatric Dentistry' },
+        { id: 'cosmetic-veneers', name: 'Cosmetic Veneers (Veneers)' },
+        { id: 'dental-prosthetics-restorations', name: 'Dental Prosthetics / Tooth Restorations' },
+        { id: 'oral-dental-surgery', name: 'Oral and Dental Surgery' },
+        { id: 'intraoral-camera-service', name: 'Intraoral Camera Service' },
+        { id: 'laser-teeth-whitening', name: 'Laser Teeth Whitening' },
+        { id: 'root-canal-treatment', name: 'Root Canal Treatment' },
+        { id: 'pediatric-dental-treatment', name: 'Pediatric Dental Treatment' },
+        { id: 'gum-treatment-periodontal-care', name: 'Gum Treatment / Periodontal Care' },
+        { id: 'hollywood-smile', name: 'Hollywood Smile' },
+        { id: 'cosmetic-fillings', name: 'Cosmetic Fillings' }
       ]
     },
     { 
@@ -119,27 +94,109 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
       name: 'Dermatology', 
       icon: User,
       subcategories: [
-        { id: 'dermatology-acne', name: 'Acne & Pimples' },
-        { id: 'dermatology-eczema', name: 'Eczema & Dermatitis' },
-        { id: 'dermatology-psoriasis', name: 'Psoriasis' },
-        { id: 'dermatology-rosacea', name: 'Rosacea' },
-        { id: 'dermatology-allergies', name: 'Skin Allergies' },
-        { id: 'dermatology-warts', name: 'Warts & Moles' },
-        { id: 'dermatology-scars', name: 'Scars & Stretch Marks' }
+        { id: 'laser-hair-removal', name: 'Laser Hair Removal' },
+        { id: 'filler-injections', name: 'Filler Injections' },
+        { id: 'botox-injections', name: 'Botox Injections' },
+        { id: 'carbon-laser', name: 'Carbon Laser' },
+        { id: 'cold-peeling', name: 'Cold Peeling' },
+        { id: 'bleaching', name: 'Bleaching' },
+        { id: 'skin-rejuvenation', name: 'Skin Rejuvenation' },
+        { id: 'scar-stretch-marks-removal', name: 'Scar & Stretch Marks Removal' },
+        { id: 'skin-tightening-wrinkle-removal', name: 'Skin Tightening & Wrinkle Removal' }
       ]
     },
     { 
-      id: 'dentistry', 
-      name: 'Dental', 
+      id: 'orthodontics', 
+      name: 'Orthodontics', 
       icon: ToothIcon,
       subcategories: [
-        { id: 'dentistry-cleaning', name: 'Dental Cleaning' },
-        { id: 'dentistry-filling', name: 'Dental Filling' },
-        { id: 'dentistry-extraction', name: 'Tooth Extraction' },
-        { id: 'dentistry-whitening', name: 'Teeth Whitening' },
-        { id: 'dentistry-crown', name: 'Dental Crown' },
-        { id: 'dentistry-implant', name: 'Dental Implant' },
-        { id: 'dentistry-orthodontics', name: 'Orthodontics' }
+        { id: 'clear-aligners', name: 'Clear Aligners' },
+        { id: 'metal-braces', name: 'Metal Braces' },
+        { id: 'surgical-orthodontics', name: 'Surgical Orthodontics' },
+        { id: 'auxiliary-orthodontics', name: 'Auxiliary Orthodontics' },
+        { id: 'pediatric-orthodontics', name: 'Pediatric Orthodontics' },
+        { id: 'temporary-anchorage-devices', name: 'Temporary Anchorage Devices (TADs)' }
+      ]
+    },
+    { 
+      id: 'dental-implants', 
+      name: 'Dental Implants', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'bone-grafting', name: 'Bone Grafting' },
+        { id: 'sinus-lifting', name: 'Sinus Lifting' },
+        { id: 'biohorizons-dental-implants', name: 'Biohorizons Dental Implants (USA)' },
+        { id: 'peri-implantitis-treatment', name: 'Peri-implantitis Treatment' },
+        { id: 'dental-implant-removal', name: 'Dental Implant Removal' },
+        { id: 'straumann-dental-implants', name: 'Straumann Dental Implants (Switzerland)' }
+      ]
+    },
+    { 
+      id: 'fixed-removable-prosthodontics', 
+      name: 'Fixed & Removable Prosthodontics', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'complete-partial-removable-dentures', name: 'Complete & Partial Removable Dentures' },
+        { id: 'implant-supported-fixed-prosthesis', name: 'Implant-Supported Fixed Prosthesis' },
+        { id: 'implant-supported-removable-prosthesis', name: 'Implant-Supported Removable Prosthesis' },
+        { id: 'full-partial-crowns', name: 'Full & Partial Crowns' },
+        { id: 'post-core-restorations', name: 'Post and Core for Restorations' },
+        { id: 'dental-bridges', name: 'Dental Bridges' },
+        { id: 'in-office-teeth-whitening', name: 'In-Office Teeth Whitening' },
+        { id: 'at-home-teeth-whitening', name: 'At-Home Teeth Whitening' },
+        { id: 'porcelain-veneers', name: 'Porcelain Veneers' }
+      ]
+    },
+    { 
+      id: 'restorative-cosmetic-dentistry', 
+      name: 'Restorative & Cosmetic Dentistry', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'cosmetic-fillings-restorative', name: 'Cosmetic Fillings' },
+        { id: 'tooth-reconstruction', name: 'Tooth Reconstruction' },
+        { id: 'dental-crowns-cosmetic', name: 'Dental Crowns' },
+        { id: 'aesthetic-veneers', name: 'Aesthetic Veneers' },
+        { id: 'in-office-whitening-cosmetic', name: 'In-Office Whitening' },
+        { id: 'take-home-whitening', name: 'Take-Home Whitening' },
+        { id: 'stain-removal-no-preparation', name: 'Stain Removal Without Tooth Preparation' }
+      ]
+    },
+    { 
+      id: 'periodontal-treatment', 
+      name: 'Periodontal Treatment', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'gum-disease-periodontal-pocket-treatment', name: 'Gum Disease & Periodontal Pocket Treatment' },
+        { id: 'scaling-stain-removal', name: 'Scaling and Stain Removal' },
+        { id: 'surgical-gummy-smile-correction', name: 'Surgical Gummy Smile Correction' },
+        { id: 'gum-contouring-depigmentation-laser', name: 'Gum Contouring and Depigmentation with Laser' },
+        { id: 'tooth-splinting', name: 'Tooth Splinting' }
+      ]
+    },
+    { 
+      id: 'oral-maxillofacial-surgery', 
+      name: 'Oral & Maxillofacial Surgery', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'simple-surgical-tooth-extractions', name: 'Simple & Surgical Tooth Extractions' },
+        { id: 'orthognathic-jaw-surgery', name: 'Orthognathic (Jaw) Surgery' },
+        { id: 'removal-cysts-lipomas', name: 'Removal of Cysts (Lipomas/Fatty Masses)' },
+        { id: 'correction-congenital-malformations', name: 'Correction of Congenital Malformations' },
+        { id: 'salivary-gland-tumor-treatment', name: 'Salivary Gland Tumor Treatment' },
+        { id: 'oral-facial-aesthetic-surgery', name: 'Oral & Facial Aesthetic Surgery' }
+      ]
+    },
+    { 
+      id: 'general-dentistry', 
+      name: 'General Dentistry', 
+      icon: ToothIcon,
+      subcategories: [
+        { id: 'dental-checkup-diagnosis', name: 'Dental Check-up & Diagnosis' },
+        { id: 'conservative-dental-treatment', name: 'Conservative Dental Treatment' },
+        { id: 'emergency-dental-care', name: 'Emergency Dental Care' },
+        { id: 'dental-cleaning-general', name: 'Dental Cleaning' },
+        { id: 'root-canal-therapy', name: 'Root Canal Therapy' },
+        { id: 'tooth-extraction', name: 'Tooth Extraction' }
       ]
     }
   ];

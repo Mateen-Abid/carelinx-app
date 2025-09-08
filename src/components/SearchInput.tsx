@@ -28,63 +28,143 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const searchOptions: SearchOption[] = [
     // Main Categories
-    { id: 'cardiology', name: 'Cardiology', category: 'Medical Specialty', type: 'category' },
-    { id: 'neurology', name: 'Neurology', category: 'Medical Specialty', type: 'category' },
-    { id: 'ophthalmology', name: 'Ophthalmology', category: 'Medical Specialty', type: 'category' },
+    { id: 'facial-cleaning-services', name: 'Facial Cleaning Services', category: 'Medical Specialty', type: 'category' },
+    { id: 'dental', name: 'Dental', category: 'Medical Specialty', type: 'category' },
     { id: 'dermatology', name: 'Dermatology', category: 'Medical Specialty', type: 'category' },
-    { id: 'general-medicine', name: 'General Medicine', category: 'Medical Specialty', type: 'category' },
-    { id: 'pediatrics', name: 'Pediatrics', category: 'Medical Specialty', type: 'category' },
-    { id: 'orthopedics', name: 'Orthopedics', category: 'Medical Specialty', type: 'category' },
+    { id: 'orthodontics', name: 'Orthodontics', category: 'Medical Specialty', type: 'category' },
+    { id: 'dental-implants', name: 'Dental Implants', category: 'Medical Specialty', type: 'category' },
+    { id: 'pediatric-dentistry', name: 'Pediatric Dentistry', category: 'Medical Specialty', type: 'category' },
+    { id: 'fixed-removable-prosthodontics', name: 'Fixed & Removable Prosthodontics', category: 'Medical Specialty', type: 'category' },
+    { id: 'restorative-cosmetic-dentistry', name: 'Restorative & Cosmetic Dentistry', category: 'Medical Specialty', type: 'category' },
+    { id: 'root-canal-endodontics', name: 'Root Canal & Endodontics', category: 'Medical Specialty', type: 'category' },
+    { id: 'periodontal-treatment', name: 'Periodontal Treatment', category: 'Medical Specialty', type: 'category' },
+    { id: 'oral-maxillofacial-surgery', name: 'Oral & Maxillofacial Surgery', category: 'Medical Specialty', type: 'category' },
+    { id: 'general-dentistry', name: 'General Dentistry', category: 'Medical Specialty', type: 'category' },
 
-    // Cardiology Subcategories
-    { id: 'cardiology-ecg', name: 'ECG', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-echo', name: 'Echocardiogram', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-stress-test', name: 'Stress Test', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-holter', name: 'Holter Monitor', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-angiogram', name: 'Angiogram', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-ct-scan', name: 'Cardiac CT Scan', category: 'Cardiology', type: 'subcategory' },
+    // Facial Cleaning Services Subcategories
+    { id: 'laser-sessions', name: 'Laser Sessions', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'plasma-sessions', name: 'Plasma Sessions', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'scar-treatments', name: 'Scar Treatments', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'fat-reduction', name: 'Fat Reduction', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'cosmetic-injections', name: 'Cosmetic Injections', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'dark-circles-lightening', name: 'Dark Circles Lightening', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'fractional-laser-sessions', name: 'Fractional Laser Sessions', category: 'Facial Cleaning Services', type: 'subcategory' },
+    { id: 'chemical-peeling-sessions', name: 'Chemical Peeling Sessions', category: 'Facial Cleaning Services', type: 'subcategory' },
 
-    // Neurology Subcategories
-    { id: 'neurology-mri', name: 'Brain MRI', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-ct-scan', name: 'Brain CT Scan', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-eeg', name: 'EEG', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-emg', name: 'EMG', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-lumbar-puncture', name: 'Lumbar Puncture', category: 'Neurology', type: 'subcategory' },
+    // Dental Subcategories (Panorama Medical Clinic)
+    { id: 'teeth-whitening', name: 'Teeth Whitening', category: 'Dental', type: 'subcategory' },
+    { id: 'teeth-cleaning', name: 'Teeth Cleaning', category: 'Dental', type: 'subcategory' },
+    { id: 'polishing-scaling', name: 'Polishing & Scaling', category: 'Dental', type: 'subcategory' },
+    { id: 'dental-fillings', name: 'Dental Fillings', category: 'Dental', type: 'subcategory' },
+    { id: 'dentures', name: 'Dentures', category: 'Dental', type: 'subcategory' },
+    { id: 'orthodontics-teeth-jaw', name: 'Orthodontics (Teeth & Jaw Alignment)', category: 'Dental', type: 'subcategory' },
 
-    // Ophthalmology Subcategories
-    { id: 'ophthalmology-retinal-exam', name: 'Retinal Examination', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-glaucoma-test', name: 'Glaucoma Test', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-cataract-surgery', name: 'Cataract Surgery', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-vision-test', name: 'Vision Test', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-oct', name: 'OCT Scan', category: 'Ophthalmology', type: 'subcategory' },
+    // Esan Clinic Dental Services
+    { id: 'gum-surgery-dental-implants', name: 'Gum Surgery & Dental Implants', category: 'Dental', type: 'subcategory' },
+    { id: 'crowns-dental-prosthetics', name: 'Crowns & Dental Prosthetics', category: 'Dental', type: 'subcategory' },
+    { id: 'root-canal-endodontics-esan', name: 'Root Canal & Endodontics', category: 'Dental', type: 'subcategory' },
+    { id: 'fillings-conservative-dentistry', name: 'Fillings & Conservative Dentistry', category: 'Dental', type: 'subcategory' },
+    { id: 'oral-health-care-department', name: 'Oral Health Care Department', category: 'Dental', type: 'subcategory' },
+    { id: 'pediatric-dentistry-esan', name: 'Pediatric Dentistry', category: 'Dental', type: 'subcategory' },
+    { id: 'cosmetic-veneers', name: 'Cosmetic Veneers (Veneers)', category: 'Dental', type: 'subcategory' },
 
-    // Dermatology Subcategories
-    { id: 'dermatology-acne', name: 'Acne & Pimples', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-eczema', name: 'Eczema & Dermatitis', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-psoriasis', name: 'Psoriasis', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-rosacea', name: 'Rosacea', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-allergies', name: 'Skin Allergies', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-warts', name: 'Warts & Moles', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-scars', name: 'Scars & Stretch Marks', category: 'Dermatology', type: 'subcategory' },
+    // Union Medical Complex Dental Services
+    { id: 'dental-prosthetics-restorations', name: 'Dental Prosthetics / Tooth Restorations', category: 'Dental', type: 'subcategory' },
+    { id: 'oral-dental-surgery', name: 'Oral and Dental Surgery', category: 'Dental', type: 'subcategory' },
+    { id: 'intraoral-camera-service', name: 'Intraoral Camera Service', category: 'Dental', type: 'subcategory' },
+    { id: 'laser-teeth-whitening', name: 'Laser Teeth Whitening', category: 'Dental', type: 'subcategory' },
+    { id: 'root-canal-treatment', name: 'Root Canal Treatment', category: 'Dental', type: 'subcategory' },
+    { id: 'pediatric-dental-treatment', name: 'Pediatric Dental Treatment', category: 'Dental', type: 'subcategory' },
+    { id: 'gum-treatment-periodontal-care', name: 'Gum Treatment / Periodontal Care', category: 'Dental', type: 'subcategory' },
+    { id: 'hollywood-smile', name: 'Hollywood Smile', category: 'Dental', type: 'subcategory' },
+    { id: 'cosmetic-fillings', name: 'Cosmetic Fillings', category: 'Dental', type: 'subcategory' },
 
-    // General Medicine Subcategories
-    { id: 'general-checkup', name: 'General Checkup', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-blood-test', name: 'Blood Test', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-vaccination', name: 'Vaccination', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-health-screening', name: 'Health Screening', category: 'General Medicine', type: 'subcategory' },
+    // Dermatology Subcategories (Esan Clinic)
+    { id: 'laser-hair-removal', name: 'Laser Hair Removal', category: 'Dermatology', type: 'subcategory' },
+    { id: 'filler-injections', name: 'Filler Injections', category: 'Dermatology', type: 'subcategory' },
+    { id: 'botox-injections', name: 'Botox Injections', category: 'Dermatology', type: 'subcategory' },
+    { id: 'carbon-laser', name: 'Carbon Laser', category: 'Dermatology', type: 'subcategory' },
+    { id: 'cold-peeling', name: 'Cold Peeling', category: 'Dermatology', type: 'subcategory' },
+    { id: 'bleaching', name: 'Bleaching', category: 'Dermatology', type: 'subcategory' },
+    { id: 'skin-rejuvenation', name: 'Skin Rejuvenation', category: 'Dermatology', type: 'subcategory' },
+    { id: 'scar-stretch-marks-removal', name: 'Scar & Stretch Marks Removal', category: 'Dermatology', type: 'subcategory' },
+    { id: 'skin-tightening-wrinkle-removal', name: 'Skin Tightening & Wrinkle Removal', category: 'Dermatology', type: 'subcategory' },
 
-    // Pediatrics Subcategories
-    { id: 'pediatrics-vaccination', name: 'Child Vaccination', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-growth-check', name: 'Growth Check', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-development', name: 'Development Assessment', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-illness', name: 'Childhood Illness', category: 'Pediatrics', type: 'subcategory' },
+    // Orthodontics Subcategories (Oracare Clinic)
+    { id: 'clear-aligners', name: 'Clear Aligners', category: 'Orthodontics', type: 'subcategory' },
+    { id: 'metal-braces', name: 'Metal Braces', category: 'Orthodontics', type: 'subcategory' },
+    { id: 'surgical-orthodontics', name: 'Surgical Orthodontics', category: 'Orthodontics', type: 'subcategory' },
+    { id: 'auxiliary-orthodontics', name: 'Auxiliary Orthodontics', category: 'Orthodontics', type: 'subcategory' },
+    { id: 'pediatric-orthodontics', name: 'Pediatric Orthodontics', category: 'Orthodontics', type: 'subcategory' },
+    { id: 'temporary-anchorage-devices', name: 'Temporary Anchorage Devices (TADs)', category: 'Orthodontics', type: 'subcategory' },
 
-    // Orthopedics Subcategories
-    { id: 'orthopedics-xray', name: 'X-Ray', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-mri', name: 'Orthopedic MRI', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-ct-scan', name: 'Orthopedic CT Scan', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-joint-replacement', name: 'Joint Replacement', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-fracture-care', name: 'Fracture Care', category: 'Orthopedics', type: 'subcategory' }
+    // Dental Implants Subcategories (Oracare Clinic)
+    { id: 'bone-grafting', name: 'Bone Grafting', category: 'Dental Implants', type: 'subcategory' },
+    { id: 'sinus-lifting', name: 'Sinus Lifting', category: 'Dental Implants', type: 'subcategory' },
+    { id: 'biohorizons-dental-implants', name: 'Biohorizons Dental Implants (USA)', category: 'Dental Implants', type: 'subcategory' },
+    { id: 'peri-implantitis-treatment', name: 'Peri-implantitis Treatment', category: 'Dental Implants', type: 'subcategory' },
+    { id: 'dental-implant-removal', name: 'Dental Implant Removal', category: 'Dental Implants', type: 'subcategory' },
+    { id: 'straumann-dental-implants', name: 'Straumann Dental Implants (Switzerland)', category: 'Dental Implants', type: 'subcategory' },
+
+    // Pediatric Dentistry Subcategories (Oracare Clinic)
+    { id: 'preventive-care', name: 'Preventive Care', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'crowns-damaged-teeth', name: 'Crowns for Damaged Teeth', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'emergency-trauma-management', name: 'Emergency Trauma Management', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'early-caries-management', name: 'Early Caries Management', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'fillings-pulp-therapy', name: 'Fillings & Pulp Therapy', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'care-special-needs-children', name: 'Care for Special Needs Children', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'jaw-growth-monitoring', name: 'Jaw Growth Monitoring', category: 'Pediatric Dentistry', type: 'subcategory' },
+    { id: 'dental-examination-assessment', name: 'Dental Examination & Assessment', category: 'Pediatric Dentistry', type: 'subcategory' },
+
+    // Fixed & Removable Prosthodontics Subcategories (Oracare Clinic)
+    { id: 'complete-partial-removable-dentures', name: 'Complete & Partial Removable Dentures', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'implant-supported-fixed-prosthesis', name: 'Implant-Supported Fixed Prosthesis', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'implant-supported-removable-prosthesis', name: 'Implant-Supported Removable Prosthesis', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'full-partial-crowns', name: 'Full & Partial Crowns', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'post-core-restorations', name: 'Post and Core for Restorations', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'dental-bridges', name: 'Dental Bridges', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'in-office-teeth-whitening', name: 'In-Office Teeth Whitening', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'at-home-teeth-whitening', name: 'At-Home Teeth Whitening', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+    { id: 'porcelain-veneers', name: 'Porcelain Veneers', category: 'Fixed & Removable Prosthodontics', type: 'subcategory' },
+
+    // Restorative & Cosmetic Dentistry Subcategories (Oracare Clinic)
+    { id: 'cosmetic-fillings-restorative', name: 'Cosmetic Fillings', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'tooth-reconstruction', name: 'Tooth Reconstruction', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'dental-crowns-cosmetic', name: 'Dental Crowns', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'aesthetic-veneers', name: 'Aesthetic Veneers', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'in-office-whitening-cosmetic', name: 'In-Office Whitening', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'take-home-whitening', name: 'Take-Home Whitening', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+    { id: 'stain-removal-no-preparation', name: 'Stain Removal Without Tooth Preparation', category: 'Restorative & Cosmetic Dentistry', type: 'subcategory' },
+
+    // Root Canal & Endodontics Subcategories (Oracare Clinic)
+    { id: 'root-canal-treatment-all-teeth', name: 'Root Canal Treatment for All Teeth', category: 'Root Canal & Endodontics', type: 'subcategory' },
+    { id: 'emergency-root-canal-treatment', name: 'Emergency Root Canal Treatment', category: 'Root Canal & Endodontics', type: 'subcategory' },
+    { id: 'retreatment-failed-root-canals', name: 'Retreatment of Failed Root Canals', category: 'Root Canal & Endodontics', type: 'subcategory' },
+    { id: 'removal-intracanal-posts', name: 'Removal of Intracanal Posts', category: 'Root Canal & Endodontics', type: 'subcategory' },
+    { id: 'abscess-treatment', name: 'Abscess Treatment', category: 'Root Canal & Endodontics', type: 'subcategory' },
+
+    // Periodontal Treatment Subcategories (Oracare Clinic)
+    { id: 'gum-disease-periodontal-pocket-treatment', name: 'Gum Disease & Periodontal Pocket Treatment', category: 'Periodontal Treatment', type: 'subcategory' },
+    { id: 'scaling-stain-removal', name: 'Scaling and Stain Removal', category: 'Periodontal Treatment', type: 'subcategory' },
+    { id: 'surgical-gummy-smile-correction', name: 'Surgical Gummy Smile Correction', category: 'Periodontal Treatment', type: 'subcategory' },
+    { id: 'gum-contouring-depigmentation-laser', name: 'Gum Contouring and Depigmentation with Laser', category: 'Periodontal Treatment', type: 'subcategory' },
+    { id: 'tooth-splinting', name: 'Tooth Splinting', category: 'Periodontal Treatment', type: 'subcategory' },
+
+    // Oral & Maxillofacial Surgery Subcategories (Oracare Clinic)
+    { id: 'simple-surgical-tooth-extractions', name: 'Simple & Surgical Tooth Extractions', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+    { id: 'orthognathic-jaw-surgery', name: 'Orthognathic (Jaw) Surgery', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+    { id: 'removal-cysts-lipomas', name: 'Removal of Cysts (Lipomas/Fatty Masses)', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+    { id: 'correction-congenital-malformations', name: 'Correction of Congenital Malformations', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+    { id: 'salivary-gland-tumor-treatment', name: 'Salivary Gland Tumor Treatment', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+    { id: 'oral-facial-aesthetic-surgery', name: 'Oral & Facial Aesthetic Surgery', category: 'Oral & Maxillofacial Surgery', type: 'subcategory' },
+
+    // General Dentistry Subcategories (Oracare Clinic)
+    { id: 'dental-checkup-diagnosis', name: 'Dental Check-up & Diagnosis', category: 'General Dentistry', type: 'subcategory' },
+    { id: 'conservative-dental-treatment', name: 'Conservative Dental Treatment', category: 'General Dentistry', type: 'subcategory' },
+    { id: 'emergency-dental-care', name: 'Emergency Dental Care', category: 'General Dentistry', type: 'subcategory' },
+    { id: 'dental-cleaning-general', name: 'Dental Cleaning', category: 'General Dentistry', type: 'subcategory' },
+    { id: 'root-canal-therapy', name: 'Root Canal Therapy', category: 'General Dentistry', type: 'subcategory' },
+    { id: 'tooth-extraction', name: 'Tooth Extraction', category: 'General Dentistry', type: 'subcategory' }
   ];
 
   const getCategorySubcategories = () => {
