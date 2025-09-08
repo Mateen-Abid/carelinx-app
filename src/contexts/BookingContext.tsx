@@ -78,7 +78,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     const initializeBookings = async () => {
       await fetchAppointments();
       
-      // Check for existing pending bookings and trigger feedback modal
+      // Check for existing pending bookings and show feedback modal immediately
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
         const { data: pendingBookings } = await supabase
@@ -91,41 +91,22 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         
         if (pendingBookings && pendingBookings.length > 0) {
           const pendingBooking = pendingBookings[0];
-          console.log('Found existing pending booking, starting 5-second timer for feedback modal');
+          console.log('Found pending booking, showing feedback modal immediately');
           
-          // Start 5-second timer to show feedback modal and confirm booking
-          setTimeout(async () => {
-            console.log('5 seconds elapsed, showing feedback modal and confirming booking on frontend');
-            
-            // Immediately update frontend state to confirmed
-            setAppointments(prev => prev.map(apt => 
-              apt.id === pendingBooking.id 
-                ? { ...apt, status: 'confirmed', confirmedAt: new Date().toISOString() }
-                : apt
-            ));
-            
-            // Show feedback modal
-            setFeedbackModal({
-              isOpen: true,
-              bookingId: pendingBooking.id,
-              clinicName: pendingBooking.clinic,
-              doctorName: pendingBooking.doctor_name
-            });
-            
-            // Update database in background - show popup regardless of success/failure
-            try {
-              await supabase
-                .from('bookings')
-                .update({ 
-                  status: 'confirmed',
-                  confirmed_at: new Date().toISOString()
-                })
-                .eq('id', pendingBooking.id);
-              console.log('Existing pending booking confirmed in database');
-            } catch (error) {
-              console.error('Error confirming existing pending booking in database:', error);
-            }
-          }, 5000); // 5 seconds
+          // Immediately update frontend state to confirmed
+          setAppointments(prev => prev.map(apt => 
+            apt.id === pendingBooking.id 
+              ? { ...apt, status: 'confirmed' }
+              : apt
+          ));
+          
+          // Show feedback modal immediately
+          setFeedbackModal({
+            isOpen: true,
+            bookingId: pendingBooking.id,
+            clinicName: pendingBooking.clinic,
+            doctorName: pendingBooking.doctor_name
+          });
         }
       }
     };
@@ -144,43 +125,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         (payload) => {
           console.log('Booking update received:', payload);
           
-          // When a new booking is created (pending), start 5-second timer for feedback modal
+          // When a new booking is created (pending), show feedback modal immediately
           if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
-            console.log('New pending booking created, starting 5-second timer for feedback modal');
+            console.log('New pending booking created, showing feedback modal immediately');
             
-            // Start 5-second timer to show feedback modal
-            setTimeout(async () => {
-              console.log('5 seconds elapsed, showing feedback modal and confirming booking on frontend');
-              
-              // Immediately update frontend state to confirmed
-              setAppointments(prev => prev.map(apt => 
-                apt.id === payload.new.id 
-                  ? { ...apt, status: 'confirmed', confirmedAt: new Date().toISOString() }
-                  : apt
-              ));
-              
-              // Show feedback modal
-              setFeedbackModal({
-                isOpen: true,
-                bookingId: payload.new.id,
-                clinicName: payload.new.clinic,
-                doctorName: payload.new.doctor_name
-              });
-              
-              // Update database in background - show popup regardless of success/failure
-              try {
-                await supabase
-                  .from('bookings')
-                  .update({ 
-                    status: 'confirmed',
-                    confirmed_at: new Date().toISOString()
-                  })
-                  .eq('id', payload.new.id);
-                console.log('Booking confirmed in database');
-              } catch (error) {
-                console.error('Error confirming booking in database, but frontend already shows confirmed:', error);
-              }
-            }, 5000); // 5 seconds
+            // Immediately update frontend state to confirmed
+            setAppointments(prev => prev.map(apt => 
+              apt.id === payload.new.id 
+                ? { ...apt, status: 'confirmed' }
+                : apt
+            ));
+            
+            // Show feedback modal immediately
+            setFeedbackModal({
+              isOpen: true,
+              bookingId: payload.new.id,
+              clinicName: payload.new.clinic,
+              doctorName: payload.new.doctor_name
+            });
           }
           
           // Refetch appointments to update the UI in real-time
@@ -289,7 +251,23 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
-  const closeFeedbackModal = () => {
+  const closeFeedbackModal = async () => {
+    // Update database when modal is closed
+    if (feedbackModal.bookingId) {
+      try {
+        await supabase
+          .from('bookings')
+          .update({ 
+            status: 'confirmed',
+            confirmed_at: new Date().toISOString()
+          })
+          .eq('id', feedbackModal.bookingId);
+        console.log('Booking confirmed in database after modal close');
+      } catch (error) {
+        console.error('Error confirming booking in database:', error);
+      }
+    }
+    
     setFeedbackModal({
       isOpen: false,
       bookingId: '',
