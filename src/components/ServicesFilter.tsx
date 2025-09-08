@@ -153,20 +153,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     setCurrentView('main');
   };
 
-  const updateDropdownPosition = () => {
-    if (dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX
-      });
-    }
-  };
-
   const handleDropdownToggle = () => {
-    if (!isDropdownOpen) {
-      updateDropdownPosition();
-    }
     setIsDropdownOpen(!isDropdownOpen);
   };
 
@@ -262,13 +249,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div 
-              className="fixed w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
-              style={{
-                top: `${dropdownPosition.top}px`,
-                left: `${dropdownPosition.left}px`
-              }}
-            >
+            <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
               {renderDropdownContent()}
             </div>
           )}
