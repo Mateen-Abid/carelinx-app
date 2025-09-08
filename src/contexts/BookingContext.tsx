@@ -94,14 +94,37 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
             console.log('New pending booking created, starting 5-second timer for feedback modal');
             
             // Start 5-second timer to show feedback modal
-            setTimeout(() => {
-              console.log('5 seconds elapsed, showing feedback modal for pending booking');
+            setTimeout(async () => {
+              console.log('5 seconds elapsed, showing feedback modal and confirming booking on frontend');
+              
+              // Immediately update frontend state to confirmed
+              setAppointments(prev => prev.map(apt => 
+                apt.id === payload.new.id 
+                  ? { ...apt, status: 'confirmed', confirmedAt: new Date().toISOString() }
+                  : apt
+              ));
+              
+              // Show feedback modal
               setFeedbackModal({
                 isOpen: true,
                 bookingId: payload.new.id,
                 clinicName: payload.new.clinic,
                 doctorName: payload.new.doctor_name
               });
+              
+              // Update database in background - show popup regardless of success/failure
+              try {
+                await supabase
+                  .from('bookings')
+                  .update({ 
+                    status: 'confirmed',
+                    confirmed_at: new Date().toISOString()
+                  })
+                  .eq('id', payload.new.id);
+                console.log('Booking confirmed in database');
+              } catch (error) {
+                console.error('Error confirming booking in database, but frontend already shows confirmed:', error);
+              }
             }, 5000); // 5 seconds
           }
           

@@ -34,25 +34,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   };
 
   const confirmBookingAndClose = async () => {
-    try {
-      // Confirm the booking
-      await supabase
-        .from('bookings')
-        .update({ 
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString()
-        })
-        .eq('id', bookingId);
-        
-      onClose();
-      
-      // Auto-refresh page 
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-    }
+    // Just close the modal - booking is already confirmed on frontend and database
+    onClose();
+    
+    // Auto-refresh page to sync any remaining state
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const handleSubmit = async () => {
