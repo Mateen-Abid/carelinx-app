@@ -73,9 +73,64 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Set up real-time subscription and frontend timer for feedback modal
+  // Set up real-time subscription and check for existing pending bookings
   useEffect(() => {
-    fetchAppointments();
+    const initializeBookings = async () => {
+      await fetchAppointments();
+      
+      // Check for existing pending bookings and trigger feedback modal
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        const { data: pendingBookings } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('user_id', user.user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1); // Get the most recent pending booking
+        
+        if (pendingBookings && pendingBookings.length > 0) {
+          const pendingBooking = pendingBookings[0];
+          console.log('Found existing pending booking, starting 5-second timer for feedback modal');
+          
+          // Start 5-second timer to show feedback modal and confirm booking
+          setTimeout(async () => {
+            console.log('5 seconds elapsed, showing feedback modal and confirming booking on frontend');
+            
+            // Immediately update frontend state to confirmed
+            setAppointments(prev => prev.map(apt => 
+              apt.id === pendingBooking.id 
+                ? { ...apt, status: 'confirmed', confirmedAt: new Date().toISOString() }
+                : apt
+            ));
+            
+            // Show feedback modal
+            setFeedbackModal({
+              isOpen: true,
+              bookingId: pendingBooking.id,
+              clinicName: pendingBooking.clinic,
+              doctorName: pendingBooking.doctor_name
+            });
+            
+            // Update database in background - show popup regardless of success/failure
+            try {
+              await supabase
+                .from('bookings')
+                .update({ 
+                  status: 'confirmed',
+                  confirmed_at: new Date().toISOString()
+                })
+                .eq('id', pendingBooking.id);
+              console.log('Existing pending booking confirmed in database');
+            } catch (error) {
+              console.error('Error confirming existing pending booking in database:', error);
+            }
+          }, 5000); // 5 seconds
+        }
+      }
+    };
+
+    initializeBookings();
 
     const channel = supabase
       .channel('bookings-changes')
