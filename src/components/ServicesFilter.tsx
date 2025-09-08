@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, Brain, Eye, Stethoscope, Baby, Bone, Plus, Palette, ChevronDown, Activity, Scissors, UserCheck, Shield, Users2, Flower2, Microscope, Apple, Zap, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Heart, Brain, Eye, Stethoscope, Baby, Bone, Plus, Palette, ChevronDown, Activity, Scissors, UserCheck, Shield, Users2, Flower2, Microscope, Apple, Zap, ChevronRight, ArrowLeft, Smile } from 'lucide-react';
 
 interface ServiceSubcategory {
   id: string;
@@ -26,9 +26,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
 
   const mainCategories: ServiceCategory[] = [
     { id: 'all', name: 'All', icon: Stethoscope },
-    { id: 'cardiology', name: 'Cardiology', icon: Heart },
-    { id: 'neurology', name: 'Neurology', icon: Brain },
-    { id: 'ophthalmology', name: 'Ophthalmology', icon: Eye }
+    { id: 'dentistry', name: 'Dental', icon: Smile },
+    { id: 'dermatology', name: 'Dermatology', icon: Palette }
   ];
 
   const allCategories: ServiceCategory[] = [
@@ -118,14 +117,20 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
         { id: 'dermatology-scars', name: 'Scars & Stretch Marks' }
       ]
     },
-    { id: 'emergency-care', name: 'Emergency Care', icon: Plus },
-    { id: 'preventive-care', name: 'Preventive Care', icon: Shield },
-    { id: 'dentistry', name: 'Dentistry', icon: UserCheck },
-    { id: 'gynecology', name: 'Gynecology', icon: Flower2 },
-    { id: 'pathology', name: 'Pathology', icon: Microscope },
-    { id: 'nutrition', name: 'Nutrition', icon: Apple },
-    { id: 'psychiatry', name: 'Psychiatry', icon: Users2 },
-    { id: 'pulmonology', name: 'Pulmonology', icon: Activity }
+    { 
+      id: 'dentistry', 
+      name: 'Dental', 
+      icon: Smile,
+      subcategories: [
+        { id: 'dentistry-cleaning', name: 'Dental Cleaning' },
+        { id: 'dentistry-filling', name: 'Dental Filling' },
+        { id: 'dentistry-extraction', name: 'Tooth Extraction' },
+        { id: 'dentistry-whitening', name: 'Teeth Whitening' },
+        { id: 'dentistry-crown', name: 'Dental Crown' },
+        { id: 'dentistry-implant', name: 'Dental Implant' },
+        { id: 'dentistry-orthodontics', name: 'Orthodontics' }
+      ]
+    }
   ];
 
   useEffect(() => {
