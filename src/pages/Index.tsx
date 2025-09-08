@@ -276,6 +276,14 @@ const Index = () => {
     'orthopedics-fracture-care': ['Orthopedics']
   };
 
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    // Clear search query when "All" is selected to reset all filters
+    if (categoryId === 'all') {
+      setSearchQuery('');
+    }
+  };
+
   const handleClinicBooking = (clinicName: string) => {
     setSelectedClinic(clinicName);
     setIsBookingModalOpen(true);
@@ -379,7 +387,7 @@ const Index = () => {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
+        onCategoryChange={handleCategoryChange}
       />
       
       <main>
