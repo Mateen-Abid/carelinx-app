@@ -177,7 +177,7 @@ const Header = () => {
             
             {/* Greeting Text */}
             {user && (
-              <div className="text-center">
+              <div className="text-left self-start">
                 <div className="text-sm text-white">Hi, {user.email?.split('@')[0]}</div>
                 <div className="text-sm text-gray-300">Good morning</div>
               </div>
