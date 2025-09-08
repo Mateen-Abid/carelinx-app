@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { getAllServices, getAllCategories } from '@/data/clinicsData';
 
 interface SearchOption {
   id: string;
@@ -26,66 +27,32 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const [activeTab, setActiveTab] = useState<'categories' | 'services'>('categories');
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const searchOptions: SearchOption[] = [
-    // Main Categories
-    { id: 'cardiology', name: 'Cardiology', category: 'Medical Specialty', type: 'category' },
-    { id: 'neurology', name: 'Neurology', category: 'Medical Specialty', type: 'category' },
-    { id: 'ophthalmology', name: 'Ophthalmology', category: 'Medical Specialty', type: 'category' },
-    { id: 'dermatology', name: 'Dermatology', category: 'Medical Specialty', type: 'category' },
-    { id: 'general-medicine', name: 'General Medicine', category: 'Medical Specialty', type: 'category' },
-    { id: 'pediatrics', name: 'Pediatrics', category: 'Medical Specialty', type: 'category' },
-    { id: 'orthopedics', name: 'Orthopedics', category: 'Medical Specialty', type: 'category' },
+  const searchOptions: SearchOption[] = useMemo(() => {
+    const options: SearchOption[] = [];
+    
+    // Add main categories
+    getAllCategories().forEach(category => {
+      const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '');
+      options.push({
+        id: categoryId,
+        name: category,
+        category: 'Medical Specialty',
+        type: 'category'
+      });
+    });
 
-    // Cardiology Subcategories
-    { id: 'cardiology-ecg', name: 'ECG', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-echo', name: 'Echocardiogram', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-stress-test', name: 'Stress Test', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-holter', name: 'Holter Monitor', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-angiogram', name: 'Angiogram', category: 'Cardiology', type: 'subcategory' },
-    { id: 'cardiology-ct-scan', name: 'Cardiac CT Scan', category: 'Cardiology', type: 'subcategory' },
+    // Add all services as subcategories
+    getAllServices().forEach(service => {
+      options.push({
+        id: service.id,
+        name: service.name,
+        category: service.category,
+        type: 'subcategory'
+      });
+    });
 
-    // Neurology Subcategories
-    { id: 'neurology-mri', name: 'Brain MRI', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-ct-scan', name: 'Brain CT Scan', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-eeg', name: 'EEG', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-emg', name: 'EMG', category: 'Neurology', type: 'subcategory' },
-    { id: 'neurology-lumbar-puncture', name: 'Lumbar Puncture', category: 'Neurology', type: 'subcategory' },
-
-    // Ophthalmology Subcategories
-    { id: 'ophthalmology-retinal-exam', name: 'Retinal Examination', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-glaucoma-test', name: 'Glaucoma Test', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-cataract-surgery', name: 'Cataract Surgery', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-vision-test', name: 'Vision Test', category: 'Ophthalmology', type: 'subcategory' },
-    { id: 'ophthalmology-oct', name: 'OCT Scan', category: 'Ophthalmology', type: 'subcategory' },
-
-    // Dermatology Subcategories
-    { id: 'dermatology-acne', name: 'Acne & Pimples', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-eczema', name: 'Eczema & Dermatitis', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-psoriasis', name: 'Psoriasis', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-rosacea', name: 'Rosacea', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-allergies', name: 'Skin Allergies', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-warts', name: 'Warts & Moles', category: 'Dermatology', type: 'subcategory' },
-    { id: 'dermatology-scars', name: 'Scars & Stretch Marks', category: 'Dermatology', type: 'subcategory' },
-
-    // General Medicine Subcategories
-    { id: 'general-checkup', name: 'General Checkup', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-blood-test', name: 'Blood Test', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-vaccination', name: 'Vaccination', category: 'General Medicine', type: 'subcategory' },
-    { id: 'general-health-screening', name: 'Health Screening', category: 'General Medicine', type: 'subcategory' },
-
-    // Pediatrics Subcategories
-    { id: 'pediatrics-vaccination', name: 'Child Vaccination', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-growth-check', name: 'Growth Check', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-development', name: 'Development Assessment', category: 'Pediatrics', type: 'subcategory' },
-    { id: 'pediatrics-illness', name: 'Childhood Illness', category: 'Pediatrics', type: 'subcategory' },
-
-    // Orthopedics Subcategories
-    { id: 'orthopedics-xray', name: 'X-Ray', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-mri', name: 'Orthopedic MRI', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-ct-scan', name: 'Orthopedic CT Scan', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-joint-replacement', name: 'Joint Replacement', category: 'Orthopedics', type: 'subcategory' },
-    { id: 'orthopedics-fracture-care', name: 'Fracture Care', category: 'Orthopedics', type: 'subcategory' }
-  ];
+    return options;
+  }, []);
 
   const getCategorySubcategories = () => {
     if (selectedCategory === 'all') {

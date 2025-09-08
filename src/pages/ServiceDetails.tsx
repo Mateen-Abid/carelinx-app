@@ -11,159 +11,125 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Service data with descriptions and timing
-const serviceDatabase = {
-  'ecg': {
-    name: 'ECG',
-    specialty: 'Cardiology',
-    description: 'Our cardiologists provide personalized ECG monitoring plans to help assess heart rhythm and detect irregular heartbeats. Suitable for all patients with cardiovascular concerns, with comprehensive analysis and treatment options available.',
-    clinic: 'Central Medical Center',
-    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '456 Oak Avenue, Suburb',
-    schedule: {
-      'Mon': '09:00 - 13:00',
-      'Tue': '10:00 - 14:00', 
-      'Wed': '09:00 - 13:00',
-      'Thu': '10:00 - 14:30',
-      'Fri': '11:00 - 14:30',
-      'Sat': '13:00 - 16:30',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Ali Ashar',
-        specialization: 'MD, Cardiologist - 8 yrs experience'
-      },
-      {
-        name: 'Dr. Maya Patel',
-        specialization: 'MD, Cardiologist - 10 yrs experience'
-      }
-    ]
-  },
-  'x-ray': {
-    name: 'X-Ray',
-    specialty: 'Radiology',
-    description: 'Our radiologists provide comprehensive X-ray imaging services to help diagnose various medical conditions. State-of-the-art equipment ensures accurate results with minimal radiation exposure.',
-    clinic: 'Willow Grove Clinic',
-    clinicLogo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '456 Oak Avenue, Suburb',
-    schedule: {
-      'Mon': '09:00 - 13:00',
-      'Tue': '10:00 - 14:00', 
-      'Wed': '09:00 - 13:00',
-      'Thu': '10:00 - 14:00',
-      'Fri': '09:00 - 13:00',
-      'Sat': '10:00 - 14:00',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Sarah Johnson',
-        specialization: 'MD, Radiologist - 12 yrs experience'
-      }
-    ]
-  },
-  'brain-scans': {
-    name: 'Brain Scans',
-    specialty: 'Neurology',
-    description: 'Our neurologists provide advanced brain imaging and scanning services to help diagnose neurological conditions. Comprehensive analysis with detailed reports and treatment recommendations.',
-    clinic: 'Maple Leaf Center',
-    clinicLogo: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '789 Pine Street, Downtown',
-    schedule: {
-      'Mon': '10:00 - 15:00',
-      'Tue': '11:00 - 16:00',
-      'Wed': '10:00 - 15:00',
-      'Thu': '11:00 - 16:00',
-      'Fri': '12:00 - 16:00',
-      'Sat': '13:00 - 16:00',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Tom Yaeghn',
-        specialization: 'MD, Neurologist - 15 yrs experience'
-      },
-      {
-        name: 'Dr. Lisa Chen',
-        specialization: 'MD, Neurologist - 8 yrs experience'
-      }
-    ]
-  },
-  'retinal-care': {
-    name: 'Retinal Care',
-    specialty: 'Ophthalmology',
-    description: 'Our ophthalmologists provide specialized retinal care services to help maintain and improve eye health. Comprehensive eye examinations with advanced diagnostic equipment.',
-    clinic: 'Cedar Medical',
-    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '321 Elm Road, Uptown',
-    schedule: {
-      'Mon': '08:00 - 15:00',
-      'Tue': '09:00 - 15:00',
-      'Wed': '08:00 - 15:00',
-      'Thu': '09:00 - 15:00',
-      'Fri': '08:00 - 15:00',
-      'Sat': 'Closed',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Michael Roberts',
-        specialization: 'MD, Ophthalmologist - 20 yrs experience'
-      }
-    ]
-  },
-  'ultrasound': {
-    name: 'Ultrasound',
-    specialty: 'General Medicine',
-    description: 'Our medical professionals provide comprehensive ultrasound imaging services for various diagnostic purposes. Safe, non-invasive procedures with immediate results and detailed analysis.',
-    clinic: 'Cedar Medical',
-    clinicLogo: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '321 Elm Road, Uptown',
-    schedule: {
-      'Mon': '08:00 - 15:00',
-      'Tue': '09:00 - 15:00',
-      'Wed': '08:00 - 15:00',
-      'Thu': '09:00 - 15:00',
-      'Fri': '08:00 - 15:00',
-      'Sat': 'Closed',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Jennifer White',
-        specialization: 'MD, Ultrasonographer - 10 yrs experience'
-      }
-    ]
-  },
-  'acne-treatment': {
-    name: 'Acne Treatment',
-    specialty: 'Dermatology',
-    description: 'Our dermatologists provide comprehensive acne treatment services using the latest medical techniques and therapies. Personalized treatment plans to help clear your skin and prevent future breakouts.',
-    clinic: 'Central Medical Center',
-    clinicLogo: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=40&h=40&fit=crop&crop=center&auto=format',
-    address: '456 Oak Avenue, Suburb',
-    schedule: {
-      'Mon': '09:00 - 17:00',
-      'Tue': '10:00 - 18:00',
-      'Wed': '09:00 - 17:00',
-      'Thu': '10:00 - 18:00',
-      'Fri': '09:00 - 17:00',
-      'Sat': '10:00 - 14:00',
-      'Sun': 'Closed'
-    },
-    doctors: [
-      {
-        name: 'Dr. Sarah Johnson',
-        specialization: 'MD, Dermatologist - 12 yrs experience'
-      },
-      {
-        name: 'Dr. Michael Chen',
-        specialization: 'MD, Dermatologist - 8 yrs experience'
-      }
-    ]
-  }
+import { getClinicByServiceId, getServiceById } from '@/data/clinicsData';
+
+// Generate service database dynamically from clinic data
+const generateServiceDatabase = () => {
+  const database: any = {};
+  
+  // Default schedule for all services
+  const defaultSchedule = {
+    'Mon': '09:00 - 17:00',
+    'Tue': '09:00 - 17:00', 
+    'Wed': '09:00 - 17:00',
+    'Thu': '09:00 - 17:00',
+    'Fri': '09:00 - 17:00',
+    'Sat': '09:00 - 14:00',
+    'Sun': 'Closed'
+  };
+
+  // Default doctors for different specialties
+  const getDefaultDoctors = (category: string) => {
+    const doctorsByCategory: { [key: string]: any[] } = {
+      'Facial Cleaning Services': [
+        { name: 'Dr. Sarah Beauty', specialization: 'MD, Dermatologist - 8 yrs experience' },
+        { name: 'Dr. Maya Skin', specialization: 'MD, Aesthetician - 6 yrs experience' }
+      ],
+      'Dental': [
+        { name: 'Dr. Ahmad Dental', specialization: 'DDS, General Dentist - 10 yrs experience' },
+        { name: 'Dr. Fatima Teeth', specialization: 'DDS, Oral Surgeon - 12 yrs experience' }
+      ],
+      'Dermatology': [
+        { name: 'Dr. Skin Expert', specialization: 'MD, Dermatologist - 15 yrs experience' },
+        { name: 'Dr. Beauty Care', specialization: 'MD, Cosmetic Dermatologist - 8 yrs experience' }
+      ],
+      'Orthodontics': [
+        { name: 'Dr. Straight Teeth', specialization: 'DDS, Orthodontist - 12 yrs experience' }
+      ],
+      'Dental Implants': [
+        { name: 'Dr. Implant Pro', specialization: 'DDS, Oral Surgeon - 15 yrs experience' }
+      ],
+      'Pediatric Dentistry': [
+        { name: 'Dr. Kids Smile', specialization: 'DDS, Pediatric Dentist - 10 yrs experience' }
+      ],
+      'Fixed & Removable Prosthodontics': [
+        { name: 'Dr. Prosthetic Expert', specialization: 'DDS, Prosthodontist - 14 yrs experience' }
+      ],
+      'Restorative & Cosmetic Dentistry': [
+        { name: 'Dr. Cosmetic Smile', specialization: 'DDS, Cosmetic Dentist - 11 yrs experience' }
+      ],
+      'Root Canal & Endodontics': [
+        { name: 'Dr. Root Expert', specialization: 'DDS, Endodontist - 13 yrs experience' }
+      ],
+      'Periodontal Treatment': [
+        { name: 'Dr. Gum Care', specialization: 'DDS, Periodontist - 9 yrs experience' }
+      ],
+      'Oral & Maxillofacial Surgery': [
+        { name: 'Dr. Jaw Surgeon', specialization: 'DDS, Oral Surgeon - 18 yrs experience' }
+      ],
+      'General Dentistry': [
+        { name: 'Dr. General Care', specialization: 'DDS, General Dentist - 12 yrs experience' }
+      ]
+    };
+
+    return doctorsByCategory[category] || [
+      { name: 'Dr. Available Doctor', specialization: 'MD, Specialist - 8 yrs experience' }
+    ];
+  };
+
+  // Generate descriptions for different services
+  const getServiceDescription = (serviceName: string, category: string) => {
+    const descriptions: { [key: string]: string } = {
+      // Facial Cleaning Services
+      'Laser Sessions': 'Professional laser treatments for skin rejuvenation and various dermatological conditions. Advanced technology with experienced practitioners.',
+      'Plasma Sessions': 'Cutting-edge plasma therapy for skin tightening and rejuvenation. Non-invasive treatment with excellent results.',
+      'Scar Treatments': 'Comprehensive scar treatment options to improve skin texture and appearance. Personalized treatment plans for optimal results.',
+      'Fat Reduction': 'Non-surgical fat reduction treatments using the latest technology. Safe and effective body contouring solutions.',
+      'Cosmetic Injections': 'Professional cosmetic injection services including fillers and botox. Enhance your natural beauty with expert care.',
+      'Dark Circles Lightening': 'Specialized treatments to reduce dark circles and brighten the under-eye area. Restore youthful appearance.',
+      'Fractional Laser Sessions': 'Advanced fractional laser treatments for skin resurfacing and rejuvenation. Minimal downtime with maximum results.',
+      'Chemical Peeling Sessions': 'Professional chemical peels to improve skin texture, tone, and appearance. Customized to your skin type.',
+      
+      // Dental Services
+      'Teeth Whitening': 'Professional teeth whitening services to brighten your smile. Safe and effective whitening treatments.',
+      'Teeth Cleaning': 'Comprehensive dental cleaning services to maintain optimal oral health. Professional deep cleaning and maintenance.',
+      'Polishing & Scaling': 'Professional dental polishing and scaling to remove tartar and plaque. Essential for maintaining healthy teeth and gums.',
+      'Dental Fillings': 'High-quality dental fillings using the latest materials. Restore damaged teeth with natural-looking results.',
+      'Dentures': 'Custom-made dentures for complete or partial tooth replacement. Comfortable and natural-looking solutions.',
+      'Orthodontics': 'Comprehensive orthodontic treatment to straighten teeth and improve bite alignment. Modern braces and clear aligners available.',
+      
+      // Default description
+      'default': `Professional ${serviceName.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`
+    };
+
+    return descriptions[serviceName] || descriptions['default'];
+  };
+
+  // Import clinic data and generate service entries
+  import('@/data/clinicsData').then(({ clinicsData }) => {
+    clinicsData.forEach(clinic => {
+      Object.entries(clinic.categories).forEach(([categoryName, services]) => {
+        services.forEach(service => {
+          database[service.id] = {
+            name: service.name,
+            specialty: categoryName,
+            description: getServiceDescription(service.name, categoryName),
+            clinic: clinic.name,
+            clinicLogo: clinic.logo,
+            address: clinic.address,
+            schedule: defaultSchedule,
+            doctors: getDefaultDoctors(categoryName)
+          };
+        });
+      });
+    });
+  });
+
+  return database;
 };
+
+// Create service database
+const serviceDatabase = generateServiceDatabase();
 
 const ServiceDetails = () => {
   const { serviceId } = useParams();
@@ -179,9 +145,11 @@ const ServiceDetails = () => {
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const serviceData = serviceDatabase[serviceId as keyof typeof serviceDatabase];
-
-  if (!serviceData) {
+  // Get service and clinic data
+  const service = getServiceById(serviceId || '');
+  const clinic = getClinicByServiceId(serviceId || '');
+  
+  if (!service || !clinic) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -191,6 +159,31 @@ const ServiceDetails = () => {
       </div>
     );
   }
+
+  // Create service data object for compatibility
+  const serviceData = {
+    name: service.name,
+    specialty: service.category,
+    description: `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`,
+    clinic: clinic.name,
+    clinicLogo: clinic.logo,
+    address: clinic.address,
+    schedule: {
+      'Mon': '09:00 - 17:00',
+      'Tue': '09:00 - 17:00', 
+      'Wed': '09:00 - 17:00',
+      'Thu': '09:00 - 17:00',
+      'Fri': '09:00 - 17:00',
+      'Sat': '09:00 - 14:00',
+      'Sun': 'Closed'
+    },
+    doctors: [
+      {
+        name: 'Dr. Available Doctor',
+        specialization: 'MD, Specialist - 8 yrs experience'
+      }
+    ]
+  };
 
   const handleBookAppointment = () => {
     setIsBookingConfirmationOpen(true);
