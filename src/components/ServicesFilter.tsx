@@ -154,12 +154,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   }, [isDropdownOpen]);
 
   const handleCategorySelect = (categoryId: string) => {
-    // Reset to 'all' when 'all' is selected to clear any subcategory filters
-    if (categoryId === 'all') {
-      onCategoryChange('all');
-    } else {
-      onCategoryChange(categoryId);
-    }
+    // Always trigger category change to ensure proper reset
+    onCategoryChange(categoryId);
     setIsDropdownOpen(false);
     setCurrentView('main');
   };
