@@ -170,6 +170,18 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     setIsDropdownOpen(!isDropdownOpen);
   };
 
+  const handleAllButtonClick = () => {
+    // If "All" is already selected, still reset the filter to ensure all services show
+    if (selectedCategory === 'all') {
+      onCategoryChange('all');
+      setIsDropdownOpen(false);
+      setCurrentView('main');
+    } else {
+      // If not selected, toggle dropdown
+      handleDropdownToggle();
+    }
+  };
+
   const handleCategoryClick = (category: ServiceCategory) => {
     if (category.subcategories && category.subcategories.length > 0) {
       setCurrentView(category.id);
@@ -256,7 +268,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           <CategoryButton
             category={mainCategories[0]}
             isSelected={selectedCategory === 'all'}
-            onClick={handleDropdownToggle}
+            onClick={handleAllButtonClick}
             showChevron={true}
           />
           
