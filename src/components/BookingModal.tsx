@@ -14,6 +14,7 @@ interface BookingModalProps {
   clinicName?: string;
   serviceName?: string;
   serviceSchedule?: Record<string, string>; // Add schedule data
+  clinicServices?: Array<{id: string, name: string, category: string}>; // Add clinic services
 }
 
 interface TimeSlot {
@@ -43,11 +44,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   doctorName = 'Dr Ishfaq',
   clinicName = 'Central Medical Center',
   serviceName = 'General Consultation',
-  serviceSchedule = {}
+  serviceSchedule = {},
+  clinicServices = []
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [step, setStep] = useState<'date' | 'confirmation'>('date');
+  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string} | null>(null);
+  const [step, setStep] = useState<'service' | 'date' | 'confirmation'>('service');
   const [currentDate, setCurrentDate] = useState(new Date());
   const { addAppointment } = useBooking();
   const navigate = useNavigate();
@@ -67,14 +70,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedTime(time);
     
     // Save the appointment
-    if (selectedDate) {
+    if (selectedDate && selectedService) {
       const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Saving appointment with date:', appointmentDate, 'time:', time);
+      console.log('Saving appointment with date:', appointmentDate, 'time:', time, 'service:', selectedService.name);
       
       try {
         await addAppointment({
           doctorName: doctorName,
-          specialty: serviceName,
+          specialty: selectedService.name,
           clinic: clinicName,
           date: appointmentDate,
           time: time,
@@ -89,16 +92,72 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleClose = () => {
-    setStep('date');
+    setStep('service');
     setSelectedDate(undefined);
     setSelectedTime('');
+    setSelectedService(null);
     onClose();
+  };
+
+  const handleServiceSelect = (service: {id: string, name: string, category: string}) => {
+    setSelectedService(service);
+    setStep('date');
+  };
+
+  const handleBackToServices = () => {
+    setStep('service');
   };
 
   const handleBookAnother = () => {
     handleClose();
     navigate('/my-bookings');
   };
+
+  // Service Selection Step
+  if (step === 'service') {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative flex-shrink-0">
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle className="text-xl font-semibold text-center">
+                Select a Service
+              </DialogTitle>
+              <p className="text-center text-gray-600 mt-2">
+                Choose a service from {clinicName}
+              </p>
+            </DialogHeader>
+          </div>
+          
+          <div className="p-6 flex-1 overflow-hidden">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {clinicServices.length > 0 ? (
+                clinicServices.map((service) => (
+                  <button
+                    key={service.id}
+                    onClick={() => handleServiceSelect(service)}
+                    className="w-full p-4 rounded-lg border border-gray-200 hover:border-[#0C2243] hover:bg-blue-50 transition-colors text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{service.name}</h3>
+                        <p className="text-sm text-gray-500">{service.category}</p>
+                      </div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No services available for this clinic.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (step === 'confirmation') {
     return (
@@ -134,6 +193,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 Booking Request Sent
               </h2>
               
+              {selectedService && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <h3 className="font-medium text-gray-900 mb-2">Appointment Details</h3>
+                  <p className="text-sm text-gray-600">
+                    <strong>Service:</strong> {selectedService.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Category:</strong> {selectedService.category}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Clinic:</strong> {clinicName}
+                  </p>
+                  {selectedDate && (
+                    <p className="text-sm text-gray-600">
+                      <strong>Date:</strong> {format(selectedDate, 'EEEE, MMM d, yyyy')}
+                    </p>
+                  )}
+                  {selectedTime && (
+                    <p className="text-sm text-gray-600">
+                      <strong>Time:</strong> {selectedTime}
+                    </p>
+                  )}
+                </div>
+              )}
+              
               <p className="text-gray-600 mb-8 leading-relaxed">
                 Your appointment booking request has been sent. We'll get back to you shortly.
               </p>
@@ -158,9 +242,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="relative flex-shrink-0">
           <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="text-xl font-semibold text-center">
-              Select a Date & Time
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleBackToServices}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ChevronLeft size={20} className="text-gray-600" />
+              </button>
+              <DialogTitle className="text-xl font-semibold text-center flex-1">
+                Select a Date & Time
+              </DialogTitle>
+              <div className="w-10"></div> {/* Spacer for centering */}
+            </div>
+            {selectedService && (
+              <div className="text-center mt-2">
+                <p className="text-sm text-gray-600">
+                  Booking: <span className="font-medium">{selectedService.name}</span>
+                </p>
+                <p className="text-xs text-gray-500">{selectedService.category}</p>
+              </div>
+            )}
           </DialogHeader>
         </div>
           

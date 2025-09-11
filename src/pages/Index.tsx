@@ -105,6 +105,24 @@ const Index = () => {
     setIsBookingModalOpen(true);
   };
 
+  // Get clinic services for the selected clinic
+  const getSelectedClinicServices = () => {
+    const clinic = clinicsData.find(c => c.name === selectedClinic);
+    if (!clinic) return [];
+    
+    const services: Array<{id: string, name: string, category: string}> = [];
+    Object.entries(clinic.categories).forEach(([categoryName, serviceList]) => {
+      serviceList.forEach(service => {
+        services.push({
+          id: service.id,
+          name: service.name,
+          category: categoryName
+        });
+      });
+    });
+    return services;
+  };
+
   // Convert timeSchedule string to schedule object
   const parseTimeSchedule = (timeSchedule: string): Record<string, string> => {
     const schedule: Record<string, string> = {
@@ -295,6 +313,7 @@ const Index = () => {
         onClose={() => setIsBookingModalOpen(false)}
         clinicName={selectedClinic}
         serviceSchedule={getSelectedClinicSchedule()}
+        clinicServices={getSelectedClinicServices()}
       />
     </div>
   );
