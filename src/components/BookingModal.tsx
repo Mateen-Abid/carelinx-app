@@ -54,7 +54,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   
   const timeSlots = generateTimeSlots(doctorName);
   
+  // Debug logging for schedule data
+  console.log('BookingModal - serviceSchedule:', serviceSchedule);
+  console.log('BookingModal - clinicName:', clinicName);
+  
   const handleDateSelect = (date: Date) => {
+    console.log('Date selected:', date);
     setSelectedDate(date);
   };
 
@@ -230,7 +235,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                       const dayName = dayNames[dayOfWeek];
                       const schedule = serviceSchedule[dayName];
-                      const isClinicOpen = schedule && schedule !== 'Closed';
+                      
+                      // If no schedule provided, assume clinic is open on weekdays
+                      let isClinicOpen = true;
+                      if (Object.keys(serviceSchedule).length > 0) {
+                        isClinicOpen = schedule && schedule !== 'Closed' && schedule !== '';
+                      } else {
+                        // Default: open Monday to Friday
+                        isClinicOpen = dayOfWeek >= 1 && dayOfWeek <= 5;
+                      }
                       
                       const isAvailable = isCurrentMonth && checkDate >= today && isClinicOpen;
                       
@@ -269,12 +282,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div className="sm:border-l sm:pl-8 flex flex-col min-h-0">
                 <div className="mb-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {selectedDate ? format(selectedDate, 'EEEE, MMM d') : 'Sunday, Apr 21'}
+                    {selectedDate ? format(selectedDate, 'EEEE, MMM d') : 'Select a date to view available times'}
                   </h3>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px] sm:max-h-[400px]">
-                  {timeSlots.map((slot, index) => (
+                  {selectedDate ? timeSlots.map((slot, index) => (
                     <button
                       key={index}
                       onClick={() => slot.available && handleTimeSelect(slot.time)}
@@ -321,7 +334,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         )}
                       </div>
                     </button>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Please select a date to view available time slots</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

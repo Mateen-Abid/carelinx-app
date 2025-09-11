@@ -120,16 +120,21 @@ const Index = () => {
     // Parse schedule like "9:00 AM – 1:00 PM • Mon–Sat"
     const parts = timeSchedule.split(' • ');
     if (parts.length === 2) {
-      const timeRange = parts[0].replace(/\s/g, '').replace('–', '-');
-      const days = parts[1];
+      const timeRange = parts[0].trim();
+      const days = parts[1].trim();
       
-      // Convert time format from "9:00AM-1:00PM" to "09:00 - 13:00"
+      // Convert time format from "9:00 AM – 1:00 PM" to "09:00 - 13:00"
       const convertTime = (time: string) => {
-        return time.replace(/(\d{1,2}):(\d{2})(AM|PM)/g, (match, hour, minute, period) => {
-          let h = parseInt(hour);
-          if (period === 'PM' && h !== 12) h += 12;
-          if (period === 'AM' && h === 12) h = 0;
-          return h.toString().padStart(2, '0') + ':' + minute;
+        return time.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/g, (match, startHour, startMinute, startPeriod, endHour, endMinute, endPeriod) => {
+          let startH = parseInt(startHour);
+          let endH = parseInt(endHour);
+          
+          if (startPeriod === 'PM' && startH !== 12) startH += 12;
+          if (startPeriod === 'AM' && startH === 12) startH = 0;
+          if (endPeriod === 'PM' && endH !== 12) endH += 12;
+          if (endPeriod === 'AM' && endH === 12) endH = 0;
+          
+          return startH.toString().padStart(2, '0') + ':' + startMinute + ' - ' + endH.toString().padStart(2, '0') + ':' + endMinute;
         });
       };
       
@@ -139,8 +144,8 @@ const Index = () => {
       if (days.includes('–')) {
         const [startDay, endDay] = days.split('–');
         const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const startIndex = dayOrder.indexOf(startDay);
-        const endIndex = dayOrder.indexOf(endDay);
+        const startIndex = dayOrder.indexOf(startDay.trim());
+        const endIndex = dayOrder.indexOf(endDay.trim());
         
         if (startIndex !== -1 && endIndex !== -1) {
           for (let i = startIndex; i <= endIndex; i++) {

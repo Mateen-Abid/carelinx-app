@@ -78,7 +78,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const getPlaceholderText = () => {
     // Use currentSearchQuery to show the actual filter status
     if (currentSearchQuery && currentSearchQuery.trim()) {
-      return `Filtering by: "${currentSearchQuery}" - Click to clear`;
+      return `Filtering by: "${currentSearchQuery}" - Type to search again`;
     }
     return `Search in ${getCategoryDisplayName()}...`;
   };
@@ -212,10 +212,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const handleInputClick = () => {
-    // Always clear search and show all subcategories when clicking
-    setSearchValue('');
-    onSearch?.(''); // Clear the search filter
-    showAllSubcategories();
+    // Only show dropdown if it's not already open
+    if (!showDropdown) {
+      showAllSubcategories();
+    }
   };
 
   const handleDropdownToggle = () => {
@@ -278,6 +278,27 @@ const SearchInput: React.FC<SearchInputProps> = ({
               placeholder={getPlaceholderText()}
               className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
             />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchValue('');
+                  onSearch?.('');
+                  setShowDropdown(false);
+                }}
+                className="flex items-center justify-center p-1 hover:bg-gray-100 rounded-full transition-colors mr-1"
+                title="Clear search"
+              >
+                <svg 
+                  className="w-4 h-4 text-gray-500" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleDropdownToggle}
