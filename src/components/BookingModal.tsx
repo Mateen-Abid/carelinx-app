@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useBooking } from '@/contexts/BookingContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -14,7 +16,7 @@ interface BookingModalProps {
   clinicName?: string;
   serviceName?: string;
   serviceSchedule?: Record<string, string>; // Add schedule data
-  clinicServices?: Array<{id: string, name: string, category: string}>; // Add clinic services
+  clinicServices?: Array<{id: string, name: string, category: string, doctorName: string}>; // Add clinic services
 }
 
 interface TimeSlot {
@@ -49,13 +51,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string} | null>(null);
+  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string} | null>(null);
   const [step, setStep] = useState<'service' | 'date' | 'confirmation'>('service');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const { addAppointment } = useBooking();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
-  const timeSlots = generateTimeSlots(doctorName);
+  const timeSlots = generateTimeSlots(selectedService?.doctorName || doctorName);
   
   // Debug logging for schedule data
   console.log('BookingModal - serviceSchedule:', serviceSchedule);
@@ -67,6 +71,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleTimeSelect = async (time: string) => {
+    // Double-check authentication before booking
+    if (!user) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    
     setSelectedTime(time);
     
     // Save the appointment
@@ -76,7 +86,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       
       try {
         await addAppointment({
-          doctorName: doctorName,
+          doctorName: selectedService.doctorName,
           specialty: selectedService.name,
           clinic: clinicName,
           date: appointmentDate,
@@ -99,7 +109,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     onClose();
   };
 
-  const handleServiceSelect = (service: {id: string, name: string, category: string}) => {
+  const handleServiceSelect = (service: {id: string, name: string, category: string, doctorName: string}) => {
+    // Check authentication before proceeding to date selection
+    if (!user) {
+      setIsAuthPromptOpen(true);
+      return;
+    }
+    
     setSelectedService(service);
     setStep('date');
   };
@@ -113,56 +129,82 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     navigate('/my-bookings');
   };
 
+  // Check authentication when modal opens
+  React.useEffect(() => {
+    if (isOpen && !user) {
+      setIsAuthPromptOpen(true);
+    }
+  }, [isOpen, user]);
+
   // Service Selection Step
   if (step === 'service') {
     return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
-          <div className="relative flex-shrink-0">
-            <DialogHeader className="p-6 pb-0">
-              <DialogTitle className="text-xl font-semibold text-center">
-                Select a Service
-              </DialogTitle>
-              <p className="text-center text-gray-600 mt-2">
-                Choose a service from {clinicName}
-              </p>
-            </DialogHeader>
-          </div>
-          
-          <div className="p-6 flex-1 overflow-hidden">
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {clinicServices.length > 0 ? (
-                clinicServices.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => handleServiceSelect(service)}
-                    className="w-full p-4 rounded-lg border border-gray-200 hover:border-[#0C2243] hover:bg-blue-50 transition-colors text-left"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{service.name}</h3>
-                        <p className="text-sm text-gray-500">{service.category}</p>
-                      </div>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No services available for this clinic.</p>
-                </div>
-              )}
+      <>
+        <Dialog open={isOpen} onOpenChange={handleClose}>
+          <DialogContent className="max-w-2xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="relative flex-shrink-0">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="text-xl font-semibold text-center">
+                  Select a Service
+                </DialogTitle>
+                <p className="text-center text-gray-600 mt-2">
+                  Choose a service from {clinicName}
+                </p>
+                {!user && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                    <p className="text-sm text-blue-800 text-center">
+                      🔒 You need to sign in to book an appointment
+                    </p>
+                  </div>
+                )}
+              </DialogHeader>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            
+            <div className="p-6 flex-1 overflow-hidden">
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {clinicServices.length > 0 ? (
+                  clinicServices.map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => handleServiceSelect(service)}
+                      className="w-full p-4 rounded-lg border border-gray-200 hover:border-[#0C2243] hover:bg-blue-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{service.name}</h3>
+                          <p className="text-sm text-gray-500">{service.category}</p>
+                        </div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No services available for this clinic.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        <AuthPromptModal
+          isOpen={isAuthPromptOpen}
+          onClose={() => {
+            setIsAuthPromptOpen(false);
+            handleClose();
+          }}
+          message="Please sign in to book an appointment"
+        />
+      </>
     );
   }
 
   if (step === 'confirmation') {
     return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl p-0 overflow-hidden">
+      <>
+        <Dialog open={isOpen} onOpenChange={handleClose}>
+          <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl p-0 overflow-hidden">
           <div className="relative">
             <Button
               variant="ghost"
@@ -234,12 +276,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+      
+      <AuthPromptModal
+        isOpen={isAuthPromptOpen}
+        onClose={() => {
+          setIsAuthPromptOpen(false);
+          handleClose();
+        }}
+        message="Please sign in to book an appointment"
+      />
+    </>
     );
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl mx-auto bg-white rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="relative flex-shrink-0">
           <DialogHeader className="p-6 pb-0">
             <div className="flex items-center justify-between">
@@ -447,5 +500,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         </div>
       </DialogContent>
     </Dialog>
+    
+    <AuthPromptModal
+      isOpen={isAuthPromptOpen}
+      onClose={() => {
+        setIsAuthPromptOpen(false);
+        handleClose();
+      }}
+      message="Please sign in to book an appointment"
+    />
+  </>
   );
 };

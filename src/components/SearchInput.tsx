@@ -126,7 +126,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
         const categoryNameMap: { [key: string]: string } = {
           'dentistry': 'Dental',
           'dermatology': 'Dermatology',
-          'facial-cleaning-services': 'Facial Cleaning Services',
           'orthodontics': 'Orthodontics',
           'dental-implants': 'Dental Implants',
           'pediatric-dentistry': 'Pediatric Dentistry',
@@ -182,7 +181,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
         const categoryNameMap: { [key: string]: string } = {
           'dentistry': 'Dental',
           'dermatology': 'Dermatology',
-          'facial-cleaning-services': 'Facial Cleaning Services',
           'orthodontics': 'Orthodontics',
           'dental-implants': 'Dental Implants',
           'pediatric-dentistry': 'Pediatric Dentistry',
@@ -237,7 +235,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
       const categoryNameMap: { [key: string]: string } = {
         'dentistry': 'Dental',
         'dermatology': 'Dermatology',
-        'facial-cleaning-services': 'Facial Cleaning Services',
         'orthodontics': 'Orthodontics',
         'dental-implants': 'Dental Implants',
         'pediatric-dentistry': 'Pediatric Dentistry',

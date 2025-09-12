@@ -36,7 +36,8 @@ const Index = () => {
             serviceIcon: defaultIcon,
             clinicIcon: clinic.logo,
             timeIcon: timeIcon,
-            serviceId: service.id // Add the actual service ID
+            serviceId: service.id, // Add the actual service ID
+            doctorName: service.doctorName // Add the doctor name
           });
         });
       });
@@ -110,13 +111,14 @@ const Index = () => {
     const clinic = clinicsData.find(c => c.name === selectedClinic);
     if (!clinic) return [];
     
-    const services: Array<{id: string, name: string, category: string}> = [];
+    const services: Array<{id: string, name: string, category: string, doctorName: string}> = [];
     Object.entries(clinic.categories).forEach(([categoryName, serviceList]) => {
       serviceList.forEach(service => {
         services.push({
           id: service.id,
           name: service.name,
-          category: categoryName
+          category: categoryName,
+          doctorName: service.doctorName
         });
       });
     });
@@ -314,6 +316,7 @@ const Index = () => {
         clinicName={selectedClinic}
         serviceSchedule={getSelectedClinicSchedule()}
         clinicServices={getSelectedClinicServices()}
+        doctorName={getSelectedClinicServices()[0]?.doctorName || 'Dr. Available Doctor'}
       />
     </div>
   );

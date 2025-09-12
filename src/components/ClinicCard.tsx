@@ -87,11 +87,13 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
             </div>
           </div>
         </div>
-        <div className="items-center border shadow-[0_1px_2px_0_rgba(10,13,18,0.05)] flex text-xs text-[#414651] font-medium text-center bg-white px-1.5 py-0.5 rounded-md border-solid border-[#D5D7DA] shrink-0">
-          <div className="text-[#414651] text-xs leading-[18px] whitespace-nowrap">
-            {type}
+        {type && (
+          <div className="items-center border shadow-[0_1px_2px_0_rgba(10,13,18,0.05)] flex text-xs text-[#414651] font-medium text-center bg-white px-1.5 py-0.5 rounded-md border-solid border-[#D5D7DA] shrink-0">
+            <div className="text-[#414651] text-xs leading-[18px] whitespace-nowrap">
+              {type}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       <div className="w-full text-xs font-normal mt-0">

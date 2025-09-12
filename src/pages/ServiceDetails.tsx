@@ -31,10 +31,6 @@ const generateServiceDatabase = () => {
   // Default doctors for different specialties
   const getDefaultDoctors = (category: string) => {
     const doctorsByCategory: { [key: string]: any[] } = {
-      'Facial Cleaning Services': [
-        { name: 'Dr. Sarah Beauty', specialization: 'MD, Dermatologist - 8 yrs experience' },
-        { name: 'Dr. Maya Skin', specialization: 'MD, Aesthetician - 6 yrs experience' }
-      ],
       'Dental': [
         { name: 'Dr. Ahmad Dental', specialization: 'DDS, General Dentist - 10 yrs experience' },
         { name: 'Dr. Fatima Teeth', specialization: 'DDS, Oral Surgeon - 12 yrs experience' }
@@ -80,15 +76,15 @@ const generateServiceDatabase = () => {
   // Generate descriptions for different services
   const getServiceDescription = (serviceName: string, category: string) => {
     const descriptions: { [key: string]: string } = {
-      // Facial Cleaning Services
-      'Laser Sessions': 'Professional laser treatments for skin rejuvenation and various dermatological conditions. Advanced technology with experienced practitioners.',
-      'Plasma Sessions': 'Cutting-edge plasma therapy for skin tightening and rejuvenation. Non-invasive treatment with excellent results.',
-      'Scar Treatments': 'Comprehensive scar treatment options to improve skin texture and appearance. Personalized treatment plans for optimal results.',
-      'Fat Reduction': 'Non-surgical fat reduction treatments using the latest technology. Safe and effective body contouring solutions.',
-      'Cosmetic Injections': 'Professional cosmetic injection services including fillers and botox. Enhance your natural beauty with expert care.',
-      'Dark Circles Lightening': 'Specialized treatments to reduce dark circles and brighten the under-eye area. Restore youthful appearance.',
-      'Fractional Laser Sessions': 'Advanced fractional laser treatments for skin resurfacing and rejuvenation. Minimal downtime with maximum results.',
-      'Chemical Peeling Sessions': 'Professional chemical peels to improve skin texture, tone, and appearance. Customized to your skin type.',
+      // Dermatology Services
+      'Acne Treatment': 'Comprehensive acne treatment using the latest dermatological techniques. Personalized treatment plans for clear, healthy skin.',
+      'Skin Consultation': 'Professional skin assessment and consultation with experienced dermatologists. Get expert advice for your skin concerns.',
+      'Mole Removal': 'Safe and effective mole removal procedures performed by qualified dermatologists. Minimal scarring with excellent results.',
+      'Skin Cancer Screening': 'Thorough skin cancer screening and early detection services. Regular check-ups for skin health and cancer prevention.',
+      'Psoriasis Treatment': 'Specialized psoriasis treatment options to manage symptoms and improve quality of life. Advanced treatment protocols.',
+      'Eczema Treatment': 'Comprehensive eczema management and treatment plans. Relief from symptoms with personalized care approaches.',
+      'Dermatitis Treatment': 'Effective dermatitis treatment using proven dermatological methods. Relief from inflammation and irritation.',
+      'Skin Biopsy': 'Professional skin biopsy procedures for accurate diagnosis. Performed by experienced dermatologists with precision.',
       
       // Dental Services
       'Teeth Whitening': 'Professional teeth whitening services to brighten your smile. Safe and effective whitening treatments.',
@@ -179,7 +175,7 @@ const ServiceDetails = () => {
     },
     doctors: [
       {
-        name: 'Dr. Available Doctor',
+        name: service.doctorName || 'Dr. Available Doctor',
         specialization: 'MD, Specialist - 8 yrs experience'
       }
     ]

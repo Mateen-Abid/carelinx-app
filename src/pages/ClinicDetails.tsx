@@ -44,7 +44,7 @@ const ClinicDetails = () => {
     id: 'unknown',
     name: 'Medical Center',
     address: 'Location not specified',
-    type: 'Medical Clinic',
+    type: '',
     logo: '',
     timing: '9:00 AM – 6:00 PM',
     daysOpen: 'Mon – Sat',
