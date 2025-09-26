@@ -41,7 +41,7 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
             </h2>
             
             <p className="text-gray-600 mb-8">
-              Please sign in or create an account to book an appointment.
+              Please sign in or create an account to continue.
             </p>
             
             <div className="space-y-3">

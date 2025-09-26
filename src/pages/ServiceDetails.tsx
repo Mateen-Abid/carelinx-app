@@ -8,10 +8,11 @@ import { AuthPromptModal } from '@/components/AuthPromptModal';
 import ServiceCalendar from '@/components/ServiceCalendar';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 import { getClinicByServiceId, getServiceById } from '@/data/clinicsData';
+import Image5 from '../assets/image 5.svg';
 
 // Generate service database dynamically from clinic data
 const generateServiceDatabase = () => {
@@ -140,6 +141,8 @@ const ServiceDetails = () => {
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDisplayDate, setSelectedDisplayDate] = useState(new Date());
 
   // Get service and clinic data
   const service = getServiceById(serviceId || '');
@@ -175,8 +178,14 @@ const ServiceDetails = () => {
     },
     doctors: [
       {
-        name: service.doctorName || 'Dr. Available Doctor',
-        specialization: 'MD, Specialist - 8 yrs experience'
+        name: service.doctorName || 'Dr. Ali Ashar',
+        specialization: 'MD, Specialist - 8 yrs experience',
+        timeSlots: ['10:00 AM – 2:00 PM']
+      },
+      {
+        name: 'Dr. Maya Patel',
+        specialization: 'MD, Specialist - 6 yrs experience',
+        timeSlots: ['5:00 PM – 7:00 PM']
       }
     ]
   };
@@ -271,11 +280,10 @@ const ServiceDetails = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Blue Header Section with Clinic and Service Info */}
+      {/* Blue Header Section with Clinic Info Only */}
       <section className="bg-[#0C2243] text-white py-8 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto">
-          {/* Clinic Info */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <img
                 src={serviceData.clinicLogo}
@@ -293,123 +301,164 @@ const ServiceDetails = () => {
               </div>
             </div>
           </div>
-
-          {/* Service Info */}
-          <div className="mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{serviceData.name}</h1>
-            <div className="inline-block bg-white/20 px-3 py-1 rounded-full text-sm font-medium mb-4">
-              {serviceData.specialty}
-            </div>
-            <p className="text-gray-200 leading-relaxed max-w-2xl">
-              {serviceData.description}
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* Service Timing Section */}
-      <section className="py-8 px-4 sm:px-8 bg-white">
+      {/* Service Information Section - White Background */}
+      <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Service Timing</h2>
-          
-          {/* Calendar Component */}
-          <div className="bg-white rounded-lg border p-6 max-w-md mx-auto">
-            {/* Calendar Header */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <ChevronLeft size={18} className="text-gray-600" />
-              </button>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{serviceData.name}</h1>
               
-              <h3 className="text-base font-medium text-gray-900">
-                {format(currentDate, 'MMMM yyyy')}
-              </h3>
-              
-              <button
-                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <ChevronRight size={18} className="text-gray-600" />
-              </button>
+              <div className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                {serviceData.specialty}
+              </div>
+              <p className="text-gray-600 leading-relaxed max-w-2xl">
+                {serviceData.description}
+              </p>
             </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 mb-4">
-              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-                <div key={day} className="text-center py-3">
-                  <span className="text-xs font-medium text-gray-500">{day}</span>
+            
+            {/* Service Category Logo - positioned on the most right side */}
+            <div className="ml-6 flex-shrink-0">
+              {serviceData.specialty.toLowerCase().includes('dermatology') ? (
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#00FFA2] rounded flex items-center justify-center">
+                  <img
+                    src={Image5}
+                    alt="Dermatology"
+                    className="w-4 h-4 sm:w-5 sm:h-5 object-contain filter brightness-0 invert"
+                  />
                 </div>
-              ))}
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
-              {(() => {
-                const monthStart = startOfMonth(currentDate);
-                const monthEnd = endOfMonth(currentDate);
-                const allDaysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-                const startDay = monthStart.getDay();
-                const paddingDays = startDay === 0 ? 6 : startDay - 1;
-                const paddedDays = [];
-                
-                for (let i = paddingDays; i > 0; i--) {
-                  const paddingDate = new Date(monthStart);
-                  paddingDate.setDate(paddingDate.getDate() - i);
-                  paddedDays.push(paddingDate);
-                }
-                
-                const calendarDays = [...paddedDays, ...allDaysInMonth];
-                
-                return calendarDays.map((date, index) => {
-                  const isCurrentMonth = isSameMonth(date, currentDate);
-                  const dayName = format(date, 'EEE');
-                  const schedule = serviceData.schedule[dayName];
-                  const isAvailable = schedule && schedule !== 'Closed' && isAfter(date, startOfDay(new Date()));
-
-                  return (
-                    <div key={index} className="aspect-square p-1">
-                      <button
-                        onClick={() => isAvailable && isCurrentMonth && handleDateSelect(date)}
-                        disabled={!isAvailable || !isCurrentMonth}
-                        className={`
-                          w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
-                          ${!isCurrentMonth 
-                            ? 'text-gray-300 cursor-not-allowed' 
-                            : isAvailable
-                              ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
-                              : 'text-gray-400 cursor-not-allowed'
-                          }
-                        `}
-                      >
-                        {format(date, 'd')}
-                      </button>
-                    </div>
-                  );
-                });
-              })()}
+              ) : serviceData.specialty.toLowerCase().includes('dental') || 
+                  serviceData.specialty.toLowerCase().includes('orthodontics') ||
+                  serviceData.specialty.toLowerCase().includes('implant') ||
+                  serviceData.specialty.toLowerCase().includes('pediatric') ||
+                  serviceData.specialty.toLowerCase().includes('prosthodontics') ||
+                  serviceData.specialty.toLowerCase().includes('restorative') ||
+                  serviceData.specialty.toLowerCase().includes('cosmetic') ||
+                  serviceData.specialty.toLowerCase().includes('endodontics') ||
+                  serviceData.specialty.toLowerCase().includes('periodontal') ||
+                  serviceData.specialty.toLowerCase().includes('maxillofacial') ||
+                  serviceData.specialty.toLowerCase().includes('general') ? (
+                <img
+                  src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png"
+                  alt="Dental"
+                  className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
+                />
+              ) : (
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded flex items-center justify-center">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Our Doctors Section */}
-      <section className="py-8 px-4 sm:px-8 bg-white">
+      {/* Date Selection Section */}
+      <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Our Doctors</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Please choose a date</h2>
+          
+          {/* Date Navigator */}
+          <div className="flex items-center justify-between mb-6">
+            {/* Left Arrow - Functional when not at today */}
+            <button
+              onClick={() => setSelectedDisplayDate(subDays(selectedDisplayDate, 1))}
+              disabled={isToday(selectedDisplayDate)}
+              className={`p-2 rounded transition-colors ${
+                isToday(selectedDisplayDate)
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            {/* Current Date Display */}
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="flex flex-col items-center gap-1 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <span className="text-lg font-bold text-gray-900">
+                {format(selectedDisplayDate, 'd MMM')}
+              </span>
+              {isToday(selectedDisplayDate) && (
+                <span className="text-sm text-gray-500">Today</span>
+              )}
+            </button>
+            
+            {/* Right Arrow - Next Day */}
+            <button
+              onClick={() => setSelectedDisplayDate(addDays(selectedDisplayDate, 1))}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {/* Calendar Modal */}
+          {showCalendar && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md mx-auto m-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Select Date</h3>
+                  <button
+                    onClick={() => setShowCalendar(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <ServiceCalendar
+                  selectedDate={selectedDisplayDate}
+                  onDateSelect={(date) => {
+                    setSelectedDisplayDate(date);
+                    setShowCalendar(false);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Doctors Section */}
+      <section className="py-6 px-4 sm:px-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-4">
             {serviceData.doctors.map((doctor, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+              <div
+                key={index}
+                className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => {
+                  setSelectedDoctor(doctor.name);
+                  setSelectedDate(selectedDisplayDate);
+                  setIsTimeSlotModalOpen(true);
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Doctor Avatar */}
+                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <div>
+                  
+                  {/* Doctor Info */}
+                  <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 text-lg">{doctor.name}</h3>
-                    <p className="text-sm text-gray-600">{doctor.specialization}</p>
+                    
+                    {/* Time Slot Badge */}
+                    <div className="mt-2">
+                      <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                        {doctor.timeSlots[0]}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

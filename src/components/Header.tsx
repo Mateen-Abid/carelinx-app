@@ -1,8 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { ArrowLeft } from 'lucide-react';
 
-const Header = () => {
+interface HeaderProps {
+  viewMode?: 'services' | 'clinics';
+  onViewModeChange?: (mode: 'services' | 'clinics') => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -24,11 +30,48 @@ const Header = () => {
       <div className="hidden sm:block">
         <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] flex min-h-[72px] w-full items-center text-white justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            {/* Back button for clinics view on home page */}
+            {location.pathname === '/' && viewMode === 'clinics' && onViewModeChange && (
+              <button
+                onClick={() => onViewModeChange('services')}
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
+                aria-label="Go back to services"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </button>
+            )}
+
+            {/* Back button for clinic details page */}
+            {location.pathname.startsWith('/clinic/') && (
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
+                aria-label="Go back to home"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </button>
+            )}
+
+            {/* Back button for service details page */}
+            {location.pathname.startsWith('/service/') && (
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
+                aria-label="Go back to previous page"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </button>
+            )}
+            
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-base sm:text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer"
+              className={`flex items-center gap-2 text-base sm:text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer ${
+                (location.pathname === '/' && viewMode === 'clinics') || 
+                location.pathname.startsWith('/clinic/') || 
+                location.pathname.startsWith('/service/') ? 'ml-0' : ''
+              }`}
             >
-              <div className="w-24 h-8 sm:w-28 sm:h-10 flex items-center justify-center">
+              <div className="w-40 h-12 sm:w-48 sm:h-16 flex items-center justify-center">
                 <svg width="100%" height="100%" viewBox="0 0 431 115" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="60.315" cy="95.1645" r="15.3474" transform="rotate(-15.4716 60.315 95.1645)" fill="#00FFA2"/>
                   <path d="M50.6471 14.1592C58.3393 6.33935 70.9144 6.23586 78.7343 13.9281C86.5542 21.6203 86.6577 34.1954 78.9655 42.0153C73.8288 47.2371 66.5154 49.0173 59.8942 47.3335C56.1372 46.378 51.854 46.6327 49.1354 49.3963C46.4169 52.16 46.2328 56.4468 47.25 60.1876C49.0426 66.7801 47.3831 74.1219 42.2464 79.3438C34.5542 87.1637 21.9791 87.2672 14.1592 79.575C6.33929 71.8828 6.23579 59.3077 13.928 51.4878C18.8792 46.4544 25.8529 44.6186 32.2797 46.0005C36.1682 46.8366 40.5399 46.5204 43.3292 43.6849C46.1184 40.8493 46.3626 36.473 45.4626 32.5987C43.9752 26.1956 45.696 19.1926 50.6471 14.1592Z" fill="#00FFA2"/>
@@ -90,8 +133,12 @@ const Header = () => {
       {/* Mobile Layout */}
       <div className="block sm:hidden">
         <div className="shadow-[0px_4px_40px_rgba(255,255,255,0.07)] w-full text-white px-4 py-4">
-          {/* Back arrow for non-home pages */}
-          {location.pathname !== '/' && (
+          {/* Back arrow for non-home pages, excluding booking, profile, clinic, and service pages */}
+          {location.pathname !== '/' && 
+           location.pathname !== '/my-bookings' && 
+           location.pathname !== '/profile' && 
+           !location.pathname.startsWith('/clinic/') && 
+           !location.pathname.startsWith('/service/') && (
             <div className="absolute left-4 top-4">
               <button 
                 onClick={() => {
@@ -110,6 +157,45 @@ const Header = () => {
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Back button for clinics view on home page */}
+          {location.pathname === '/' && viewMode === 'clinics' && onViewModeChange && (
+            <div className="absolute left-4 top-5">
+              <button
+                onClick={() => onViewModeChange('services')}
+                className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
+                aria-label="Go back to services"
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
+
+          {/* Back button for clinic details page */}
+          {location.pathname.startsWith('/clinic/') && (
+            <div className="absolute left-4 top-5">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
+                aria-label="Go back to home"
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
+
+          {/* Back button for service details page */}
+          {location.pathname.startsWith('/service/') && (
+            <div className="absolute left-4 top-5">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
+                aria-label="Go back to previous page"
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             </div>
           )}
@@ -138,13 +224,17 @@ const Header = () => {
             </div>
           )}
           
-          {/* Centered Logo and Greeting */}
-          <div className="flex flex-col justify-center items-center pt-2">
+          {/* Left-aligned Logo and Greeting */}
+          <div className={`flex flex-col justify-start items-start pt-2 ${
+            (location.pathname === '/' && viewMode === 'clinics') || 
+            location.pathname.startsWith('/clinic/') || 
+            location.pathname.startsWith('/service/') ? 'pl-12' : ''
+          }`}>
             <button 
               onClick={() => navigate('/')}
               className="flex items-center gap-2 text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer mb-2"
             >
-              <div className="w-20 h-6 flex items-center justify-center">
+              <div className="w-36 h-10 flex items-center justify-center">
                 <svg width="100%" height="100%" viewBox="0 0 431 115" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="60.315" cy="95.1645" r="15.3474" transform="rotate(-15.4716 60.315 95.1645)" fill="#00FFA2"/>
                   <path d="M50.6471 14.1592C58.3393 6.33935 70.9144 6.23586 78.7343 13.9281C86.5542 21.6203 86.6577 34.1954 78.9655 42.0153C73.8288 47.2371 66.5154 49.0173 59.8942 47.3335C56.1372 46.378 51.854 46.6327 49.1354 49.3963C46.4169 52.16 46.2328 56.4468 47.25 60.1876C49.0426 66.7801 47.3831 74.1219 42.2464 79.3438C34.5542 87.1637 21.9791 87.2672 14.1592 79.575C6.33929 71.8828 6.23579 59.3077 13.928 51.4878C18.8792 46.4544 25.8529 44.6186 32.2797 46.0005C36.1682 46.8366 40.5399 46.5204 43.3292 43.6849C46.1184 40.8493 46.3626 36.473 45.4626 32.5987C43.9752 26.1956 45.696 19.1926 50.6471 14.1592Z" fill="#00FFA2"/>
@@ -153,13 +243,6 @@ const Header = () => {
               </div>
             </button>
             
-            {/* Greeting Text */}
-            {user && (
-              <div className="text-center">
-                <div className="text-sm text-white">Hi, {user.email?.split('@')[0]}</div>
-                <div className="text-sm text-gray-300">Good morning</div>
-              </div>
-            )}
           </div>
         </div>
       </div>

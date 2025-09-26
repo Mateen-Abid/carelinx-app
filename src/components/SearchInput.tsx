@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getAllServices, getAllCategories } from '@/data/clinicsData';
+import { getAllServices, getAllCategories, clinicsData } from '@/data/clinicsData';
 
 interface SearchOption {
   id: string;
@@ -17,12 +17,22 @@ interface SearchInputProps {
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
-  placeholder = "Search by service, clinic, or doctor's name",
+  placeholder,
   onSearch,
   onOptionSelect,
   selectedCategory = 'all',
   currentSearchQuery = ''
 }) => {
+  // Dynamic placeholder based on selected category
+  const getPlaceholder = () => {
+    if (selectedCategory === 'dermatology') {
+      return "Search dermatology services...";
+    } else if (selectedCategory === 'dentistry') {
+      return "Search dental services...";
+    } else {
+      return "Search by service, clinic, or doctor's name";
+    }
+  };
   const [searchValue, setSearchValue] = useState('');
   const [filteredOptions, setFilteredOptions] = useState<SearchOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -32,29 +42,42 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const searchOptions: SearchOption[] = useMemo(() => {
     const options: SearchOption[] = [];
     
-    // Add main categories
-    getAllCategories().forEach(category => {
-      const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '');
-      options.push({
-        id: categoryId,
-        name: category,
-        category: 'Medical Specialty',
-        type: 'category'
+    // Check if a main category is selected
+    const isMainCategorySelected = selectedCategory === 'dermatology' || selectedCategory === 'dentistry';
+    
+    if (isMainCategorySelected) {
+      // Show only subcategories for the selected main category
+      const categoryName = selectedCategory === 'dermatology' ? 'Dermatology' : 'Dental';
+      
+      clinicsData.forEach(clinic => {
+        if (clinic.categories[categoryName]) {
+          clinic.categories[categoryName].forEach(service => {
+            if (!options.find(opt => opt.id === service.id)) {
+              options.push({
+                id: service.id,
+                name: service.name,
+                category: service.category,
+                type: 'subcategory'
+              });
+            }
+          });
+        }
       });
-    });
-
-    // Add all services as subcategories
-    getAllServices().forEach(service => {
-      options.push({
-        id: service.id,
-        name: service.name,
-        category: service.category,
-        type: 'subcategory'
+    } else {
+      // Show main categories when no category is selected
+      getAllCategories().forEach(category => {
+        const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '');
+        options.push({
+          id: categoryId,
+          name: category,
+          category: 'Medical Specialty',
+          type: 'category'
+        });
       });
-    });
+    }
 
     return options;
-  }, []);
+  }, [selectedCategory]);
 
   const getCategorySubcategories = () => {
     if (selectedCategory === 'all') {
@@ -112,45 +135,19 @@ const SearchInput: React.FC<SearchInputProps> = ({
     setSearchValue(value);
     onSearch?.(value);
 
+    // Always show dropdown when typing or when input is focused
     if (value.trim().length > 0) {
-      // Filter subcategories based on selected category and search term
-      let filtered;
-      if (selectedCategory === 'all') {
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          (option.name.toLowerCase().includes(value.toLowerCase()) ||
-           option.category.toLowerCase().includes(value.toLowerCase()))
-        );
-      } else {
-        // Map category ID to category name for proper matching
-        const categoryNameMap: { [key: string]: string } = {
-          'dentistry': 'Dental',
-          'dermatology': 'Dermatology',
-          'orthodontics': 'Orthodontics',
-          'dental-implants': 'Dental Implants',
-          'pediatric-dentistry': 'Pediatric Dentistry',
-          'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
-          'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
-          'root-canal-endodontics': 'Root Canal & Endodontics',
-          'periodontal-treatment': 'Periodontal Treatment',
-          'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
-          'general-dentistry': 'General Dentistry'
-        };
-        
-        const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
-        
-        // Only show subcategories from the selected category
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          option.category.toLowerCase() === categoryName.toLowerCase() &&
-          option.name.toLowerCase().includes(value.toLowerCase())
-        );
-      }
+      // Filter options based on search term
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(value.toLowerCase()) ||
+        option.category.toLowerCase().includes(value.toLowerCase())
+      );
       setFilteredOptions(filtered.slice(0, 12));
-      setShowDropdown(true);
     } else {
-      setShowDropdown(false);
+      // Show all available options when no search term
+      setFilteredOptions(searchOptions.slice(0, 12));
     }
+    setShowDropdown(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -167,46 +164,19 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const handleInputFocus = () => {
+    // Show all available options when focused
     if (searchValue.trim().length > 0) {
-      // Show search results if user has typed something
-      let filtered;
-      if (selectedCategory === 'all') {
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          (option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-           option.category.toLowerCase().includes(searchValue.toLowerCase()))
-        );
-      } else {
-        // Map category ID to category name for proper matching
-        const categoryNameMap: { [key: string]: string } = {
-          'dentistry': 'Dental',
-          'dermatology': 'Dermatology',
-          'orthodontics': 'Orthodontics',
-          'dental-implants': 'Dental Implants',
-          'pediatric-dentistry': 'Pediatric Dentistry',
-          'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
-          'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
-          'root-canal-endodontics': 'Root Canal & Endodontics',
-          'periodontal-treatment': 'Periodontal Treatment',
-          'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
-          'general-dentistry': 'General Dentistry'
-        };
-        
-        const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
-        
-        // Only show subcategories from the selected category
-        filtered = searchOptions.filter(option =>
-          option.type === 'subcategory' &&
-          option.category.toLowerCase() === categoryName.toLowerCase() &&
-          option.name.toLowerCase().includes(searchValue.toLowerCase())
-        );
-      }
+      // Filter based on current search value
+      const filtered = searchOptions.filter(option =>
+        option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        option.category.toLowerCase().includes(searchValue.toLowerCase())
+      );
       setFilteredOptions(filtered.slice(0, 12));
-      setShowDropdown(true);
     } else {
-      // Show subcategories for selected category when focusing on empty search
-      showAllSubcategories();
+      // Show all available options when no search term
+      setFilteredOptions(searchOptions.slice(0, 12));
     }
+    setShowDropdown(true);
   };
 
   const handleInputClick = () => {
@@ -226,34 +196,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const showAllSubcategories = () => {
     setShowDropdown(true);
-    // Show subcategories based on selected category
-    let subcategories;
-    if (selectedCategory === 'all') {
-      subcategories = searchOptions.filter(option => option.type === 'subcategory');
-    } else {
-      // Map category ID to category name for proper matching
-      const categoryNameMap: { [key: string]: string } = {
-        'dentistry': 'Dental',
-        'dermatology': 'Dermatology',
-        'orthodontics': 'Orthodontics',
-        'dental-implants': 'Dental Implants',
-        'pediatric-dentistry': 'Pediatric Dentistry',
-        'fixed-removable-prosthodontics': 'Fixed & Removable Prosthodontics',
-        'restorative-cosmetic-dentistry': 'Restorative & Cosmetic Dentistry',
-        'root-canal-endodontics': 'Root Canal & Endodontics',
-        'periodontal-treatment': 'Periodontal Treatment',
-        'oral-maxillofacial-surgery': 'Oral & Maxillofacial Surgery',
-        'general-dentistry': 'General Dentistry'
-      };
-      
-      const categoryName = categoryNameMap[selectedCategory] || selectedCategory;
-      
-      subcategories = searchOptions.filter(option => 
-        option.type === 'subcategory' && 
-        option.category.toLowerCase() === categoryName.toLowerCase()
-      );
-    }
-    setFilteredOptions(subcategories);
+    // Show all available options based on selected category
+    setFilteredOptions(searchOptions.slice(0, 12));
   };
 
   return (
@@ -272,7 +216,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onClick={handleInputClick}
-              placeholder={getPlaceholderText()}
+              placeholder={placeholder || getPlaceholder()}
               className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
             />
             {searchValue && (

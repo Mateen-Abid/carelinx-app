@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stethoscope, Building2 } from 'lucide-react';
+import { Stethoscope, Building2, ArrowLeft } from 'lucide-react';
 import ServicesFilter from './ServicesFilter';
 
 interface HeroSectionProps {
@@ -82,7 +82,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
         </div>
         
         {/* Main Content */}
-        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-center">
+        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-start">
           {/* Toggle between Services and Clinics */}
           <div className="flex justify-center w-full">
             <div className="flex bg-[rgba(0,255,162,1)] rounded-full p-1 border border-gray-200 w-full sm:w-auto">
@@ -95,7 +95,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
                 }`}
                >
                 <Stethoscope className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Services</span>
+                <span>Specialties</span>
               </button>
               <button
                 onClick={() => onViewModeChange('clinics')}
@@ -110,9 +110,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
               </button>
             </div>
           </div>
-          <p className="text-neutral-300 text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-center px-4">
-            Quickly find doctors, clinics, or services you need.
-          </p>
+          {viewMode === 'services' && (
+            <p className="text-neutral-300 text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
+              <span className="text-[#00FFA2] font-medium">Step 1</span> Please choose a specialty
+            </p>
+          )}
           {viewMode === 'services' && (
             <div className="mt-6 w-full px-4 sm:px-0 relative overflow-visible">
               <ServicesFilter 

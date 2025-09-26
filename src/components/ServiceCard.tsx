@@ -59,12 +59,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           <div className="text-black text-sm font-medium mb-1">
             {clinicName}
           </div>
-          {/* Service name tag */}
-          <div className="bg-[#0C2243] text-white px-2 py-0.5 rounded-full text-xs font-medium mb-1 inline-block">
-            {serviceName}
+          {/* Clinic address instead of service name tag */}
+          <div className="text-gray-600 text-xs mb-1">
+            {address}
           </div>
-          <div className="text-gray-600 text-xs">
-            {timeSchedule}
+          {/* Timing in circular bar */}
+          <div className="flex items-center gap-1">
+            <div className="bg-white text-gray-700 px-1.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 border border-gray-200">
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+              {timeSchedule.split(' • ')[0]}
+            </div>
           </div>
         </div>
       </div>
@@ -82,12 +89,17 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             <div className="text-black text-sm font-medium truncate">
               {clinicName}
             </div>
-            {/* Service name tag */}
-            <div className="bg-[#0C2243] text-white px-2 py-0.5 rounded-full text-xs font-medium mb-1 inline-block w-fit">
-              {serviceName}
-            </div>
-            <div className="text-gray-600 text-xs truncate">
+            {/* Clinic address instead of service name tag */}
+            <div className="text-gray-600 text-xs truncate mb-1">
               {address}
+            </div>
+            {/* Timing in circular bar */}
+            <div className="bg-white text-gray-700 px-1.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 w-fit border border-gray-200">
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+              {timeSchedule.split(' • ')[0]}
             </div>
           </div>
         </div>
@@ -104,39 +116,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         </div>
         
         {/* Service info section */}
-        <div className="flex flex-col items-center text-center mb-3">
-          <div className="text-black text-lg font-medium mb-2">
-            {serviceName}
-          </div>
-          <div className="bg-neutral-50 border border-[#E9EAEB] px-3 py-1 rounded-full">
-            <div className="text-xs text-black font-medium">
-              {specialty}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3 relative z-10">
+          <div className="flex flex-col items-center text-center">
+            <div className="text-black text-lg font-medium mb-2">
+              {serviceName}
+            </div>
+            <div className="bg-neutral-50 border border-[#E9EAEB] px-3 py-1 rounded-full">
+              <div className="text-xs text-black font-medium">
+                {specialty}
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Spacer to push timing to bottom - desktop only */}
+      {/* Spacer to push content to bottom - desktop only */}
       <div className="flex-1 hidden sm:block"></div>
-      
-      {/* Timing section - desktop only */}
-      <div className="w-full text-xs hidden sm:block">
-        <div className="text-[rgba(98,98,98,1)] font-normal">
-          Time
-        </div>
-        <div className="w-full text-black font-medium text-center mt-1.5">
-          <div className="items-center border flex gap-0.5 bg-neutral-50 pl-1.5 pr-2 py-0.5 rounded-full border-solid border-[#E9EAEB]">
-            <img
-              src={timeIcon}
-              className="aspect-[1] object-contain w-3 self-stretch shrink-0 my-auto"
-              alt="Time icon"
-            />
-            <div className="text-xs leading-[18px] self-stretch my-auto">
-              {timeSchedule}
-            </div>
-          </div>
-        </div>
-      </div>
     </article>
   );
 };

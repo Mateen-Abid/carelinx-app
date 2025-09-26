@@ -7,8 +7,10 @@ import { useBooking, Appointment } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { BookingModal } from '@/components/BookingModal';
 import { CancelBookingModal } from '@/components/CancelBookingModal';
-import { MoreVertical, Calendar, X, Clock, MapPin, User } from 'lucide-react';
+import { MoreVertical, Calendar, X, Clock, MapPin, User, RotateCcw, History } from 'lucide-react';
 import { format } from 'date-fns';
+import EnablePushNotifications from '@/assets/Enable Push Notifications@3x.svg';
+import { AuthPromptModal } from '@/components/AuthPromptModal';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
@@ -18,21 +20,35 @@ const MyBookings = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'pending' | 'history'>('pending');
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   
   const upcomingAppointments = getUpcomingAppointments();
   const pendingAppointments = getPendingAppointments();
   const pastBookings = getPastAppointments();
   
-  // Redirect to auth if not logged in
+  // Show auth prompt if not logged in
   useEffect(() => {
     if (!user) {
-      navigate('/auth?message=Please sign in to view your bookings');
+      setShowAuthPrompt(true);
     }
-  }, [user, navigate]);
+  }, [user]);
   
-  // Don't render anything if user is not logged in
+  // Show auth prompt modal if not logged in
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+        <Header />
+        <AuthPromptModal
+          isOpen={showAuthPrompt}
+          onClose={() => {
+            setShowAuthPrompt(false);
+            navigate('/');
+          }}
+          message="Please sign in to view your bookings"
+        />
+      </div>
+    );
   }
   
   console.log('All appointments:', appointments);
@@ -65,36 +81,100 @@ const MyBookings = () => {
     setIsBookingModalOpen(true);
   };
 
+  // Get filtered appointments based on selected filter
+  const getFilteredAppointments = () => {
+    switch (selectedFilter) {
+      case 'upcoming':
+        return upcomingAppointments;
+      case 'pending':
+        return pendingAppointments;
+      case 'history':
+        return pastBookings.filter(appointment => appointment.status !== 'cancelled');
+      default:
+        return [];
+    }
+  };
+
+  const filteredAppointments = getFilteredAppointments();
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
       <Header />
       
-      {/* Upcoming Appointments Section */}
+      {/* Blue Header Section with Filter Buttons */}
+      <section className="bg-[#0C2243] text-white py-6 px-4 sm:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">Booking</h1>
+          
+          {/* Filter Buttons - Circular Panel */}
+          <div className="flex justify-center">
+            <div className="flex bg-[#00FFA2] rounded-full p-1 border border-gray-200 w-full sm:w-auto">
+              <button
+                onClick={() => setSelectedFilter('upcoming')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
+                  selectedFilter === 'upcoming'
+                    ? 'bg-[#0C2243] text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Upcoming</span>
+              </button>
+              
+              <button
+                onClick={() => setSelectedFilter('pending')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
+                  selectedFilter === 'pending'
+                    ? 'bg-[#0C2243] text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Pending</span>
+              </button>
+              
+              <button
+                onClick={() => setSelectedFilter('history')}
+                className={`flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-full text-sm sm:text-base font-medium transition-colors flex-1 sm:flex-none ${
+                  selectedFilter === 'history'
+                    ? 'bg-[#0C2243] text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>History</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Appointments List */}
       <section className="py-6 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Upcoming Appointments</h2>
-          <p className="text-sm text-gray-600 mb-6">Stay prepared with your confirmed appointments. Tap for details or reschedule if needed.</p>
-          
-          {upcomingAppointments.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingAppointments.map((appointment) => (
+          {filteredAppointments.length > 0 ? (
+            <div className="space-y-4">
+              {filteredAppointments.map((appointment) => (
                 <div key={appointment.id} className="bg-white rounded-lg p-4 shadow-sm border">
-                  <div className="flex items-start gap-3">
-                    {/* Clinic Icon */}
-                    <div className="w-10 h-10 bg-[#00FFA2] rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                      </svg>
+                  <div className="flex items-start gap-4">
+                    {/* Clinic Logo */}
+                    <div className="w-12 h-12 bg-[#00FFA2] rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <div className="w-4 h-4 bg-[#00FFA2] rounded"></div>
+                      </div>
                     </div>
                     
                     {/* Appointment Details */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900">{appointment.clinic}</h3>
-                      <p className="text-lg font-semibold text-gray-900">{appointment.specialty}</p>
-                      <p className="text-sm text-gray-600">{appointment.doctorName}</p>
+                      <h3 className="font-semibold text-gray-900 text-lg">{appointment.clinic}</h3>
+                      <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                        <MapPin className="w-4 h-4" />
+                        <span>1st Floor, Icon Mall, 2001, 12th Main Rd, Indiranagar...</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-3">{appointment.specialty}</p>
                       
                       {/* Time and Date */}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           <span>{appointment.time}</span>
@@ -106,139 +186,60 @@ const MyBookings = () => {
                       </div>
                     </div>
                     
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleReschedule(appointment)}
-                        className="text-xs"
-                      >
-                        Reschedule
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleCancelAppointment(appointment)}
-                        className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>No upcoming appointments scheduled.</p>
-              <Button className="mt-4" onClick={() => navigate('/')}>Book New Appointment</Button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Booking Pending Section */}
-      <section className="py-6 px-4 sm:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Booking Pending</h2>
-          <p className="text-sm text-gray-600 mb-6">Your booking request has been received. Once confirmed, we'll notify you here.</p>
-          
-          {pendingAppointments.length > 0 ? (
-            <div className="space-y-3">
-              {pendingAppointments.map((appointment) => (
-                <div key={appointment.id} className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                  <div className="flex items-start gap-3">
-                    {/* Clinic Icon */}
-                    <div className="w-10 h-10 bg-[#00FFA2] rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-[#0C2243]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                    
-                    {/* Appointment Details */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900">{appointment.clinic}</h3>
-                      <p className="text-lg font-semibold text-gray-900">{appointment.specialty}</p>
-                      <p className="text-sm text-gray-600">{appointment.doctorName}</p>
-                      
-                      {/* Time and Date */}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{appointment.time}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{format(new Date(appointment.date), 'd MMM, yyyy')}</span>
-                        </div>
+                    {/* Status Badge or Actions */}
+                    {selectedFilter === 'pending' && (
+                      <div className="bg-[#0C2243] text-white px-3 py-1 rounded-full text-xs font-medium">
+                        Pending
                       </div>
-                    </div>
+                    )}
                     
-                    {/* Pending Status */}
-                    <div className="bg-[#0C2243] text-white px-3 py-1 rounded-full text-xs font-medium">
-                      Pending
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>No pending appointments.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Past Bookings Section */}
-      <section className="py-6 px-4 sm:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Past Bookings</h2>
-          <p className="text-sm text-gray-600 mb-6">Your completed appointment history for reference and records.</p>
-          
-          {pastBookings.filter(appointment => appointment.status !== 'cancelled').length > 0 ? (
-            <div className="space-y-3">
-              {pastBookings.filter(appointment => appointment.status !== 'cancelled').map((appointment) => (
-                <div key={appointment.id} className="bg-white rounded-lg p-4 shadow-sm border opacity-75">
-                  <div className="flex items-start gap-3">
-                    {/* Clinic Icon */}
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                    
-                    {/* Appointment Details */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900">{appointment.clinic}</h3>
-                      <p className="text-lg font-semibold text-gray-900">{appointment.specialty}</p>
-                      <p className="text-sm text-gray-600">{appointment.doctorName}</p>
-                      
-                      {/* Time and Date */}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{appointment.time}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{format(new Date(appointment.date), 'd MMM, yyyy')}</span>
-                        </div>
+                    {selectedFilter === 'upcoming' && (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleReschedule(appointment)}
+                          className="text-xs"
+                        >
+                          Reschedule
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancelAppointment(appointment)}
+                          className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                        >
+                          Cancel
+                        </Button>
                       </div>
-                    </div>
+                    )}
                     
-                    {/* Status Badge */}
-                    <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
-                      Completed
-                    </div>
+                    {selectedFilter === 'history' && (
+                      <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
+                        Completed
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>No past appointments.</p>
+            <div className="text-center py-12">
+              <div className="w-32 h-32 mx-auto mb-6">
+                <img
+                  src={EnablePushNotifications}
+                  alt="No appointments"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <p className="text-gray-500 text-lg font-medium mb-4">
+                {selectedFilter === 'upcoming' && 'No upcoming appointments scheduled.'}
+                {selectedFilter === 'pending' && 'No pending appointments.'}
+                {selectedFilter === 'history' && 'No past appointments.'}
+              </p>
+              {(selectedFilter === 'upcoming' || selectedFilter === 'pending') && (
+                <Button onClick={() => navigate('/')}>Book New Appointment</Button>
+              )}
             </div>
           )}
         </div>
