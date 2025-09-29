@@ -307,52 +307,15 @@ const ServiceDetails = () => {
       {/* Service Information Section - White Background */}
       <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{serviceData.name}</h1>
-              
-              <div className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                {serviceData.specialty}
-              </div>
-              <p className="text-gray-600 leading-relaxed max-w-2xl">
-                {serviceData.description}
-              </p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{serviceData.name}</h1>
             
-            {/* Service Category Logo - positioned on the most right side */}
-            <div className="ml-6 flex-shrink-0">
-              {serviceData.specialty.toLowerCase().includes('dermatology') ? (
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-[#00FFA2] rounded flex items-center justify-center">
-                  <img
-                    src={Image5}
-                    alt="Dermatology"
-                    className="w-4 h-4 sm:w-5 sm:h-5 object-contain filter brightness-0 invert"
-                  />
-                </div>
-              ) : serviceData.specialty.toLowerCase().includes('dental') || 
-                  serviceData.specialty.toLowerCase().includes('orthodontics') ||
-                  serviceData.specialty.toLowerCase().includes('implant') ||
-                  serviceData.specialty.toLowerCase().includes('pediatric') ||
-                  serviceData.specialty.toLowerCase().includes('prosthodontics') ||
-                  serviceData.specialty.toLowerCase().includes('restorative') ||
-                  serviceData.specialty.toLowerCase().includes('cosmetic') ||
-                  serviceData.specialty.toLowerCase().includes('endodontics') ||
-                  serviceData.specialty.toLowerCase().includes('periodontal') ||
-                  serviceData.specialty.toLowerCase().includes('maxillofacial') ||
-                  serviceData.specialty.toLowerCase().includes('general') ? (
-                <img
-                  src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png"
-                  alt="Dental"
-                  className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-                />
-              ) : (
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded flex items-center justify-center">
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
+            <div className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
+              {serviceData.specialty}
             </div>
+            <p className="text-gray-600 leading-relaxed max-w-2xl">
+              {serviceData.description}
+            </p>
           </div>
         </div>
       </section>

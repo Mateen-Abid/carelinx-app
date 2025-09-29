@@ -111,8 +111,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
             </div>
           </div>
           {viewMode === 'services' && (
-            <p className="text-neutral-300 text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
-              <span className="text-[#00FFA2] font-medium">Step 1</span> Please choose a specialty
+            <p className="text-white text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
+              <span className="text-[#00FFA2] font-medium">Step 1</span> <span className="text-white/90">Please choose a specialty</span>
             </p>
           )}
           {viewMode === 'services' && (

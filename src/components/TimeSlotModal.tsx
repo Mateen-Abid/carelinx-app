@@ -36,9 +36,9 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md w-full mx-auto p-0 gap-0 bg-white rounded-2xl overflow-hidden">
+      <DialogContent className="max-w-sm w-full mx-auto p-8 gap-0 bg-white rounded-2xl overflow-hidden mx-4 my-4 sm:max-w-md sm:mx-auto sm:my-8">
         {/* Header */}
-        <div className="flex items-center p-4 pb-6">
+        <div className="flex items-center pb-8">
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -53,7 +53,7 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
         </div>
 
         {/* Time Slots */}
-        <div className="px-4 pb-6 space-y-3 max-h-80 overflow-y-auto">
+        <div className="pb-8 space-y-3 max-h-80 overflow-y-auto">
           {timeSlots.map((timeSlot) => (
             <button
               key={timeSlot}
@@ -71,14 +71,14 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
           ))}
         </div>
 
-        {/* Next Button */}
-        <div className="p-4 pt-0">
+        {/* Request Appointment Button */}
+        <div className="pt-0">
           <Button
             onClick={handleNext}
             disabled={!selectedTimeSlot}
             className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            Request appointment
           </Button>
         </div>
       </DialogContent>

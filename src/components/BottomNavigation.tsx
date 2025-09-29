@@ -25,8 +25,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
               : 'text-gray-500'
           }`}
         >
-          <Home className="w-5 h-5" />
-          <span className="text-xs">Home</span>
+          <Home className={`w-5 h-5 ${isActive('/') ? 'stroke-2' : 'stroke-1'}`} />
+          <div className="relative">
+            <span className={`text-xs ${isActive('/') ? 'font-semibold' : 'font-normal'}`}>Home</span>
+            {isActive('/') && (
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
+            )}
+          </div>
         </button>
 
         <button
@@ -37,8 +42,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
               : 'text-gray-500'
           }`}
         >
-          <Calendar className="w-5 h-5" />
-          <span className="text-xs">Booking</span>
+          <Calendar className={`w-5 h-5 ${isActive('/my-bookings') ? 'stroke-2' : 'stroke-1'}`} />
+          <div className="relative">
+            <span className={`text-xs ${isActive('/my-bookings') ? 'font-semibold' : 'font-normal'}`}>Booking</span>
+            {isActive('/my-bookings') && (
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
+            )}
+          </div>
         </button>
 
         <button
@@ -49,8 +59,13 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
               : 'text-gray-500'
           }`}
         >
-          <User className="w-5 h-5" />
-          <span className="text-xs">Profile</span>
+          <User className={`w-5 h-5 ${isActive('/profile') ? 'stroke-2' : 'stroke-1'}`} />
+          <div className="relative">
+            <span className={`text-xs ${isActive('/profile') ? 'font-semibold' : 'font-normal'}`}>Profile</span>
+            {isActive('/profile') && (
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
+            )}
+          </div>
         </button>
       </div>
     </div>

@@ -272,9 +272,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
                       <div className="text-sm font-medium text-gray-900">
                         {option.name}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {option.category}
-                      </div>
                     </div>
                     <div className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
                       Service

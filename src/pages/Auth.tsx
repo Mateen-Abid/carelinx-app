@@ -159,7 +159,7 @@ const Auth = () => {
               type="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="olivia@untitledui.com"
+              placeholder="Please enter your email"
               className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2]"
               required
             />
@@ -176,7 +176,7 @@ const Auth = () => {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="••••••••••"
+                placeholder="Enter your password"
                 className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                 required
               />
@@ -202,7 +202,7 @@ const Auth = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  placeholder="••••••••••"
+                  placeholder="Enter your password"
                   className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                   required
                 />
@@ -217,49 +217,34 @@ const Auth = () => {
             </div>
           )}
 
-          {!isLogin && (
-            <div className="text-xs space-y-1">
-              <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
-                {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
-                <span>8+ characters</span>
-              </div>
-              <div className={`flex items-center gap-1 ${passwordValidation.hasUpperCase ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
-                {passwordValidation.hasUpperCase ? <Check size={12} /> : <X size={12} />}
-                <span>Uppercase letter</span>
-              </div>
-              <div className={`flex items-center gap-1 ${passwordValidation.hasLowerCase ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
-                {passwordValidation.hasLowerCase ? <Check size={12} /> : <X size={12} />}
-                <span>Lowercase letter</span>
-              </div>
-              <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
-                {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
-                <span>Number</span>
-              </div>
-              <div className={`flex items-center gap-1 ${passwordValidation.hasSpecialChar ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
-                {passwordValidation.hasSpecialChar ? <Check size={12} /> : <X size={12} />}
-                <span>Special character</span>
-              </div>
-            </div>
-          )}
+           {!isLogin && (
+             <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-1">
+               <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
+                 {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
+                 <span>8+ characters</span>
+               </div>
+               <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
+                 {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
+                 <span>Number</span>
+               </div>
+               <div className={`flex items-center gap-1 ${passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
+                 {passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? <Check size={12} /> : <X size={12} />}
+                 <span>Uppercase and lowercase letters</span>
+               </div>
+               <div className={`flex items-center gap-1 ${passwordValidation.hasSpecialChar ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
+                 {passwordValidation.hasSpecialChar ? <Check size={12} /> : <X size={12} />}
+                 <span>Special character</span>
+               </div>
+             </div>
+           )}
 
-          {isLogin && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  className="border-[#6B7280] data-[state=checked]:bg-[#00FFC2] data-[state=checked]:border-[#00FFC2]"
-                />
-                <Label htmlFor="remember" className="text-white text-sm">
-                  Remember me
-                </Label>
-              </div>
-              <button type="button" className="text-sm text-[#00FFC2] hover:underline underline">
-                Forgot password?
-              </button>
-            </div>
-          )}
+           {isLogin && (
+             <div className="flex justify-end">
+               <button type="button" className="text-sm text-[#00FFC2] hover:underline underline">
+                 Forgot password?
+               </button>
+             </div>
+           )}
 
           {/* Sign In Button */}
           <Button
@@ -317,3 +302,4 @@ const Auth = () => {
 };
 
 export default Auth;
+

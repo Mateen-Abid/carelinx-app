@@ -70,7 +70,7 @@ interface ServiceCard {
 const ClinicDetails = () => {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<string>('dermatology');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   // Get clinic data from the imported data
   const currentClinic = clinicsData.find(clinic => clinic.id === clinicId) || {
@@ -124,6 +124,11 @@ const ClinicDetails = () => {
 
   // Filter service cards based on selected category
   const filteredServiceCards = useMemo(() => {
+    // If no category is selected, return empty array (show empty state)
+    if (!selectedCategory || selectedCategory === '') {
+      return [];
+    }
+    
     return serviceCards.filter(card => {
       if (selectedCategory === 'dermatology') {
         return card.category.toLowerCase().includes('dermatology') || 
@@ -169,7 +174,7 @@ const ClinicDetails = () => {
           
           {/* Specialty Selection */}
           <div className="mb-6">
-            <h2 className="text-lg font-medium text-white mb-4"><span className="text-[#00FFA2] font-medium">Step 1</span> Please choose a specialty:</h2>
+            <h2 className="text-sm sm:text-base font-normal text-white mb-4 tracking-[-0.32px]"><span className="text-[#00FFA2] font-medium">Step 1</span> <span className="text-white/90">Please choose a specialty:</span></h2>
             
             {/* Service Filter Buttons */}
             <div className="flex justify-center gap-2 sm:gap-3">
@@ -182,7 +187,7 @@ const ClinicDetails = () => {
                     <button
                       onClick={isOthers ? undefined : () => setSelectedCategory(category.id)}
                       disabled={isOthers}
-                      className={`flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-lg transition-all duration-200 text-xs font-medium relative ${
+                      className={`flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-lg transition-all duration-200 text-xs font-medium relative ${
                         isOthers
                           ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
                           : selectedCategory === category.id 
@@ -190,8 +195,8 @@ const ClinicDetails = () => {
                             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <IconComponent size={16} className="shrink-0 sm:w-5 sm:h-5 mb-1" />
-                      <span className="text-[8px] sm:text-[10px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
+                      <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6 mb-1" />
+                      <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
                         {category.name}
                       </span>
                     </button>
@@ -215,45 +220,52 @@ const ClinicDetails = () => {
       {/* Services Section */}
       <section className="py-6 px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-gray-700 font-medium">Step 2</span> Please choose a service:</h2>
+          {selectedCategory ? (
+            <>
+              <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-[#0C2243] font-medium">Step 2</span> <span className="text-gray-500 font-normal">Please choose a service:</span></h2>
 
-          {/* Service Cards */}
-          <div className="space-y-3">
-            {filteredServiceCards.map((service) => (
-              <div
-                key={service.id}
-                className="bg-white rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleServiceSelect(service)}
-              >
-                <div className="flex flex-col">
-                  {/* Service Name */}
-                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{service.name}</h3>
-                  
-                  {/* Time Label */}
-                  <div className="text-sm text-gray-500 mb-2">Time</div>
-                  
-                  {/* Time and Date in separate circular containers */}
-                  <div className="flex items-center gap-3">
-                    {/* Time Container */}
-                    <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
-                      <Clock className="w-4 h-4" />
-                      <span>{service.time}</span>
-                    </div>
-                    
-                    {/* Date Container */}
-                    <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
-                      <Calendar className="w-4 h-4" />
-                      <span>{service.date}</span>
+              {/* Service Cards */}
+              <div className="space-y-3">
+                {filteredServiceCards.map((service) => (
+                  <div
+                    key={service.id}
+                    className="bg-white rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleServiceSelect(service)}
+                  >
+                    <div className="flex flex-col">
+                      {/* Service Name */}
+                      <h3 className="font-semibold text-gray-900 text-lg mb-2">{service.name}</h3>
+                      
+                      {/* Time and Date in separate circular containers */}
+                      <div className="flex items-center gap-3">
+                        {/* Time Container */}
+                        <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
+                          <Clock className="w-4 h-4" />
+                          <span>{service.time}</span>
+                        </div>
+                        
+                        {/* Date Container */}
+                        <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
+                          <Calendar className="w-4 h-4" />
+                          <span>{service.date}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {filteredServiceCards.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No services found for the selected category.</p>
+              {filteredServiceCards.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No services found for the selected category.</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg font-medium">
+                Pick a specialty first
+              </p>
             </div>
           )}
         </div>

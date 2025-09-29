@@ -137,7 +137,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
         <button
           onClick={isOthers ? undefined : (onClick || (() => handleCategorySelect(category.id)))}
           disabled={isOthers}
-          className={`flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-lg transition-all duration-200 text-xs font-medium relative ${
+          className={`flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-lg transition-all duration-200 text-xs font-medium relative ${
             isOthers
               ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
               : isSelected 
@@ -145,8 +145,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
           }`}
         >
-          <IconComponent size={16} className="shrink-0 sm:w-5 sm:h-5 mb-1" />
-          <span className="text-[8px] sm:text-[10px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
+          <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6 mb-1" />
+          <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
             {category.name}
           </span>
         </button>
