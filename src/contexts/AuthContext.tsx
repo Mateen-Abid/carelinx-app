@@ -12,8 +12,10 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (fullName: string) => Promise<{ error: any }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -181,6 +183,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updatePassword = async (newPassword: string) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+
+      // Update password (for password reset scenarios)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Password updated successfully');
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message);
+      return { error };
+    }
+  };
+
   const deleteAccount = async () => {
     try {
       if (!user) throw new Error('No user logged in');
@@ -226,6 +250,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+      
+      toast.success('Password reset email sent! Please check your inbox.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error(error.message);
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -235,9 +278,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     updateProfile,
     changePassword,
+    updatePassword,
     deleteAccount,
     resendConfirmation,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

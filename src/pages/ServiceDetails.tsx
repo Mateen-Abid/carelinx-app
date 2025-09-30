@@ -365,7 +365,7 @@ const ServiceDetails = () => {
           {/* Calendar Modal */}
           {showCalendar && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-md mx-auto m-4">
+              <div className="bg-white rounded-lg p-6 max-w-sm mx-auto m-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Select Date</h3>
                   <button

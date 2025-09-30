@@ -217,7 +217,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
             <div className="absolute right-4 top-4">
               <button 
                 onClick={signOut}
-                className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 py-2 rounded-lg border border-white/20 hover:bg-white/10 text-xs"
+                className="hover:text-[rgba(0,255,162,1)] transition-colors px-4 py-2 rounded-[40px] border border-white/20 hover:bg-white/10 text-xs"
               >
                 Sign Out
               </button>

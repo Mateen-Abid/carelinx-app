@@ -71,39 +71,39 @@ const ServiceCalendar: React.FC<ServiceCalendarProps> = ({
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
   return (
-    <div className={`bg-white rounded-lg border p-4 max-w-sm mx-auto ${className}`}>
+    <div className={`bg-white rounded-lg border p-6 max-w-md mx-auto ${className}`}>
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={goToPreviousMonth}
-          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          className="p-2 hover:bg-gray-100 rounded transition-colors"
         >
-          <ChevronLeft size={16} className="text-gray-600" />
+          <ChevronLeft size={18} className="text-gray-600" />
         </button>
         
-        <h3 className="text-sm font-medium text-gray-900">
+        <h3 className="text-base font-medium text-gray-900">
           {format(currentDate, 'MMMM yyyy')}
         </h3>
         
         <button
           onClick={goToNextMonth}
-          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          className="p-2 hover:bg-gray-100 rounded transition-colors"
         >
-          <ChevronRight size={16} className="text-gray-600" />
+          <ChevronRight size={18} className="text-gray-600" />
         </button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 mb-4">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
-          <div key={day} className="text-center py-2">
+          <div key={day} className="text-center py-3">
             <span className="text-xs font-medium text-gray-500">{day}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 gap-3">
         {calendarDays.map((date, index) => {
           const isCurrentMonth = isSameMonth(date, currentDate);
           const isAvailable = isDateAvailable(date);

@@ -22,8 +22,9 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showResendEmail, setShowResendEmail] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
+  const [emailError, setEmailError] = useState('');
   
-  const { signIn, signUp, user, resendConfirmation } = useAuth();
+  const { signIn, signUp, user, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,12 +84,29 @@ const Auth = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    
+    // Clear email error when user starts typing
+    if (e.target.name === 'email' && emailError) {
+      setEmailError('');
+    }
   };
 
   const handleResendConfirmation = async () => {
     if (!formData.email) return;
     setLoading(true);
     await resendConfirmation(formData.email);
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setEmailError('Please enter your email address first');
+      return;
+    }
+    
+    setEmailError('');
+    setLoading(true);
+    await resetPassword(formData.email);
     setLoading(false);
   };
 
@@ -160,9 +178,14 @@ const Auth = () => {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Please enter your email"
-              className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2]"
+              className={`w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 ${
+                emailError ? 'focus:ring-red-500' : 'focus:ring-[#00FFC2]'
+              }`}
               required
             />
+            {emailError && (
+              <p className="text-red-400 text-xs mt-1 ml-2">{emailError}</p>
+            )}
           </div>
 
           <div>
@@ -240,7 +263,11 @@ const Auth = () => {
 
            {isLogin && (
              <div className="flex justify-end">
-               <button type="button" className="text-sm text-[#00FFC2] hover:underline underline">
+               <button 
+                 type="button" 
+                 onClick={handleForgotPassword}
+                 className="text-sm text-[#00FFC2] hover:underline underline"
+               >
                  Forgot password?
                </button>
              </div>
@@ -297,6 +324,7 @@ const Auth = () => {
           </div>
         </form>
       </div>
+
     </div>
   );
 };
