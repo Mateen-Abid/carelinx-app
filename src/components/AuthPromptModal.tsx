@@ -29,31 +29,31 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto bg-white rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="max-w-xs w-full mx-4 bg-white rounded-2xl p-0 overflow-hidden">
         <div className="relative">
-          <div className="text-center py-8 px-6">
-            <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-600" />
+          <div className="text-center py-6 px-5">
+            <div className="w-14 h-14 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-7 h-7 text-red-600" />
             </div>
             
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
               {message}
             </h2>
             
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-6 text-sm">
               Please sign in or create an account to continue.
             </p>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Button 
-                className="w-full bg-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] text-white rounded-full py-3 font-medium"
+                className="w-full bg-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] text-white rounded-full py-2.5 font-medium text-sm"
                 onClick={handleLogIn}
               >
                 Log In
               </Button>
               <Button 
                 variant="outline" 
-                className="w-full border-[rgba(12,34,67,1)] text-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.05)] rounded-full py-3 font-medium"
+                className="w-full border-[rgba(12,34,67,1)] text-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.05)] rounded-full py-2.5 font-medium text-sm"
                 onClick={handleSignUp}
               >
                 Sign Up

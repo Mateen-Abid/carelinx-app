@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -68,14 +68,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
+      console.log('SignUp response:', { data, error }); // Debug logging
+      
       if (error) {
+        console.log('SignUp error:', error.message); // Debug logging
+        
+        // Check for specific error types
+        if (error.message.includes('already registered') || 
+            error.message.includes('already been registered') ||
+            error.message.includes('User already registered') ||
+            error.message.includes('already exists') ||
+            error.message.includes('duplicate') ||
+            error.message.includes('already in use')) {
+          return { 
+            error: { 
+              message: 'An account with this email already exists. Please try signing in instead.',
+              type: 'duplicate_email'
+            } 
+          };
+        }
+        
         toast.error(error.message);
         return { error };
+      }
+      
+      // Check if user was actually created (Supabase returns success but no user for existing emails)
+      if (!data.user) {
+        console.log('No user created - likely duplicate email'); // Debug logging
+        return { 
+          error: { 
+            message: 'An account with this email already exists. Please try signing in instead.',
+            type: 'duplicate_email'
+          } 
+        };
+      }
+      
+      // Additional check: if user exists but email is not confirmed, it might be a duplicate
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User created but email not confirmed - checking if this is a duplicate'); // Debug logging
+        
+        // Try to sign in to see if the account actually exists
+        try {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (!signInError) {
+            // If sign in works, the account already exists
+            console.log('Account already exists - sign in successful'); // Debug logging
+            return { 
+              error: { 
+                message: 'An account with this email already exists. Please try signing in instead.',
+                type: 'duplicate_email'
+              } 
+            };
+          }
+        } catch (signInTestError) {
+          // If sign in fails, it's a new account
+          console.log('Sign in test failed - this is a new account'); // Debug logging
+        }
       }
       
       toast.success('Account created successfully! Please check your email to confirm your account.');
       return { error: null };
     } catch (error: any) {
+      console.log('SignUp catch error:', error); // Debug logging
       toast.error(error.message);
       return { error };
     }

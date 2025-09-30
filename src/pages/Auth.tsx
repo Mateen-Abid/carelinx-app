@@ -23,6 +23,7 @@ const Auth = () => {
   const [showResendEmail, setShowResendEmail] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [signupError, setSignupError] = useState('');
   
   const { signIn, signUp, user, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
@@ -65,6 +66,7 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSignupError(''); // Clear any previous signup errors
 
     if (isLogin) {
       await signIn(formData.email, formData.password);
@@ -73,7 +75,17 @@ const Auth = () => {
         setLoading(false);
         return;
       }
-      await signUp(formData.email, formData.password, formData.fullName);
+      
+      const result = await signUp(formData.email, formData.password, formData.fullName);
+      
+      // Handle signup errors specifically
+      if (result.error) {
+        if (result.error.type === 'duplicate_email') {
+          setSignupError(result.error.message);
+        }
+        setLoading(false);
+        return;
+      }
     }
     
     setLoading(false);
@@ -88,6 +100,11 @@ const Auth = () => {
     // Clear email error when user starts typing
     if (e.target.name === 'email' && emailError) {
       setEmailError('');
+    }
+    
+    // Clear signup error when user starts typing
+    if (signupError) {
+      setSignupError('');
     }
   };
 
@@ -149,6 +166,21 @@ const Auth = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {signupError && (
+            <div className="bg-red-500/20 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg text-center">
+              <p className="mb-2">{signupError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(true);
+                  setSignupError('');
+                }}
+                className="text-[#00FFC2] hover:underline underline text-sm font-medium"
+              >
+                Switch to Sign In
+              </button>
+            </div>
+          )}
           {!isLogin && (
             <div>
               <Label htmlFor="fullName" className="text-white text-sm font-medium block mb-2">

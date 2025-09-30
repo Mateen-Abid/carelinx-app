@@ -157,7 +157,7 @@ const ClinicDetails = () => {
       <Header />
       
       {/* Clinic Header Section */}
-      <section className="bg-[#0C2243] text-white py-6 px-4">
+      <section className="bg-[#0C2243] text-white pt-6 pb-4 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             {/* Clinic Icon */}
@@ -173,8 +173,8 @@ const ClinicDetails = () => {
           </div>
           
           {/* Specialty Selection */}
-          <div className="mb-6">
-            <h2 className="text-sm sm:text-base font-normal text-white mb-4 tracking-[-0.32px]"><span className="text-[#00FFA2] font-medium">Step 1</span> <span className="text-white/90">Please choose a specialty:</span></h2>
+          <div className="mb-3">
+            <h2 className="text-sm sm:text-base font-normal text-white mb-3 tracking-[-0.32px]"><span className="text-[#00FFA2] font-medium">Step 01</span> <span className="text-white/90">Please choose a specialty:</span></h2>
             
             {/* Service Filter Buttons */}
             <div className="flex justify-center gap-2 sm:gap-3">
@@ -222,7 +222,7 @@ const ClinicDetails = () => {
         <div className="max-w-4xl mx-auto">
           {selectedCategory ? (
             <>
-              <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-[#0C2243] font-medium">Step 2</span> <span className="text-gray-500 font-normal">Please choose a service:</span></h2>
+              <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-[#0C2243] font-medium">Step 02</span> <span className="text-gray-500 font-normal">Please choose a service:</span></h2>
 
               {/* Service Cards */}
               <div className="space-y-3">

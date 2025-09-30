@@ -13,7 +13,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
-      <div className="relative flex w-full flex-col py-8 sm:py-12 lg:py-[74px] px-4 sm:px-6 lg:px-8">
+      <div className="relative flex w-full flex-col pt-8 pb-4 sm:pt-12 sm:pb-6 lg:pt-[74px] lg:pb-8 px-4 sm:px-6 lg:px-8">
         {/* Background Pattern */}
         <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20 hidden md:block">
           <div className="flex w-full gap-[40px_62px] flex-wrap max-md:max-w-full">
@@ -82,7 +82,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
         </div>
         
         {/* Main Content */}
-        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-start">
+        <div className="self-center z-10 flex w-full max-w-2xl flex-col items-start -mt-8">
           {/* Toggle between Services and Clinics */}
           <div className="flex justify-center w-full">
             <div className="flex bg-[rgba(0,255,162,1)] rounded-full p-1 border border-gray-200 w-full sm:w-auto">
@@ -112,11 +112,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
           </div>
           {viewMode === 'services' && (
             <p className="text-white text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
-              <span className="text-[#00FFA2] font-medium">Step 1</span> <span className="text-white/90">Please choose a specialty</span>
+              <span className="text-[#00FFA2] font-medium">Step 01</span> <span className="text-white/90">Please choose a specialty</span>
             </p>
           )}
           {viewMode === 'services' && (
-            <div className="mt-6 w-full px-4 sm:px-0 relative overflow-visible">
+            <div className="mt-3 w-full px-4 sm:px-0 relative overflow-visible">
               <ServicesFilter 
                 selectedCategory={selectedCategory}
                 onCategoryChange={onCategoryChange}
