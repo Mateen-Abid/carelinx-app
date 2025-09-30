@@ -25,46 +25,6 @@ const Index = () => {
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Check for password reset parameters and redirect
-  useEffect(() => {
-    const checkForPasswordReset = () => {
-      console.log('Index page - Checking for password reset parameters');
-      console.log('Index page - Current URL:', window.location.href);
-      console.log('Index page - Hash:', window.location.hash);
-      console.log('Index page - Search:', window.location.search);
-      
-      // Check hash parameters
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const hashType = hashParams.get('type');
-      const hashAccessToken = hashParams.get('access_token');
-      
-      // Check search parameters
-      const searchParams = new URLSearchParams(window.location.search);
-      const searchType = searchParams.get('type');
-      const searchAccessToken = searchParams.get('access_token');
-      
-      console.log('Index page - Hash params:', {
-        type: hashType,
-        accessToken: hashAccessToken ? 'present' : 'missing'
-      });
-      
-      console.log('Index page - Search params:', {
-        type: searchType,
-        accessToken: searchAccessToken ? 'present' : 'missing'
-      });
-      
-      // Check for password reset in both hash and search params
-      const isPasswordReset = (hashType === 'recovery' && hashAccessToken) || 
-                             (searchType === 'recovery' && searchAccessToken);
-      
-      if (isPasswordReset) {
-        console.log('Index page - Password reset detected, redirecting to reset password page');
-        navigate('/reset-password', { replace: true });
-      }
-    };
-
-    checkForPasswordReset();
-  }, [navigate]);
 
   // Handle clicks outside the filter dropdown
   useEffect(() => {

@@ -455,10 +455,10 @@ const Profile = () => {
       {/* Contact Support Modal */}
       {showContactSupport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-auto m-4">
+          <div className="bg-white rounded-lg max-w-xs w-full mx-4 py-6 px-5">
             {/* Icon */}
             <div className="flex justify-center mb-6">
-              <div className="w-16 h-16">
+              <div className="w-14 h-14">
                 <img
                   src={FrameIcon}
                   alt="Help Icon"
@@ -468,22 +468,22 @@ const Profile = () => {
             </div>
             
             {/* Title */}
-            <h3 className="text-2xl font-bold text-gray-900 text-center mb-6">
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
               Need Help?
             </h3>
             
             {/* Body Text */}
             <div className="text-center mb-8">
-              <p className="text-gray-600 mb-2">
+              <p className="text-sm text-gray-600 mb-2">
                 Our support team is here for you. Please reach out via email:
               </p>
               <a 
                 href="mailto:support@domain.com"
-                className="text-blue-600 underline hover:text-blue-800 transition-colors"
+                className="text-sm text-blue-600 underline hover:text-blue-800 transition-colors"
               >
                 support@domain.com
               </a>
-              <p className="text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 mt-2">
                 We'll get back to you as soon as possible.
               </p>
             </div>

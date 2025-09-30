@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FeedbackModal from '@/components/FeedbackModal';
+import { clinicsData } from '@/data/clinicsData';
 
 export interface Appointment {
   id: string;
   doctorName: string;
   specialty?: string;
   clinic: string;
+  clinicLogo?: string;
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -56,16 +58,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
       }
 
-      const formattedAppointments: Appointment[] = data.map(booking => ({
-        id: booking.id,
-        doctorName: booking.doctor_name,
-        specialty: booking.specialty,
-        clinic: booking.clinic,
-        date: booking.appointment_date,
-        time: booking.appointment_time,
-        status: booking.status === 'confirmed' ? 'confirmed' : booking.status as 'pending' | 'cancelled' | 'completed',
-        bookedAt: new Date(booking.created_at)
-      }));
+      const formattedAppointments: Appointment[] = data.map(booking => {
+        // Find the clinic logo by matching clinic name
+        const clinicData = clinicsData.find(clinic => 
+          clinic.name.toLowerCase() === booking.clinic.toLowerCase()
+        );
+        
+        return {
+          id: booking.id,
+          doctorName: booking.doctor_name,
+          specialty: booking.specialty,
+          clinic: booking.clinic,
+          clinicLogo: clinicData?.logo || '',
+          date: booking.appointment_date,
+          time: booking.appointment_time,
+          status: booking.status === 'confirmed' ? 'confirmed' : booking.status as 'pending' | 'cancelled' | 'completed',
+          bookedAt: new Date(booking.created_at)
+        };
+      });
 
       setAppointments(formattedAppointments);
     } catch (error) {

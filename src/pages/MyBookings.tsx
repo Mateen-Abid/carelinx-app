@@ -156,69 +156,86 @@ const MyBookings = () => {
             <div className="space-y-4">
               {filteredAppointments.map((appointment) => (
                 <div key={appointment.id} className="bg-white rounded-lg p-4 shadow-sm border">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
                     {/* Clinic Logo */}
-                    <div className="w-12 h-12 bg-[#00FFA2] rounded-full flex items-center justify-center flex-shrink-0">
-                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                        <div className="w-4 h-4 bg-[#00FFA2] rounded"></div>
-                      </div>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {appointment.clinicLogo ? (
+                        <img
+                          src={appointment.clinicLogo}
+                          alt={`${appointment.clinic} logo`}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-[#00FFA2] rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                            <div className="w-4 h-4 bg-[#00FFA2] rounded"></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Appointment Details */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 text-lg">{appointment.clinic}</h3>
-                      <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>1st Floor, Icon Mall, 2001, 12th Main Rd, Indiranagar...</span>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 text-base leading-tight pr-2">{appointment.clinic}</h3>
+                        
+                        {/* Status Badge or Actions */}
+                        {selectedFilter === 'pending' && (
+                          <div className="bg-[#0C2243] text-white px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
+                            Pending
+                          </div>
+                        )}
+                        
+                        {selectedFilter === 'upcoming' && (
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleReschedule(appointment)}
+                              className="text-xs px-2 py-1 h-auto"
+                            >
+                              Reschedule
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleCancelAppointment(appointment)}
+                              className="text-red-600 border-red-200 hover:bg-red-50 text-xs px-2 py-1 h-auto"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {selectedFilter === 'history' && (
+                          <div className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
+                            Completed
+                          </div>
+                        )}
                       </div>
+                      
+                      {/* Address with proper truncation */}
+                      <div className="flex items-start gap-1 text-sm text-gray-600 mb-2">
+                        <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span className="line-clamp-3 leading-relaxed">
+                          1st Floor, Icon Mall, 2001, 12th Main Rd, Indiranagar...
+                        </span>
+                      </div>
+                      
                       <p className="text-sm text-gray-500 mb-3">{appointment.specialty}</p>
                       
-                      {/* Time and Date */}
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      {/* Time and Date - optimized for mobile */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{appointment.time}</span>
+                          <Clock className="w-4 h-4 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{appointment.time}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{format(new Date(appointment.date), 'd MMM, yyyy')}</span>
+                          <Calendar className="w-4 h-4 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{format(new Date(appointment.date), 'd MMM, yyyy')}</span>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Status Badge or Actions */}
-                    {selectedFilter === 'pending' && (
-                      <div className="bg-[#0C2243] text-white px-3 py-1 rounded-full text-xs font-medium">
-                        Pending
-                      </div>
-                    )}
-                    
-                    {selectedFilter === 'upcoming' && (
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleReschedule(appointment)}
-                          className="text-xs"
-                        >
-                          Reschedule
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCancelAppointment(appointment)}
-                          className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {selectedFilter === 'history' && (
-                      <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
-                        Completed
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
