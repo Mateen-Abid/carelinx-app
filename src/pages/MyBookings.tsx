@@ -5,19 +5,33 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import { useBooking, Appointment } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookingModal } from '@/components/BookingModal';
 import { CancelBookingModal } from '@/components/CancelBookingModal';
 import { MoreVertical, Calendar, X, Clock, MapPin, User, RotateCcw, History } from 'lucide-react';
 import { format } from 'date-fns';
 import EnablePushNotifications from '@/assets/Enable Push Notifications@3x.svg';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
+import { toast } from 'sonner';
+import { clinicsData } from '@/data/clinicsData';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  
+  // Function to find service ID by specialty name
+  const findServiceIdBySpecialty = (specialty: string): string => {
+    for (const clinic of clinicsData) {
+      for (const categoryName in clinic.categories) {
+        const services = clinic.categories[categoryName];
+        const service = services.find(s => s.name === specialty);
+        if (service) {
+          return service.id;
+        }
+      }
+    }
+    // Fallback to a default service if not found
+    return 'general-consultation';
+  };
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'pending' | 'history'>('pending');
@@ -70,15 +84,26 @@ const MyBookings = () => {
         console.log('Appointment cancelled successfully');
       } catch (error) {
         console.error('Failed to cancel appointment:', error);
-        alert('Failed to cancel appointment. Please try again.');
+        toast.error('Failed to cancel appointment. Please try again.');
       }
     }
   };
 
-  const handleReschedule = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    cancelAppointment(appointment.id);
-    setIsBookingModalOpen(true);
+  const handleReschedule = async (appointment: Appointment) => {
+    try {
+      // Cancel the current appointment first
+      await cancelAppointment(appointment.id);
+      
+      // Find the service ID from the appointment data
+      // We need to map from specialty name to service ID
+      const serviceId = findServiceIdBySpecialty(appointment.specialty || 'General Consultation');
+      
+      // Navigate to the service page for rebooking
+      navigate(`/service/${serviceId}`);
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      toast.error('Failed to reschedule appointment. Please try again.');
+    }
   };
 
   // Get filtered appointments based on selected filter
@@ -255,25 +280,18 @@ const MyBookings = () => {
                 {selectedFilter === 'history' && 'No past appointments.'}
               </p>
               {(selectedFilter === 'upcoming' || selectedFilter === 'pending') && (
-                <Button onClick={() => navigate('/')}>Book New Appointment</Button>
+                <Button 
+                  onClick={() => navigate('/')}
+                  className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white rounded-full px-8 py-3 font-medium"
+                >
+                  Book New Appointment
+                </Button>
               )}
             </div>
           )}
         </div>
       </section>
 
-      {/* Booking Modal for Rescheduling */}
-      {selectedAppointment && (
-        <BookingModal
-          isOpen={isBookingModalOpen}
-          onClose={() => {
-            setIsBookingModalOpen(false);
-            setSelectedAppointment(null);
-          }}
-          doctorName={selectedAppointment.doctorName}
-          clinicName={selectedAppointment.clinic}
-        />
-      )}
 
       {/* Cancel Booking Modal */}
       <CancelBookingModal

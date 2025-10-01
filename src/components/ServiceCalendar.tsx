@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -6,16 +6,25 @@ interface ServiceCalendarProps {
   serviceData?: {
     schedule: { [key: string]: string };
   };
+  selectedDate?: Date;
   onDateSelect: (date: Date) => void;
   className?: string;
 }
 
 const ServiceCalendar: React.FC<ServiceCalendarProps> = ({ 
   serviceData, 
+  selectedDate,
   onDateSelect,
   className = "" 
 }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
+
+  // Update calendar month when selectedDate changes
+  useEffect(() => {
+    if (selectedDate) {
+      setCurrentDate(selectedDate);
+    }
+  }, [selectedDate]);
 
   const goToPreviousMonth = () => {
     setCurrentDate(subMonths(currentDate, 1));
@@ -114,11 +123,11 @@ const ServiceCalendar: React.FC<ServiceCalendarProps> = ({
                 onClick={() => handleDateClick(date)}
                 disabled={!isAvailable || !isCurrentMonth}
                 className={`
-                  w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
+                  w-full h-full rounded-full text-sm font-medium transition-all duration-200 flex items-center justify-center
                   ${!isCurrentMonth 
                     ? 'text-gray-300 cursor-not-allowed' 
                     : isAvailable
-                      ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
+                      ? 'cursor-pointer bg-gray-100 text-gray-900 hover:bg-gray-200'
                       : 'text-gray-400 cursor-not-allowed'
                   }
                 `}

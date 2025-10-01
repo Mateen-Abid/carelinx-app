@@ -54,6 +54,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string} | null>(null);
   const [step, setStep] = useState<'service' | 'date' | 'confirmation'>('service');
   const [currentDate, setCurrentDate] = useState(new Date());
+  
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const { addAppointment } = useBooking();
   const { user } = useAuth();
@@ -85,6 +86,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       console.log('Saving appointment with date:', appointmentDate, 'time:', time, 'service:', selectedService.name);
       
       try {
+        
         await addAppointment({
           doctorName: selectedService.doctorName,
           specialty: selectedService.name,
@@ -204,7 +206,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return (
       <>
         <Dialog open={isOpen} onOpenChange={handleClose}>
-          <DialogContent className="max-w-lg mx-auto bg-white rounded-2xl p-0 overflow-hidden">
+          <DialogContent className="max-w-xs w-full mx-auto bg-white rounded-2xl shadow-xl border-0 p-0 overflow-hidden">
           <div className="relative">
             <Button
               variant="ghost"
@@ -215,9 +217,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <X className="h-4 w-4" />
             </Button>
             
-            <div className="text-center py-12 px-8">
+            <div className="text-center py-6 px-5">
               {/* Concentric circles with checkmark */}
-              <div className="relative w-24 h-24 mx-auto mb-8">
+              <div className="relative w-14 h-14 mx-auto mb-6">
                 {/* Outer circle */}
                 <div className="absolute inset-0 bg-gray-100 rounded-full"></div>
                 {/* Middle circle */}
@@ -231,7 +233,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Booking Request Sent
               </h2>
               
@@ -412,11 +414,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             onClick={() => isAvailable && isCurrentMonth && handleDateSelect(date)}
                             disabled={!isAvailable || !isCurrentMonth}
                             className={`
-                              w-full h-full rounded-full text-sm transition-all duration-200 flex items-center justify-center
+                              w-full h-full rounded-full text-sm font-medium transition-all duration-200 flex items-center justify-center
                               ${!isCurrentMonth 
                                 ? 'text-gray-300 cursor-not-allowed bg-transparent' 
                                 : isAvailable
-                                  ? 'cursor-pointer bg-gray-100 text-gray-900 font-bold hover:bg-gray-200'
+                                  ? 'cursor-pointer bg-gray-100 text-gray-900 hover:bg-gray-200'
                                   : 'text-gray-400 cursor-not-allowed bg-transparent'
                               }
                             `}

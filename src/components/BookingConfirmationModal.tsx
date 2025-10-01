@@ -1,5 +1,4 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -30,11 +29,13 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md w-full mx-auto p-0 gap-0 bg-white rounded-2xl overflow-hidden">
-        <div className="text-center p-8 pb-6">
+    <>
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="max-w-xs w-full mx-4 bg-white rounded-2xl shadow-xl border-0 p-0 overflow-hidden">
+            <div className="text-center py-6 px-5">
           {/* Success Icon - Concentric circles with shield */}
-          <div className="w-20 h-20 mx-auto mb-6 relative">
+          <div className="w-14 h-14 mx-auto mb-6 relative">
             {/* Outer light gray circle */}
             <div className="absolute inset-0 bg-gray-200 rounded-full"></div>
             {/* Middle gray circle */}
@@ -48,7 +49,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Booking Request Sent
           </h2>
 
@@ -64,9 +65,11 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
           >
             View Booking
           </Button>
+            </div>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 };
 

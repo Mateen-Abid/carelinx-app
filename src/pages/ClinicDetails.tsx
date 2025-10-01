@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import SearchInput from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, User, Clock, Calendar } from 'lucide-react';
 import { clinicsData, Clinic } from '@/data/clinicsData';
@@ -71,6 +72,7 @@ const ClinicDetails = () => {
   const { clinicId } = useParams();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Get clinic data from the imported data
   const currentClinic = clinicsData.find(clinic => clinic.id === clinicId) || {
@@ -129,7 +131,7 @@ const ClinicDetails = () => {
       return [];
     }
     
-    return serviceCards.filter(card => {
+    let filtered = serviceCards.filter(card => {
       if (selectedCategory === 'dermatology') {
         return card.category.toLowerCase().includes('dermatology') || 
                card.category.toLowerCase().includes('facial') ||
@@ -143,12 +145,108 @@ const ClinicDetails = () => {
       }
       return card.category === selectedCategory;
     });
-  }, [serviceCards, selectedCategory]);
+
+    // Apply search filter if search query exists
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(card => 
+        card.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [serviceCards, selectedCategory, searchQuery]);
 
   // Handle service selection and navigate to service details
   const handleServiceSelect = (service: ServiceCard) => {
     // Navigate to the service details page using the service ID
     navigate(`/service/${service.id}`);
+  };
+
+  // Handle option select for search (no-op for clinic details)
+  const handleOptionSelect = () => {
+    // No action needed for clinic details search
+  };
+
+  // Clear search when category changes
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    setSearchQuery(''); // Clear search when changing category
+  };
+
+  // Generate clinic-specific services for search
+  const getClinicServices = () => {
+    if (!selectedCategory) return [];
+    
+    const services: any[] = [];
+    
+    console.log('getClinicServices - Clinic:', currentClinic.name);
+    console.log('getClinicServices - Selected Category:', selectedCategory);
+    console.log('getClinicServices - Available categories:', Object.keys(currentClinic.categories));
+    
+    if (selectedCategory === 'dermatology') {
+      // Look for dermatology-related categories
+      const dermatologyCategories = ['Dermatology', 'Skin Care'];
+      dermatologyCategories.forEach(categoryName => {
+        if (currentClinic.categories[categoryName]) {
+          currentClinic.categories[categoryName].forEach(service => {
+            services.push({
+              id: service.id,
+              name: service.name,
+              category: service.category,
+              type: 'subcategory'
+            });
+          });
+        }
+      });
+      
+      // Also include only facial aesthetic surgery from oral & maxillofacial surgery
+      if (currentClinic.categories['Oral & Maxillofacial Surgery']) {
+        currentClinic.categories['Oral & Maxillofacial Surgery'].forEach(service => {
+          if (service.name.toLowerCase().includes('facial aesthetic') || 
+              service.name.toLowerCase().includes('oral & facial aesthetic')) {
+            services.push({
+              id: service.id,
+              name: service.name,
+              category: service.category,
+              type: 'subcategory'
+            });
+          }
+        });
+      }
+    } else if (selectedCategory === 'dentistry') {
+      // Look for all dental-related categories
+      const dentalCategories = ['Dental', 'General Dentistry', 'Orthodontics', 'Dental Implants', 'Pediatric Dentistry', 'Root Canal & Endodontics', 'Periodontal Treatment', 'Fixed & Removable Prosthodontics', 'Restorative & Cosmetic Dentistry'];
+      dentalCategories.forEach(categoryName => {
+        if (currentClinic.categories[categoryName]) {
+          currentClinic.categories[categoryName].forEach(service => {
+            services.push({
+              id: service.id,
+              name: service.name,
+              category: service.category,
+              type: 'subcategory'
+            });
+          });
+        }
+      });
+      
+      // Include oral & maxillofacial surgery services EXCEPT facial aesthetic surgery
+      if (currentClinic.categories['Oral & Maxillofacial Surgery']) {
+        currentClinic.categories['Oral & Maxillofacial Surgery'].forEach(service => {
+          if (!service.name.toLowerCase().includes('facial aesthetic') && 
+              !service.name.toLowerCase().includes('oral & facial aesthetic')) {
+            services.push({
+              id: service.id,
+              name: service.name,
+              category: service.category,
+              type: 'subcategory'
+            });
+          }
+        });
+      }
+    }
+    
+    console.log('getClinicServices - Returning services:', services);
+    return services;
   };
 
 
@@ -185,7 +283,7 @@ const ClinicDetails = () => {
                 return (
                   <div key={category.id} className="relative">
                     <button
-                      onClick={isOthers ? undefined : () => setSelectedCategory(category.id)}
+                      onClick={isOthers ? undefined : () => handleCategoryChange(category.id)}
                       disabled={isOthers}
                       className={`flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-lg transition-all duration-200 text-xs font-medium relative ${
                         isOthers
@@ -195,7 +293,9 @@ const ClinicDetails = () => {
                             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6 mb-1" />
+                      <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center ${selectedCategory === category.id ? 'bg-white rounded-full p-1' : ''}`}>
+                        <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6" />
+                      </div>
                       <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
                         {category.name}
                       </span>
@@ -223,6 +323,17 @@ const ClinicDetails = () => {
           {selectedCategory ? (
             <>
               <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-[#0C2243] font-medium">Step 02</span> <span className="text-gray-500 font-normal">Please choose a service:</span></h2>
+
+              {/* Search Bar */}
+              <div className="mb-4 w-full">
+                <SearchInput
+                  onSearch={setSearchQuery}
+                  onOptionSelect={handleOptionSelect}
+                  selectedCategory={selectedCategory}
+                  currentSearchQuery={searchQuery}
+                  clinicServices={getClinicServices()}
+                />
+              </div>
 
               {/* Service Cards */}
               <div className="space-y-3">

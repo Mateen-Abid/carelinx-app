@@ -145,7 +145,9 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
           }`}
         >
-          <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6 mb-1" />
+          <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center ${isSelected ? 'bg-white rounded-full p-1' : ''}`}>
+            <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6" />
+          </div>
           <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
             {category.name}
           </span>

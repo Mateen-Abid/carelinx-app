@@ -14,6 +14,7 @@ interface SearchInputProps {
   onOptionSelect?: (option: SearchOption) => void;
   selectedCategory?: string;
   currentSearchQuery?: string;
+  clinicServices?: SearchOption[]; // Add clinic-specific services
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
@@ -21,7 +22,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onSearch,
   onOptionSelect,
   selectedCategory = 'all',
-  currentSearchQuery = ''
+  currentSearchQuery = '',
+  clinicServices
 }) => {
   // Dynamic placeholder based on selected category
   const getPlaceholder = () => {
@@ -41,6 +43,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const searchOptions: SearchOption[] = useMemo(() => {
     const options: SearchOption[] = [];
+    
+    // If clinic-specific services are provided, use those instead of global data
+    // Even if the array is empty (clinic has no services for this category)
+    if (clinicServices !== undefined) {
+      console.log('SearchInput - Using clinic-specific services:', clinicServices);
+      return clinicServices;
+    }
     
     // Check if a main category is selected
     const isMainCategorySelected = selectedCategory === 'dermatology' || selectedCategory === 'dentistry';
@@ -77,7 +86,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
 
     return options;
-  }, [selectedCategory]);
+  }, [selectedCategory, clinicServices]);
 
   const getCategorySubcategories = () => {
     if (selectedCategory === 'all') {

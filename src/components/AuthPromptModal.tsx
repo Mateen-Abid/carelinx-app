@@ -29,7 +29,7 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xs w-full mx-4 bg-white rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="max-w-xs w-full mx-auto bg-white rounded-2xl p-0 overflow-hidden">
         <div className="relative">
           <div className="text-center py-6 px-5">
             <div className="w-14 h-14 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">

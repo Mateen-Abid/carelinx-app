@@ -65,11 +65,11 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md mx-auto bg-white rounded-2xl shadow-xl border-0 p-0">
+      <DialogContent className="max-w-xs w-full mx-auto bg-white rounded-2xl shadow-xl border-0 p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Rate your experience</DialogTitle>
         </DialogHeader>
-        <div className="p-6 text-center">
+        <div className="py-6 px-5 text-center">
           {/* Star Rating */}
           <div className="flex justify-center gap-2 mb-6">
             {[1, 2, 3, 4, 5].map((starIndex) => (
@@ -93,7 +93,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
           </div>
 
           {/* Title and Description */}
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">
             How was your experience?
           </h2>
           <p className="text-sm text-gray-600 mb-8 px-4">
