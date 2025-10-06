@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import SearchInput from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
-import { Stethoscope, User, Clock, Calendar } from 'lucide-react';
+import { Stethoscope, User } from 'lucide-react';
 import { clinicsData, Clinic } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
 
@@ -340,27 +340,12 @@ const ClinicDetails = () => {
                 {filteredServiceCards.map((service) => (
                   <div
                     key={service.id}
-                    className="bg-white rounded-lg p-4 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                    className="bg-white rounded-lg p-3 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => handleServiceSelect(service)}
                   >
                     <div className="flex flex-col">
                       {/* Service Name */}
-                      <h3 className="font-semibold text-gray-900 text-lg mb-2">{service.name}</h3>
-                      
-                      {/* Time and Date in separate circular containers */}
-                      <div className="flex items-center gap-3">
-                        {/* Time Container */}
-                        <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
-                          <Clock className="w-4 h-4" />
-                          <span>{service.time}</span>
-                        </div>
-                        
-                        {/* Date Container */}
-                        <div className="bg-white text-gray-700 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
-                          <Calendar className="w-4 h-4" />
-                          <span>{service.date}</span>
-                        </div>
-                      </div>
+                      <h3 className="font-semibold text-gray-900 text-lg">{service.name}</h3>
                     </div>
                   </div>
                 ))}

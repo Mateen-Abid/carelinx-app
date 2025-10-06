@@ -23,6 +23,7 @@ interface BookingContextType {
   getUpcomingAppointments: () => Appointment[];
   getPendingAppointments: () => Appointment[];
   getPastAppointments: () => Appointment[];
+  showFeedbackModal: (bookingId: string, clinicName: string, doctorName: string) => void;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -187,13 +188,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       console.log('Booking created:', data);
       
-      // Show feedback modal immediately after booking creation
-      setFeedbackModal({
-        isOpen: true,
-        bookingId: data.bookingId,
-        clinicName: appointmentData.clinic,
-        doctorName: appointmentData.doctorName
-      });
+      // Don't show feedback modal immediately - let the booking confirmation modal show first
+      // The feedback modal will be triggered after the user closes the confirmation modal
       
       // Refresh appointments to get the new booking
       await fetchAppointments();
@@ -269,6 +265,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  const showFeedbackModal = (bookingId: string, clinicName: string, doctorName: string) => {
+    setFeedbackModal({
+      isOpen: true,
+      bookingId,
+      clinicName,
+      doctorName
+    });
+  };
+
   const closeFeedbackModal = async () => {
     // Update database when modal is closed
     if (feedbackModal.bookingId) {
@@ -302,7 +307,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       cancelAppointment,
       getUpcomingAppointments,
       getPendingAppointments,
-      getPastAppointments
+      getPastAppointments,
+      showFeedbackModal
     }}>
       {children}
       <FeedbackModal
