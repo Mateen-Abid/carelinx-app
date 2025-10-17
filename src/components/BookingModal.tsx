@@ -56,8 +56,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
-  const [lastBookingId, setLastBookingId] = useState<string>('');
-  const { addAppointment, showFeedbackModal } = useBooking();
+  const { addAppointment } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -87,7 +86,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       console.log('Saving appointment with date:', appointmentDate, 'time:', time, 'service:', selectedService.name);
       
       try {
-        const bookingId = await addAppointment({
+        
+        await addAppointment({
           doctorName: selectedService.doctorName,
           specialty: selectedService.name,
           clinic: clinicName,
@@ -95,7 +95,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           time: time,
           status: 'pending', // Start as pending, will be confirmed by edge function
         });
-        setLastBookingId(bookingId);
       } catch (error) {
         console.error('Error booking appointment:', error);
       }
@@ -105,16 +104,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleClose = () => {
-    // If we're closing from the confirmation step and have a booking ID, show feedback modal
-    if (step === 'confirmation' && lastBookingId && selectedService) {
-      showFeedbackModal(lastBookingId, clinicName, selectedService.doctorName);
-    }
-    
     setStep('service');
     setSelectedDate(undefined);
     setSelectedTime('');
     setSelectedService(null);
-    setLastBookingId('');
     onClose();
   };
 
@@ -134,17 +127,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleBookAnother = () => {
-    // If we're in confirmation step and have a booking ID, show feedback modal
-    if (step === 'confirmation' && lastBookingId && selectedService) {
-      showFeedbackModal(lastBookingId, clinicName, selectedService.doctorName);
-    }
-    
-    setStep('service');
-    setSelectedDate(undefined);
-    setSelectedTime('');
-    setSelectedService(null);
-    setLastBookingId('');
-    onClose();
+    handleClose();
     navigate('/my-bookings');
   };
 
