@@ -13,6 +13,7 @@ interface BookingRequest {
   date: string;
   time: string;
   userId: string;
+  doctorId?: string | null;
 }
 
 serve(async (req) => {
@@ -29,27 +30,87 @@ serve(async (req) => {
 
     const bookingData: BookingRequest = await req.json()
 
+    // Look up clinic_id by clinic name (for dynamic clinic admin dashboard)
+    let clinicId: string | null = null;
+    if (bookingData.clinic) {
+      console.log('🔍 Looking up clinic by name:', bookingData.clinic);
+      
+      // Try exact match first
+      const { data: clinicData, error: clinicError } = await supabaseClient
+        .from('clinics')
+        .select('id, name, status')
+        .eq('name', bookingData.clinic)
+        .maybeSingle();
+      
+      console.log('📋 Clinic lookup result:', { clinicData, clinicError });
+      
+      if (clinicData && (clinicData.status === 'active' || clinicData.status === 'pending')) {
+        clinicId = clinicData.id;
+        console.log('✅ Found clinic ID:', clinicId);
+      } else {
+        // Try case-insensitive match
+        const { data: clinicDataCaseInsensitive } = await supabaseClient
+          .from('clinics')
+          .select('id, name, status')
+          .ilike('name', bookingData.clinic)
+          .maybeSingle();
+        
+        if (clinicDataCaseInsensitive && (clinicDataCaseInsensitive.status === 'active' || clinicDataCaseInsensitive.status === 'pending')) {
+          clinicId = clinicDataCaseInsensitive.id;
+          console.log('✅ Found clinic ID (case-insensitive):', clinicId);
+        } else {
+          console.warn('⚠️ Clinic not found or not active:', bookingData.clinic);
+        }
+      }
+    }
+
+    // Use provided doctorId or look it up by name and clinic
+    let doctorId: string | null = bookingData.doctorId || null;
+    if (!doctorId && bookingData.doctorName && clinicId) {
+      const { data: doctorData } = await supabaseClient
+        .from('doctors')
+        .select('id')
+        .eq('name', bookingData.doctorName)
+        .eq('clinic_id', clinicId)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (doctorData) {
+        doctorId = doctorData.id;
+      }
+    }
+
     // Insert initial booking with 'pending' status
+    const bookingInsertData = {
+      doctor_name: bookingData.doctorName,
+      specialty: bookingData.specialty,
+      clinic: bookingData.clinic,
+      clinic_id: clinicId, // Set clinic_id for clinic admin dashboard
+      doctor_id: doctorId, // Set doctor_id to link with doctors table
+      appointment_date: bookingData.date,
+      appointment_time: bookingData.time,
+      user_id: bookingData.userId,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('📝 Inserting booking with data:', {
+      ...bookingInsertData,
+      user_id: bookingData.userId.substring(0, 8) + '...' // Partially hide user_id for privacy
+    });
+    
     const { data: booking, error: insertError } = await supabaseClient
       .from('bookings')
-      .insert({
-        doctor_name: bookingData.doctorName,
-        specialty: bookingData.specialty,
-        clinic: bookingData.clinic,
-        appointment_date: bookingData.date,
-        appointment_time: bookingData.time,
-        user_id: bookingData.userId,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      })
+      .insert(bookingInsertData)
       .select()
       .single()
 
     if (insertError) {
+      console.error('❌ Error inserting booking:', insertError);
       throw insertError
     }
 
-    console.log(`Booking ${booking.id} created with pending status`)
+    console.log(`✅ Booking ${booking.id} created with pending status, clinic_id: ${booking.clinic_id || 'NULL'}`)
 
     // No background tasks needed - frontend will handle the flow
     console.log(`Booking ${booking.id} created and ready for frontend handling`)

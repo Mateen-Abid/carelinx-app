@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +26,7 @@ const Auth = () => {
   const [emailError, setEmailError] = useState('');
   const [signupError, setSignupError] = useState('');
   
-  const { signIn, signUp, user, resendConfirmation, resetPassword } = useAuth();
+  const { signIn, signUp, user, userRole, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,10 +46,21 @@ const Auth = () => {
       setIsLogin(true);
     }
     
-    if (user) {
-      navigate('/');
+    if (user && userRole) {
+      // Redirect based on role from database (fully dynamic)
+      if (userRole === 'super_admin') {
+        console.log('🚀 Auth.tsx: Redirecting super admin to dashboard');
+        navigate('/admin/dashboard', { replace: true });
+      } else if (userRole === 'clinic_admin') {
+        console.log('🚀 Auth.tsx: Redirecting clinic admin to dashboard');
+        navigate('/clinic-admin/dashboard', { replace: true });
+      } else {
+        // Patient or public_user - redirect to homepage
+        console.log('🚀 Auth.tsx: Redirecting to homepage');
+        navigate('/', { replace: true });
+      }
     }
-  }, [user, navigate]);
+  }, [user, userRole, navigate]);
 
   const validatePassword = (password: string) => {
     return {

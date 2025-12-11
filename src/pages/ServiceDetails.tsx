@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import BookingConfirmationModal from '@/components/BookingConfirmationModal';
@@ -10,6 +10,7 @@ import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 import { getClinicByServiceId, getServiceById } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
@@ -131,8 +132,9 @@ const serviceDatabase = generateServiceDatabase();
 const ServiceDetails = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const { addAppointment, confirmAppointment } = useBooking();
+  const { addAppointment } = useBooking();
   const [isBookingConfirmationOpen, setIsBookingConfirmationOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
@@ -143,10 +145,201 @@ const ServiceDetails = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDisplayDate, setSelectedDisplayDate] = useState(new Date());
+  
+  // Database service state
+  const [databaseService, setDatabaseService] = useState<any>(null);
+  const [databaseClinic, setDatabaseClinic] = useState<any>(null);
+  const [databaseDoctors, setDatabaseDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get service and clinic data
-  const service = getServiceById(serviceId || '');
-  const clinic = getClinicByServiceId(serviceId || '');
+  // Check if serviceId is a database service (starts with "doctor-")
+  const isDatabaseService = serviceId?.startsWith('doctor-');
+  // Parse serviceId format: doctor-{doctorId}-{service-name}
+  // UUID format is: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars including dashes)
+  // So we extract first 36 chars after "doctor-" as doctorId, rest is service name
+  let doctorId: string | null = null;
+  let serviceNameFromId: string | null = null;
+  
+  if (isDatabaseService && serviceId) {
+    const withoutPrefix = serviceId.replace('doctor-', '');
+    // UUID is 36 characters (including dashes)
+    // Check if there's a service name after the UUID
+    const uuidMatch = withoutPrefix.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:-(.+))?$/i);
+    if (uuidMatch) {
+      doctorId = uuidMatch[1];
+      serviceNameFromId = uuidMatch[2] || null;
+    } else {
+      // Fallback: if no UUID match, try to extract first part as doctorId
+      // This handles old format: doctor-{doctorId}
+      doctorId = withoutPrefix.split('-')[0];
+    }
+  }
+
+  // Fetch database service data and all doctors providing this service
+  useEffect(() => {
+    const fetchDatabaseService = async () => {
+      if (!isDatabaseService) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Extract service name from serviceId
+        const serviceName = serviceNameFromId 
+          ? serviceNameFromId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+          : null;
+
+        console.log('🔍 Fetching database service:', { serviceId, serviceName, doctorId });
+
+        // Get clinicId from location state (passed from ClinicDetails) or from doctor
+        let clinicId: string | null = null;
+        
+        if (location.state?.clinicId) {
+          clinicId = location.state.clinicId;
+        } else if (doctorId) {
+          // Fallback: fetch from first doctor if available
+          const { data: firstDoctor } = await supabase
+            .from('doctors')
+            .select('clinic_id')
+            .eq('id', doctorId)
+            .maybeSingle();
+          clinicId = firstDoctor?.clinic_id || null;
+        }
+
+        if (!clinicId) {
+          console.error('❌ Clinic ID not found');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch clinic
+        const { data: clinicData, error: clinicError } = await supabase
+          .from('clinics')
+          .select('id, name, address, logo_url, specialties, description, status')
+          .eq('id', clinicId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (clinicError) {
+          console.error('Error fetching clinic:', clinicError);
+          setLoading(false);
+          return;
+        }
+
+        if (!clinicData) {
+          console.log('❌ Clinic not found');
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Fetched clinic:', clinicData);
+        setDatabaseClinic(clinicData);
+
+        // Fetch ALL doctors from this clinic
+        const { data: allDoctors, error: doctorsError } = await supabase
+          .from('doctors')
+          .select('id, name, specialty, email, phone, availability, services, status')
+          .eq('clinic_id', clinicId)
+          .eq('status', 'active');
+
+        if (doctorsError) {
+          console.error('Error fetching doctors:', doctorsError);
+          setLoading(false);
+          return;
+        }
+
+        // First, get the specialty from the original doctor (to filter by specialty)
+        let requiredSpecialty: string | null = null;
+        if (doctorId) {
+          const { data: originalDoctor } = await supabase
+            .from('doctors')
+            .select('specialty')
+            .eq('id', doctorId)
+            .maybeSingle();
+          requiredSpecialty = originalDoctor?.specialty || null;
+        }
+
+        // Filter doctors that provide this specific service AND match the specialty
+        // Normalize service name for matching (case-insensitive, flexible)
+        const normalizeServiceName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
+        
+        let doctorsProvidingService: typeof allDoctors = [];
+        
+        if (serviceName) {
+          // Filter doctors whose services column contains this service name AND specialty matches
+          const serviceNameNormalized = normalizeServiceName(serviceName);
+          
+          doctorsProvidingService = allDoctors?.filter(doctor => {
+            // First check: specialty must match (if we have a required specialty)
+            if (requiredSpecialty && doctor.specialty !== requiredSpecialty) {
+              return false;
+            }
+            
+            // Second check: doctor must have services
+            if (!doctor.services || doctor.services.trim().length === 0) {
+              return false;
+            }
+            
+            // Third check: doctor's services must contain the service name (case-insensitive matching)
+            const doctorServices = doctor.services.split(',').map(s => normalizeServiceName(s));
+            return doctorServices.some(ds => {
+              // Exact match or contains match
+              return ds === serviceNameNormalized || 
+                     ds.includes(serviceNameNormalized) || 
+                     serviceNameNormalized.includes(ds);
+            });
+          }) || [];
+        } else {
+          // If no service name, filter by specialty only (if we have one)
+          if (requiredSpecialty) {
+            doctorsProvidingService = allDoctors?.filter(doctor => doctor.specialty === requiredSpecialty) || [];
+          } else {
+            // If no service name and no specialty, show all doctors from clinic (fallback)
+            doctorsProvidingService = allDoctors || [];
+          }
+        }
+
+        console.log('✅ Doctors providing service:', doctorsProvidingService.length, serviceName || 'all');
+        setDatabaseDoctors(doctorsProvidingService);
+
+        // Get specialty from first doctor (all should have same specialty for same service)
+        const firstDoctor = doctorsProvidingService[0];
+        const specialty = firstDoctor?.specialty || 'General';
+
+        // Create service object
+        setDatabaseService({
+          id: serviceId,
+          name: serviceName || 'General Consultation',
+          category: specialty,
+          doctorName: firstDoctor?.name || 'Available Doctor',
+          doctorId: firstDoctor?.id || ''
+        });
+
+      } catch (error) {
+        console.error('Error in fetchDatabaseService:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDatabaseService();
+  }, [serviceId, isDatabaseService, doctorId, serviceNameFromId, location.state]);
+
+  // Get service and clinic data - prioritize database, fallback to hardcoded
+  const service = isDatabaseService ? databaseService : getServiceById(serviceId || '');
+  const clinic = isDatabaseService ? databaseClinic : getClinicByServiceId(serviceId || '');
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading service information...</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!service || !clinic) {
     return (
@@ -163,10 +356,12 @@ const ServiceDetails = () => {
   const serviceData = {
     name: service.name,
     specialty: service.category,
-    description: `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`,
-    clinic: clinic.name,
-    clinicLogo: clinic.logo,
-    address: clinic.address,
+    description: isDatabaseService 
+      ? `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`
+      : `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`,
+    clinic: isDatabaseService ? (clinic?.name || 'Clinic') : clinic.name,
+    clinicLogo: isDatabaseService ? (clinic?.logo_url || '') : clinic.logo,
+    address: isDatabaseService ? (clinic?.address || 'Location not specified') : clinic.address,
     schedule: {
       'Mon': '09:00 - 17:00',
       'Tue': '09:00 - 17:00', 
@@ -176,7 +371,16 @@ const ServiceDetails = () => {
       'Sat': '09:00 - 14:00',
       'Sun': 'Closed'
     },
-    doctors: [
+    doctors: isDatabaseService && databaseDoctors.length > 0 
+      ? databaseDoctors.map(doctor => ({
+          name: doctor.name,
+          specialization: `${doctor.specialty || 'General'} - Specialist`,
+          timeSlots: doctor.availability 
+            ? [doctor.availability] 
+            : ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM'],
+          doctorId: doctor.id
+        }))
+      : [
       {
         name: service.doctorName || 'Dr. Ali Ashar',
         specialization: 'MD, Specialist - 8 yrs experience',
@@ -224,13 +428,29 @@ const ServiceDetails = () => {
     // Create pending booking
     if (selectedDate && serviceData) {
       try {
+        const selectedDoctorData = serviceData.doctors.find((d: any) => d.name === selectedDoctor) || serviceData.doctors[0];
+        // Get the selected doctor from databaseDoctors array to get specialty
+        const selectedDoctorFromDb = isDatabaseService 
+          ? databaseDoctors.find(d => d.name === selectedDoctor) || databaseDoctors[0]
+          : null;
+        
+        // Use doctor's specialty (from category) instead of service name
+        // For database services, category contains the doctor's specialty
+        // For hardcoded services, we'll use the service name as specialty (backward compatibility)
+        const specialty = isDatabaseService 
+          ? (selectedDoctorFromDb?.specialty || serviceData.category || serviceData.name)
+          : serviceData.name;
+        
         const bookingId = await addAppointment({
-          doctorName: serviceData.doctors[0]?.name || 'Available Doctor',
-          specialty: serviceData.name,
+          doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
+          specialty: specialty,
           clinic: serviceData.clinic,
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: timeSlot,
-          status: 'pending'
+          status: 'pending',
+          doctorId: isDatabaseService 
+            ? (selectedDoctorData?.doctorId || selectedDoctorFromDb?.id || databaseDoctors[0]?.id) 
+            : undefined
         });
         
         setPendingBookingId(bookingId);
@@ -242,15 +462,11 @@ const ServiceDetails = () => {
   };
 
   const handleConfirmBooking = async () => {
-    if (pendingBookingId) {
-      try {
-        await confirmAppointment(pendingBookingId);
-        setPendingBookingId('');
-        setIsBookingConfirmationOpen(false);
-      } catch (error) {
-        console.error('Error confirming appointment:', error);
-      }
-    }
+    // Don't confirm the appointment - it should remain as 'pending'
+    // Only clinic admin can approve it
+    // Just close the modal
+    setPendingBookingId('');
+    setIsBookingConfirmationOpen(false);
   };
 
   // Generate time slots based on service schedule
@@ -367,7 +583,7 @@ const ServiceDetails = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-sm mx-auto m-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Select Date</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Select Date</h3>
                   <button
                     onClick={() => setShowCalendar(false)}
                     className="text-gray-500 hover:text-gray-700"

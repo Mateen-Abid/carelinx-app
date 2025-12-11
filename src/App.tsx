@@ -1,10 +1,14 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { updatePathname } from "./contexts/DarkModeContext";
 import { BookingProvider } from "./contexts/BookingContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
+import { SidebarProvider } from "./contexts/SidebarContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ClinicDetails from "./pages/ClinicDetails";
@@ -13,6 +17,20 @@ import MyBookings from "./pages/MyBookings";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminClinics from "./pages/admin/Clinics";
+import AdminAppointments from "./pages/admin/Appointments";
+import AdminDoctors from "./pages/admin/Doctors";
+import AdminPatients from "./pages/admin/Patients";
+import AdminSettings from "./pages/admin/Settings";
+import ClinicAdminDashboard from "./pages/clinic-admin/Dashboard";
+import ClinicAdminAppointments from "./pages/clinic-admin/Appointments";
+import ClinicAdminServices from "./pages/clinic-admin/Services";
+import ClinicAdminDoctors from "./pages/clinic-admin/Doctors";
+import ClinicAdminPatients from "./pages/clinic-admin/Patients";
+import ClinicAdminClinicProfile from "./pages/clinic-admin/ClinicProfile";
+import ClinicAdminSettings from "./pages/clinic-admin/Settings";
+import ClinicOnboarding from "./pages/clinic-admin/ClinicOnboarding";
 
 const queryClient = new QueryClient();
 
@@ -76,9 +94,14 @@ const checkForPasswordResetImmediate = () => {
 // Run immediate check
 checkForPasswordResetImmediate();
 
-// Component to handle password reset redirects
+// Component to handle password reset redirects and route tracking
 const PasswordResetHandler = () => {
   const location = useLocation();
+  
+  // Update pathname for dark mode context
+  useEffect(() => {
+    updatePathname(location.pathname);
+  }, [location.pathname]);
   
   // Debug logging
   console.log('PasswordResetHandler - Current location:', location);
@@ -139,13 +162,15 @@ const PasswordResetHandler = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <BookingProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <PasswordResetHandler />
-            <Routes>
+      <DarkModeProvider>
+        <SidebarProvider>
+          <BookingProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <PasswordResetHandler />
+                <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -153,12 +178,33 @@ const App = () => (
               <Route path="/clinic/:clinicId" element={<ClinicDetails />} />
               <Route path="/service/:serviceId" element={<ServiceDetails />} />
               <Route path="/my-bookings" element={<MyBookings />} />
+              
+              {/* Super Admin Routes */}
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/clinics" element={<AdminClinics />} />
+              <Route path="/admin/appointments" element={<AdminAppointments />} />
+              <Route path="/admin/doctors" element={<AdminDoctors />} />
+              <Route path="/admin/patients" element={<AdminPatients />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              
+              {/* Clinic Admin Routes */}
+              <Route path="/clinic-admin/onboarding" element={<ClinicOnboarding />} />
+              <Route path="/clinic-admin/dashboard" element={<ClinicAdminDashboard />} />
+              <Route path="/clinic-admin/appointments" element={<ClinicAdminAppointments />} />
+              <Route path="/clinic-admin/services" element={<ClinicAdminServices />} />
+              <Route path="/clinic-admin/doctors" element={<ClinicAdminDoctors />} />
+              <Route path="/clinic-admin/patients" element={<ClinicAdminPatients />} />
+              <Route path="/clinic-admin/clinic-profile" element={<ClinicAdminClinicProfile />} />
+              <Route path="/clinic-admin/settings" element={<ClinicAdminSettings />} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </BookingProvider>
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </BookingProvider>
+      </SidebarProvider>
+      </DarkModeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

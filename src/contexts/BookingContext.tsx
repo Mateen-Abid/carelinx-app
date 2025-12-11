@@ -11,8 +11,9 @@ export interface Appointment {
   clinicLogo?: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled';
   bookedAt: Date;
+  doctorId?: string;
 }
 
 interface BookingContextType {
@@ -65,6 +66,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           clinic.name.toLowerCase() === booking.clinic.toLowerCase()
         );
         
+        // Ensure status is properly set - default to 'pending' if missing
+        const bookingStatus = booking.status || 'pending';
+        
+        console.log('📋 Public user booking status:', {
+          bookingId: booking.id,
+          status: bookingStatus,
+          rawStatus: booking.status
+        });
+        
         return {
           id: booking.id,
           doctorName: booking.doctor_name,
@@ -73,8 +83,9 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           clinicLogo: clinicData?.logo || '',
           date: booking.appointment_date,
           time: booking.appointment_time,
-          status: booking.status === 'confirmed' ? 'confirmed' : booking.status as 'pending' | 'cancelled' | 'completed',
-          bookedAt: new Date(booking.created_at)
+          status: bookingStatus as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled',
+          bookedAt: new Date(booking.created_at),
+          doctorId: booking.doctor_id || undefined
         };
       });
 
@@ -102,15 +113,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         
         if (pendingBookings && pendingBookings.length > 0) {
           const pendingBooking = pendingBookings[0];
-          console.log('Found pending booking, showing feedback modal immediately');
+          console.log('Found pending booking, keeping status as pending');
           
-          // Immediately update frontend state to confirmed
-          setAppointments(prev => prev.map(apt => 
-            apt.id === pendingBooking.id 
-              ? { ...apt, status: 'confirmed' }
-              : apt
-          ));
-          
+          // Keep status as pending - don't auto-convert to confirmed
+          // The status will change to 'confirmed' when clinic admin approves it
           // Show feedback modal immediately
           setFeedbackModal({
             isOpen: true,
@@ -138,14 +144,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           
           // When a new booking is created (pending), show feedback modal immediately
           if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
-            console.log('New pending booking created, showing feedback modal immediately');
+            console.log('New pending booking created, keeping status as pending');
             
-            // Immediately update frontend state to confirmed
-            setAppointments(prev => prev.map(apt => 
-              apt.id === payload.new.id 
-                ? { ...apt, status: 'confirmed' }
-                : apt
-            ));
+            // Keep status as pending - don't auto-convert to confirmed
+            // The status will change to 'confirmed' when clinic admin approves it
             
             // Show feedback modal immediately
             setFeedbackModal({
@@ -154,6 +156,21 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
               clinicName: payload.new.clinic,
               doctorName: payload.new.doctor_name
             });
+          }
+          
+          // When a booking status is updated (e.g., from 'pending' to 'confirmed' by clinic admin)
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            console.log('Booking status updated:', payload.new.status);
+            
+            // Update the appointment in the local state immediately
+            setAppointments(prev => prev.map(apt => 
+              apt.id === payload.new.id 
+                ? { 
+                    ...apt, 
+                    status: (payload.new.status || apt.status) as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled'
+                  }
+                : apt
+            ));
           }
           
           // Refetch appointments to update the UI in real-time
@@ -180,7 +197,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           clinic: appointmentData.clinic,
           date: appointmentData.date,
           time: appointmentData.time,
-          userId: user.user.id
+          userId: user.user.id,
+          doctorId: appointmentData.doctorId || null
         }
       });
 
@@ -252,7 +270,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getPendingAppointments = () => {
-    return appointments.filter(apt => apt.status === 'pending');
+    // Include both 'pending' and 'rescheduled' appointments - both need user action
+    return appointments.filter(apt => apt.status === 'pending' || apt.status === 'rescheduled');
   };
 
   const getPastAppointments = () => {
@@ -275,21 +294,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const closeFeedbackModal = async () => {
-    // Update database when modal is closed
-    if (feedbackModal.bookingId) {
-      try {
-        await supabase
-          .from('bookings')
-          .update({ 
-            status: 'confirmed',
-            confirmed_at: new Date().toISOString()
-          })
-          .eq('id', feedbackModal.bookingId);
-        console.log('Booking confirmed in database after modal close');
-      } catch (error) {
-        console.error('Error confirming booking in database:', error);
-      }
-    }
+    // DON'T auto-confirm the booking - it should remain as 'pending'
+    // Only clinic admin can approve it by clicking "Approve Appointment"
+    // Just close the modal
+    console.log('Closing feedback modal - booking remains pending until clinic admin approves');
     
     setFeedbackModal({
       isOpen: false,

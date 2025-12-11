@@ -11,6 +11,17 @@ import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
 import { BookingModal } from '@/components/BookingModal';
 import { clinicsData, getAllServices, getAllCategories } from '@/data/clinicsData';
+import { supabase } from '@/integrations/supabase/client';
+
+interface DatabaseClinic {
+  id: string;
+  name: string;
+  address: string;
+  logo_url: string | null;
+  specialties: string[] | null;
+  description: string | null;
+  status: string;
+}
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -22,9 +33,78 @@ const Index = () => {
   const [showDistanceFilter, setShowDistanceFilter] = useState(false);
   const [distanceFilter, setDistanceFilter] = useState<'nearest' | 'farthest' | null>(null);
   const [clinicSearchQuery, setClinicSearchQuery] = useState<string>('');
+  const [databaseClinics, setDatabaseClinics] = useState<DatabaseClinic[]>([]);
+  const [loadingClinics, setLoadingClinics] = useState(true);
+  const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null}>>>({});
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+
+  // Fetch clinics from database
+  useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        setLoadingClinics(true);
+        const { data, error } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('clinics' as any)
+          .select('id, name, address, logo_url, specialties, description, status')
+          .eq('status', 'active')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('created_at', { ascending: false }) as any);
+
+        if (error) {
+          console.error('Error fetching clinics:', error);
+        } else {
+          console.log('✅ Fetched clinics from database:', data?.length || 0);
+          setDatabaseClinics(data || []);
+          
+          // Fetch doctors for all active clinics
+          if (data && data.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const clinicIds = (data as any[]).map((c: any) => c.id);
+            const { data: doctorsData, error: doctorsError } = await (supabase
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .from('doctors' as any)
+              .select('id, name, specialty, email, phone, availability, clinic_id, status, services')
+              .in('clinic_id', clinicIds)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .eq('status', 'active') as any);
+            
+            if (doctorsError) {
+              console.error('Error fetching doctors:', doctorsError);
+            } else {
+              console.log('✅ Fetched doctors from database:', doctorsData?.length || 0);
+              // Group doctors by clinic_id
+              const doctorsByClinic: Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>> = {};
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (doctorsData as any[])?.forEach((doctor: any) => {
+                if (!doctorsByClinic[doctor.clinic_id]) {
+                  doctorsByClinic[doctor.clinic_id] = [];
+                }
+                doctorsByClinic[doctor.clinic_id].push({
+                  id: doctor.id,
+                  name: doctor.name,
+                  specialty: doctor.specialty,
+                  email: doctor.email,
+                  phone: doctor.phone,
+                  availability: doctor.availability,
+                  services: doctor.services
+                });
+              });
+              setClinicDoctors(doctorsByClinic);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching clinics:', error);
+      } finally {
+        setLoadingClinics(false);
+      }
+    };
+
+    fetchClinics();
+  }, []);
 
   // Handle clicks outside the filter dropdown
   useEffect(() => {
@@ -42,6 +122,7 @@ const Index = () => {
 
   // Generate service cards from clinic data
   const serviceCards = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cards: any[] = [];
     const defaultIcon = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format";
     const timeIcon = "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=20&h=20&fit=crop&crop=center&auto=format";
@@ -68,29 +149,57 @@ const Index = () => {
     return cards;
   }, []);
 
-  // Generate clinic cards from clinic data
+  // Generate clinic cards - merge database clinics with hardcoded data
   const clinicCards = useMemo(() => {
     const defaultIcon = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format";
     const daysIcon = "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=20&h=20&fit=crop&crop=center&auto=format";
     const timingIcon = "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=20&h=20&fit=crop&crop=center&auto=format";
 
-    return clinicsData.map(clinic => ({
-      id: clinic.id, // Add the clinic ID
-      name: clinic.name,
-      address: clinic.address,
-      type: clinic.type,
-      services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
-        name: categoryName,
-        icon: defaultIcon
-      })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
-      doctorCount: clinic.doctorCount,
-      daysOpen: clinic.daysOpen,
-      timing: clinic.timing,
-      logo: clinic.logo,
-      daysIcon: daysIcon,
-      timingIcon: timingIcon
-    }));
-  }, []);
+    // Start with database clinics
+    const dbClinicCards = databaseClinics.map(clinic => {
+      // Try to find matching hardcoded clinic for services/timing
+      const hardcodedClinic = clinicsData.find(c => c.name.toLowerCase() === clinic.name.toLowerCase());
+      
+      return {
+        id: clinic.id,
+        name: clinic.name,
+        address: clinic.address,
+        type: hardcodedClinic?.type || 'Medical Center',
+        services: (clinic.specialties || []).slice(0, 4).map(specialty => ({
+          name: specialty,
+          icon: defaultIcon
+        })).concat((clinic.specialties || []).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
+        doctorCount: hardcodedClinic?.doctorCount || 'Multiple Doctors',
+        daysOpen: hardcodedClinic?.daysOpen || 'Mon – Sat',
+        timing: hardcodedClinic?.timing || '9:00 AM – 6:00 PM',
+        logo: clinic.logo_url || hardcodedClinic?.logo || defaultIcon,
+        daysIcon: daysIcon,
+        timingIcon: timingIcon
+      };
+    });
+
+    // Add hardcoded clinics that aren't in database (for backward compatibility)
+    const hardcodedClinicCards = clinicsData
+      .filter(hc => !databaseClinics.some(dc => dc.name.toLowerCase() === hc.name.toLowerCase()))
+      .map(clinic => ({
+        id: clinic.id,
+        name: clinic.name,
+        address: clinic.address,
+        type: clinic.type,
+        services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
+          name: categoryName,
+          icon: defaultIcon
+        })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
+        doctorCount: clinic.doctorCount,
+        daysOpen: clinic.daysOpen,
+        timing: clinic.timing,
+        logo: clinic.logo,
+        daysIcon: daysIcon,
+        timingIcon: timingIcon
+      }));
+
+    return [...dbClinicCards, ...hardcodedClinicCards];
+  }, [databaseClinics]);
 
   // Generate service mapping from clinic data
   const serviceMapping: { [key: string]: string[] } = useMemo(() => {
@@ -126,24 +235,121 @@ const Index = () => {
     setIsBookingModalOpen(true);
   };
 
-  // Get clinic services for the selected clinic
-  const getSelectedClinicServices = () => {
-    const clinic = clinicsData.find(c => c.name === selectedClinic);
-    if (!clinic) return [];
+  // Get clinic services for the selected clinic (memoized to recalculate when dependencies change)
+  const getSelectedClinicServices = useMemo(() => {
+    console.log('🔍 getSelectedClinicServices called for clinic:', selectedClinic);
+    console.log('📋 Available database clinics:', databaseClinics.map(c => c.name));
+    console.log('👨‍⚕️ Clinic doctors data:', clinicDoctors);
     
-    const services: Array<{id: string, name: string, category: string, doctorName: string}> = [];
+    // First try database clinic (case-insensitive match)
+    const dbClinic = databaseClinics.find(c => 
+      c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+    );
+    
+    if (dbClinic) {
+      console.log('✅ Found database clinic:', dbClinic.name, 'ID:', dbClinic.id);
+      // Get doctors for this clinic from database
+      const doctors = clinicDoctors[dbClinic.id] || [];
+      console.log('👨‍⚕️ Doctors for this clinic:', doctors.length, doctors);
+      
+      if (doctors.length > 0) {
+        // Convert doctors to services format
+        // Each doctor's specialty becomes a service
+        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
+        
+        doctors.forEach(doctor => {
+          // Use specialty as the service name, or create a service name from specialty
+          const serviceName = doctor.specialty;
+          const category = doctor.specialty; // Specialty is also the category
+          
+          services.push({
+            id: `doctor-${doctor.id}`,
+            name: serviceName,
+            category: category,
+            doctorName: doctor.name,
+            doctorId: doctor.id
+          });
+        });
+        
+        console.log('✅ Created services from doctors:', services);
+        
+        // Also merge with hardcoded services if available for backward compatibility
+        const hardcodedClinic = clinicsData.find(c => 
+          c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+        );
+        if (hardcodedClinic) {
+          console.log('📝 Also found hardcoded clinic, merging services');
+          Object.entries(hardcodedClinic.categories).forEach(([categoryName, serviceList]) => {
+            serviceList.forEach(service => {
+              // Only add if not already added from database doctors
+              if (!services.find(s => s.name === service.name && s.doctorName === service.doctorName)) {
+                services.push({
+                  id: service.id,
+                  name: service.name,
+                  category: categoryName,
+                  doctorName: service.doctorName,
+                  doctorId: '' // No doctor ID for hardcoded services
+                });
+              }
+            });
+          });
+        }
+        
+        console.log('✅ Final services list:', services);
+        return services;
+      }
+      
+      console.log('⚠️ No doctors found in database for clinic:', dbClinic.name);
+      // If no doctors in database, fall back to hardcoded if available
+      const hardcodedClinic = clinicsData.find(c => 
+        c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+      );
+      if (hardcodedClinic) {
+        console.log('📝 Using hardcoded services as fallback');
+        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
+        Object.entries(hardcodedClinic.categories).forEach(([categoryName, serviceList]) => {
+          serviceList.forEach(service => {
+            services.push({
+              id: service.id,
+              name: service.name,
+              category: categoryName,
+              doctorName: service.doctorName,
+              doctorId: ''
+            });
+          });
+        });
+        return services;
+      }
+      
+      console.log('❌ No services found (no doctors, no hardcoded data)');
+      return [];
+    }
+    
+    console.log('⚠️ Database clinic not found, trying hardcoded');
+    // Fall back to hardcoded clinic
+    const clinic = clinicsData.find(c => 
+      c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+    );
+    if (!clinic) {
+      console.log('❌ Hardcoded clinic also not found for:', selectedClinic);
+      return [];
+    }
+    
+    console.log('✅ Found hardcoded clinic, using its services');
+    const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
     Object.entries(clinic.categories).forEach(([categoryName, serviceList]) => {
       serviceList.forEach(service => {
         services.push({
           id: service.id,
           name: service.name,
           category: categoryName,
-          doctorName: service.doctorName
+          doctorName: service.doctorName,
+          doctorId: ''
         });
       });
     });
     return services;
-  };
+  }, [selectedClinic, databaseClinics, clinicDoctors]);
 
   // Convert timeSchedule string to schedule object
   const parseTimeSchedule = (timeSchedule: string): Record<string, string> => {
@@ -209,6 +415,7 @@ const Index = () => {
     // You can add booking logic here
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleOptionSelect = (option: any) => {
     // If it's a subcategory, keep the parent category selected and set search query
     if (option.type === 'subcategory') {
@@ -508,11 +715,14 @@ const Index = () => {
 
       <BookingModal 
         isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setSelectedClinic(''); // Reset selected clinic when modal closes
+        }}
         clinicName={selectedClinic}
         serviceSchedule={getSelectedClinicSchedule()}
-        clinicServices={getSelectedClinicServices()}
-        doctorName={getSelectedClinicServices()[0]?.doctorName || 'Dr. Available Doctor'}
+        clinicServices={getSelectedClinicServices}
+        doctorName={getSelectedClinicServices[0]?.doctorName || 'Dr. Available Doctor'}
       />
     </div>
   );

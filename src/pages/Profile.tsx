@@ -26,27 +26,20 @@ interface Profile {
 }
 
 const Profile = () => {
-  const [profile, setProfile] = useState<Profile | null>({
-    full_name: 'Muhammad Ali',
-    email: 'olivia@untitledui.com',
-    phone: '966 - 5xxxxxxxxx',
-    gender: 'Male',
-    date_of_birth: '8 Jan 1998',
-    government_id: 'XXXXXXXXXX'
-  });
+  const { user, signOut, updateProfile, changePassword, deleteAccount } = useAuth();
+  const navigate = useNavigate();
+  
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showContactSupport, setShowContactSupport] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [showProfileUpdated, setShowProfileUpdated] = useState(false);
-  
-  const { user, signOut, updateProfile, changePassword, deleteAccount } = useAuth();
-  const navigate = useNavigate();
 
   // Show auth prompt if not logged in
   useEffect(() => {
@@ -61,28 +54,69 @@ const Profile = () => {
     try {
       if (!user) return;
       
+      setLoadingProfile(true);
+      
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name, email, gender, date_of_birth, phone')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile');
-      } else {
-        // Load additional fields from localStorage
-        const localProfile = localStorage.getItem('userProfile');
-        const additionalFields = localProfile ? JSON.parse(localProfile) : {};
-        
-        setProfile({
-          ...data,
-          ...additionalFields
-        });
       }
+      
+      // Initialize profile with user's email, or use fetched data if it exists
+      let profileData: Profile = {
+        full_name: data?.full_name || '',
+        email: data?.email || user.email || '',
+        phone: data?.phone || '',
+        gender: data?.gender || '',
+        date_of_birth: '',
+        government_id: ''
+      };
+      
+      // Format date_of_birth for display if it exists
+      if (data?.date_of_birth) {
+        try {
+          const date = new Date(data.date_of_birth);
+          if (!isNaN(date.getTime())) {
+            profileData.date_of_birth = format(date, 'd MMM yyyy'); // Format as "8 Jan 1998"
+          }
+        } catch (e) {
+          // Keep empty if parsing fails
+        }
+      }
+      
+      // Load government_id from localStorage (not stored in database)
+      const localProfile = localStorage.getItem('userProfile');
+      if (localProfile) {
+        try {
+          const additionalFields = JSON.parse(localProfile);
+          if (additionalFields.government_id) {
+            profileData.government_id = additionalFields.government_id;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      
+      setProfile(profileData);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to load profile');
+      // Initialize with just email if fetch fails
+      if (user) {
+        setProfile({
+          full_name: '',
+          email: user.email || '',
+          phone: '',
+          gender: '',
+          date_of_birth: '',
+          government_id: ''
+        });
+      }
     } finally {
       setLoadingProfile(false);
     }
@@ -131,28 +165,62 @@ const Profile = () => {
     
     setLoading(true);
     try {
-      // Update profile in Supabase (only fields that exist in database)
+      // Prepare date_of_birth for database (convert from display format to ISO format)
+      let dateOfBirthForDB = null;
+      if (profile.date_of_birth) {
+        // If it's in "8 Jan 1998" format, convert it
+        const dateStr = profile.date_of_birth;
+        if (dateStr.includes(' ')) {
+          // Parse "8 Jan 1998" format
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            dateOfBirthForDB = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+          }
+        } else {
+          // Already in ISO format
+          dateOfBirthForDB = dateStr;
+        }
+      }
+      
+      // Update profile in Supabase (including gender, date_of_birth, and phone if columns exist)
+      const updateData: any = {
+        full_name: profile.full_name
+      };
+      
+      // Add optional fields if they exist
+      if (profile.gender) {
+        updateData.gender = profile.gender;
+      }
+      if (dateOfBirthForDB) {
+        updateData.date_of_birth = dateOfBirthForDB;
+      }
+      if (profile.phone) {
+        updateData.phone = profile.phone;
+      }
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: profile.full_name
-        })
+        .update(updateData)
         .eq('user_id', user?.id);
 
       if (error) {
         console.error('Error updating profile:', error);
         toast.error('Failed to update profile');
       } else {
-        // Store additional fields in localStorage for now
-        localStorage.setItem('userProfile', JSON.stringify({
-          phone: profile.phone,
-          gender: profile.gender,
-          date_of_birth: profile.date_of_birth,
-          government_id: profile.government_id
-        }));
+        // Still store government_id in localStorage (not in database)
+        if (profile.government_id) {
+          const localProfile = localStorage.getItem('userProfile');
+          const additionalFields = localProfile ? JSON.parse(localProfile) : {};
+          localStorage.setItem('userProfile', JSON.stringify({
+            ...additionalFields,
+            government_id: profile.government_id
+          }));
+        }
         
         setShowProfileUpdated(true);
         toast.success('Profile updated successfully');
+        // Refresh profile data
+        fetchProfile();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -361,7 +429,7 @@ const Profile = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md mx-auto m-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Select Date of Birth</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Select Date of Birth</h3>
               <button
                 onClick={() => setShowDatePicker(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -377,7 +445,7 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getFullYear() || new Date().getFullYear() - 25}
                   onChange={(e) => {
                     const year = parseInt(e.target.value);
@@ -394,7 +462,7 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getMonth() || 0}
                   onChange={(e) => {
                     const month = parseInt(e.target.value);
@@ -413,7 +481,7 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Day</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getDate() || 1}
                   onChange={(e) => {
                     const day = parseInt(e.target.value);

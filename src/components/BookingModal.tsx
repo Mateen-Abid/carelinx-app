@@ -16,7 +16,7 @@ interface BookingModalProps {
   clinicName?: string;
   serviceName?: string;
   serviceSchedule?: Record<string, string>; // Add schedule data
-  clinicServices?: Array<{id: string, name: string, category: string, doctorName: string}>; // Add clinic services
+  clinicServices?: Array<{id: string, name: string, category: string, doctorName: string, doctorId?: string}>; // Add clinic services
 }
 
 interface TimeSlot {
@@ -51,7 +51,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string} | null>(null);
+  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string, doctorId?: string} | null>(null);
   const [step, setStep] = useState<'service' | 'date' | 'confirmation'>('service');
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -87,13 +87,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       
       try {
         
+        // Use category as specialty (category contains the doctor's specialty like "Dermatology", "Orthopedics")
+        // For database services, category is mapped from doctor's specialty
         await addAppointment({
           doctorName: selectedService.doctorName,
-          specialty: selectedService.name,
+          specialty: selectedService.category || selectedService.name, // Use category (specialty) instead of service name
           clinic: clinicName,
           date: appointmentDate,
           time: time,
           status: 'pending', // Start as pending, will be confirmed by edge function
+          doctorId: selectedService.doctorId || undefined,
         });
       } catch (error) {
         console.error('Error booking appointment:', error);
@@ -111,7 +114,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     onClose();
   };
 
-  const handleServiceSelect = (service: {id: string, name: string, category: string, doctorName: string}) => {
+  const handleServiceSelect = (service: {id: string, name: string, category: string, doctorName: string, doctorId?: string}) => {
     // Check authentication before proceeding to date selection
     if (!user) {
       setIsAuthPromptOpen(true);
