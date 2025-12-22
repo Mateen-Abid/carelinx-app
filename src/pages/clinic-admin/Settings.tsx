@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Key, LogOut, ArrowRight } from 'lucide-react';
+import { Edit, Key, LogOut, ArrowRight, Plus, Filter, Info } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import {
   Select,
@@ -33,15 +33,45 @@ const ClinicAdminSettings = () => {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   
+  // General settings state
+  const [defaultAppointmentDuration, setDefaultAppointmentDuration] = useState('30 Minutes');
+  const [timezone, setTimezone] = useState('UTC - 5');
+  const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+  const [language, setLanguage] = useState('English (US)');
+
   // Notification settings state
   const [appointmentAlerts, setAppointmentAlerts] = useState(true);
   const [doctorScheduleUpdates, setDoctorScheduleUpdates] = useState(false);
   const [patientReminders, setPatientReminders] = useState(true);
   const [systemUpdates, setSystemUpdates] = useState(false);
 
+  // Team members state
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingTeamMembers, setLoadingTeamMembers] = useState(true);
+
   // Modal states
+  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+
+  // Add team member form state
+  const [newTeamMember, setNewTeamMember] = useState<{
+    name: string;
+    role: string;
+    description: string;
+    status: 'active' | 'inactive' | 'on-leave';
+    access_level: 'super_admin' | 'clinic_admin' | 'public_user' | '';
+    email: string;
+    password: string;
+  }>({
+    name: '',
+    role: '',
+    description: '',
+    status: 'active',
+    access_level: '',
+    email: '',
+    password: '',
+  });
   
 
   // Edit profile form state
@@ -59,10 +89,45 @@ const ClinicAdminSettings = () => {
     confirmPassword: '',
   });
 
-  // Fetch profile data
+  const fetchTeamMembers = async () => {
+    try {
+      setLoadingTeamMembers(true);
+      console.log('🔍 Fetching team members from database...');
+      
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching team members:', error);
+        // Don't show toast on initial load if table doesn't exist yet
+        if (error.code !== '42P01') {
+          toast.error('Failed to load team members');
+        }
+        setTeamMembers([]);
+        return;
+      }
+
+      console.log('✅ Team members fetched:', data?.length || 0);
+      setTeamMembers(data || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching team members:', error);
+      // Don't show toast if it's just a missing table error
+      if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
+        toast.error('Failed to load team members');
+      }
+      setTeamMembers([]);
+    } finally {
+      setLoadingTeamMembers(false);
+    }
+  };
+
+  // Fetch profile data and team members
   useEffect(() => {
     try {
       fetchProfile();
+      fetchTeamMembers();
     } catch (error: any) {
       console.error('❌ Error in Settings page useEffect:', error);
       setHasError(true);
@@ -126,6 +191,43 @@ const ClinicAdminSettings = () => {
           const joinedDateObj = new Date(profileData.created_at);
           const formattedDate = joinedDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
           setJoinedDate(formattedDate);
+        }
+      }
+
+      // Fetch admin settings (including general settings)
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!settingsError && settingsData) {
+        // Load general settings
+        if (settingsData.default_appointment_duration) {
+          setDefaultAppointmentDuration(settingsData.default_appointment_duration);
+        }
+        if (settingsData.timezone) {
+          setTimezone(settingsData.timezone);
+        }
+        if (settingsData.date_format) {
+          setDateFormat(settingsData.date_format);
+        }
+        if (settingsData.language) {
+          setLanguage(settingsData.language);
+        }
+        
+        // Load notification settings
+        if (settingsData.appointment_alerts !== undefined) {
+          setAppointmentAlerts(settingsData.appointment_alerts);
+        }
+        if (settingsData.doctor_schedule_updates !== undefined) {
+          setDoctorScheduleUpdates(settingsData.doctor_schedule_updates);
+        }
+        if (settingsData.patient_reminders !== undefined) {
+          setPatientReminders(settingsData.patient_reminders);
+        }
+        if (settingsData.system_updates !== undefined) {
+          setSystemUpdates(settingsData.system_updates);
         }
       }
 
@@ -311,6 +413,10 @@ const ClinicAdminSettings = () => {
 
       const settingsData = {
         user_id: user.id,
+        default_appointment_duration: defaultAppointmentDuration,
+        timezone: timezone,
+        date_format: dateFormat,
+        language: language,
         appointment_alerts: appointmentAlerts,
         doctor_schedule_updates: doctorScheduleUpdates,
         patient_reminders: patientReminders,
@@ -477,6 +583,123 @@ const ClinicAdminSettings = () => {
                 </div>
               </div>
 
+              {/* General Settings Card */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">General Settings</h2>
+                <div className="space-y-6">
+                  {/* Default Appointment Duration */}
+                  <div>
+                    <Label htmlFor="appointmentDuration" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                      Default Appointment Duration
+                    </Label>
+                    <Select value={defaultAppointmentDuration} onValueChange={setDefaultAppointmentDuration}>
+                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15 Minutes">15 Minutes</SelectItem>
+                        <SelectItem value="30 Minutes">30 Minutes</SelectItem>
+                        <SelectItem value="45 Minutes">45 Minutes</SelectItem>
+                        <SelectItem value="60 Minutes">60 Minutes</SelectItem>
+                        <SelectItem value="90 Minutes">90 Minutes</SelectItem>
+                        <SelectItem value="120 Minutes">120 Minutes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set average length of bookings.</p>
+                  </div>
+
+                  {/* Timezone */}
+                  <div>
+                    <Label htmlFor="timezone" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                      Timezone
+                    </Label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UTC - 12">UTC - 12</SelectItem>
+                        <SelectItem value="UTC - 11">UTC - 11</SelectItem>
+                        <SelectItem value="UTC - 10">UTC - 10</SelectItem>
+                        <SelectItem value="UTC - 9">UTC - 9</SelectItem>
+                        <SelectItem value="UTC - 8">UTC - 8</SelectItem>
+                        <SelectItem value="UTC - 7">UTC - 7</SelectItem>
+                        <SelectItem value="UTC - 6">UTC - 6</SelectItem>
+                        <SelectItem value="UTC - 5">UTC - 5</SelectItem>
+                        <SelectItem value="UTC - 4">UTC - 4</SelectItem>
+                        <SelectItem value="UTC - 3">UTC - 3</SelectItem>
+                        <SelectItem value="UTC - 2">UTC - 2</SelectItem>
+                        <SelectItem value="UTC - 1">UTC - 1</SelectItem>
+                        <SelectItem value="UTC + 0">UTC + 0</SelectItem>
+                        <SelectItem value="UTC + 1">UTC + 1</SelectItem>
+                        <SelectItem value="UTC + 2">UTC + 2</SelectItem>
+                        <SelectItem value="UTC + 3">UTC + 3</SelectItem>
+                        <SelectItem value="UTC + 4">UTC + 4</SelectItem>
+                        <SelectItem value="UTC + 5">UTC + 5</SelectItem>
+                        <SelectItem value="UTC + 6">UTC + 6</SelectItem>
+                        <SelectItem value="UTC + 7">UTC + 7</SelectItem>
+                        <SelectItem value="UTC + 8">UTC + 8</SelectItem>
+                        <SelectItem value="UTC + 9">UTC + 9</SelectItem>
+                        <SelectItem value="UTC + 10">UTC + 10</SelectItem>
+                        <SelectItem value="UTC + 11">UTC + 11</SelectItem>
+                        <SelectItem value="UTC + 12">UTC + 12</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Define clinic's default timezone.</p>
+                  </div>
+
+                  {/* Date Format */}
+                  <div>
+                    <Label htmlFor="dateFormat" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                      Date Format
+                    </Label>
+                    <Select value={dateFormat} onValueChange={setDateFormat}>
+                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                        <SelectValue placeholder="Select date format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                        <SelectItem value="YYYY/MM/DD">YYYY/MM/DD</SelectItem>
+                        <SelectItem value="DD-MM-YYYY">DD-MM-YYYY</SelectItem>
+                        <SelectItem value="MM-DD-YYYY">MM-DD-YYYY</SelectItem>
+                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                        <SelectItem value="DD.MM.YYYY">DD.MM.YYYY</SelectItem>
+                        <SelectItem value="MM.DD.YYYY">MM.DD.YYYY</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose how dates are displayed.</p>
+                  </div>
+
+                  {/* Language */}
+                  <div>
+                    <Label htmlFor="language" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                      Language
+                    </Label>
+                    <Select value={language} onValueChange={setLanguage}>
+                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="English (US)">English (US)</SelectItem>
+                        <SelectItem value="English (UK)">English (UK)</SelectItem>
+                        <SelectItem value="Spanish">Spanish</SelectItem>
+                        <SelectItem value="French">French</SelectItem>
+                        <SelectItem value="German">German</SelectItem>
+                        <SelectItem value="Italian">Italian</SelectItem>
+                        <SelectItem value="Portuguese">Portuguese</SelectItem>
+                        <SelectItem value="Arabic">Arabic</SelectItem>
+                        <SelectItem value="Chinese">Chinese</SelectItem>
+                        <SelectItem value="Japanese">Japanese</SelectItem>
+                        <SelectItem value="Korean">Korean</SelectItem>
+                        <SelectItem value="Russian">Russian</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Default interface language.</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Notification Settings Card */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
@@ -556,6 +779,102 @@ const ClinicAdminSettings = () => {
                       />
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Team Members Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Team members</h2>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAddTeamMemberModal(true)}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Team member
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Team Members Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                      <tr>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Role</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Access Level</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loadingTeamMembers ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                            Loading...
+                          </td>
+                        </tr>
+                      ) : teamMembers.length > 0 ? (
+                        teamMembers.map((member) => (
+                          <tr
+                            key={member.id}
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <td className="py-4 px-6">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.role}</span>
+                            </td>
+                            <td className="py-4 px-6">
+                              {member.access_level ? (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  member.access_level === 'super_admin' 
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                    : member.access_level === 'clinic_admin'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                }`}>
+                                  {member.access_level === 'super_admin' ? 'Super Admin' : 
+                                   member.access_level === 'clinic_admin' ? 'Clinic Admin' : 
+                                   'Public User'}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-400 dark:text-gray-500">No Access</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.permissions}</span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <button
+                                className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
+                                aria-label="View team member info"
+                              >
+                                <Info className="w-5 h-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                            No team members found. Click "Add Team member" to add one.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -674,6 +993,175 @@ const ClinicAdminSettings = () => {
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
                 Change Password
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Team Member Modal */}
+        <Dialog open={showAddTeamMemberModal} onOpenChange={setShowAddTeamMemberModal}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add Team member</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4 overflow-y-auto flex-1 pr-2">
+              <div>
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Team member Name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter Team member Name"
+                  value={newTeamMember.name}
+                  onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
+                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="role" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Role Name
+                </Label>
+                <Select value={newTeamMember.role} onValueChange={(value) => setNewTeamMember({ ...newTeamMember, role: value })}>
+                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Doctor">Doctor</SelectItem>
+                    <SelectItem value="Nurse">Nurse</SelectItem>
+                    <SelectItem value="Contributor">Contributor</SelectItem>
+                    <SelectItem value="Billing Specialist">Billing Specialist</SelectItem>
+                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe team member role"
+                  value={newTeamMember.description}
+                  onChange={(e) => setNewTeamMember({ ...newTeamMember, description: e.target.value })}
+                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Status
+                </Label>
+                <Select value={newTeamMember.status} onValueChange={(value: any) => setNewTeamMember({ ...newTeamMember, status: value })}>
+                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
+                    <SelectValue placeholder="Select team member status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="on-leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="access_level" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  System Access Level <span className="text-gray-400 text-xs">(Optional)</span>
+                </Label>
+                <Select 
+                  value={newTeamMember.access_level === '' ? 'no-access' : newTeamMember.access_level || 'no-access'} 
+                  onValueChange={(value: string) => {
+                    const accessLevel = value === 'no-access' ? '' : value;
+                    setNewTeamMember({ 
+                      ...newTeamMember, 
+                      access_level: accessLevel as 'super_admin' | 'clinic_admin' | 'public_user' | '', 
+                      email: accessLevel ? '' : newTeamMember.email, 
+                      password: accessLevel ? '' : newTeamMember.password 
+                    });
+                  }}
+                >
+                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
+                    <SelectValue placeholder="Select access level (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-access">No System Access</SelectItem>
+                    <SelectItem value="super_admin">Super Admin (Admin Pages)</SelectItem>
+                    <SelectItem value="clinic_admin">Clinic Admin (Clinic Admin Pages)</SelectItem>
+                    <SelectItem value="public_user">Public User (Booking Pages)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings'}
+                  {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages'}
+                  {newTeamMember.access_level === 'public_user' && 'Access to appointment booking pages'}
+                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Team member will not have system login access'}
+                </p>
+              </div>
+
+              {newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (
+                <>
+                  <div>
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Email <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter email for system access"
+                      value={newTeamMember.email}
+                      onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
+                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for login to the system</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Password <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter password (min 6 characters)"
+                      value={newTeamMember.password}
+                      onChange={(e) => setNewTeamMember({ ...newTeamMember, password: e.target.value })}
+                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                      required
+                      minLength={6}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <DialogFooter className="mt-6 flex-shrink-0 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddTeamMemberModal(false);
+                  setNewTeamMember({ 
+                    name: '', 
+                    role: '', 
+                    description: '', 
+                    status: 'active',
+                    access_level: '',
+                    email: '',
+                    password: '',
+                  });
+                }}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddTeamMember}
+                className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
+              >
+                Add Team member
               </Button>
             </DialogFooter>
           </DialogContent>

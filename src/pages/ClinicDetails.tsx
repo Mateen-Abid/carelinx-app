@@ -316,9 +316,23 @@ const ClinicDetails = () => {
     });
   };
 
-  // Handle option select for search (no-op for clinic details)
-  const handleOptionSelect = () => {
-    // No action needed for clinic details search
+  // Handle option select for search - navigate to service details
+  const handleOptionSelect = (option: any) => {
+    console.log('🎯 handleOptionSelect called with option:', option);
+    
+    // If it's a service (subcategory), navigate to service details page
+    if (option.type === 'subcategory' && option.id) {
+      console.log('✅ Service selected, navigating to ServiceDetails:', option.id);
+      
+      // Navigate to service details page
+      navigate(`/service/${option.id}`, {
+        state: {
+          clinicId: currentClinic.id,
+          clinicName: currentClinic.name,
+          isDatabaseService: option.id.startsWith('doctor-')
+        }
+      });
+    }
   };
 
   // Clear search when category changes
@@ -327,7 +341,7 @@ const ClinicDetails = () => {
     setSearchQuery(''); // Clear search when changing category
   };
 
-  // Generate clinic-specific services for search (from database)
+  // Generate clinic-specific services for search (from database or hardcoded)
   const getClinicServices = () => {
     if (!selectedCategory) return [];
     
@@ -335,25 +349,71 @@ const ClinicDetails = () => {
     
     console.log('getClinicServices - Clinic:', currentClinic.name);
     console.log('getClinicServices - Selected Category:', selectedCategory);
+    console.log('getClinicServices - Is UUID:', isUUID);
+    console.log('getClinicServices - Database Clinic:', databaseClinic);
     console.log('getClinicServices - Clinic Services:', clinicServices);
     
-    // Use clinicServices from database (same data as displayed in the list)
-    clinicServices.forEach(serviceRow => {
-      const specialty = serviceRow.specialty; // Actual specialty (e.g., "Dermatology", "Orthopedics")
-      const uiCategory = mapSpecialtyToCategory(specialty); // UI category (dermatology, dentistry, others)
+    // Check if it's a hardcoded clinic (not a UUID or database clinic not found)
+    if (!isUUID || !databaseClinic) {
+      // Use hardcoded clinic data
+      const hardcodedClinic = clinicsData.find(clinic => clinic.id === clinicId);
       
-      // Only include if it matches the selected UI category
-      if (uiCategory === selectedCategory) {
-        const serviceId = `doctor-${serviceRow.doctorId}-${serviceRow.service.toLowerCase().replace(/\s+/g, '-')}`;
+      if (hardcodedClinic && hardcodedClinic.categories) {
+        console.log('✅ Using hardcoded clinic services for:', hardcodedClinic.name);
         
-        services.push({
-          id: serviceId,
-          name: serviceRow.service, // Use actual service name from database
-          category: specialty, // Store actual specialty (e.g., "Dermatology") for booking
-          type: 'subcategory'
+        // Map UI category to specialty name
+        const categoryMap: { [key: string]: string[] } = {
+          'dermatology': ['Dermatology'],
+          'dentistry': ['Dental', 'Orthodontics', 'Dental Implants', 'Pediatric Dentistry', 
+                       'Fixed & Removable Prosthodontics', 'Restorative & Cosmetic Dentistry',
+                       'Root Canal & Endodontics', 'Periodontal Treatment', 
+                       'Oral & Maxillofacial Surgery', 'General Dentistry']
+        };
+        
+        // Get specialties that match the selected UI category
+        const matchingSpecialties = categoryMap[selectedCategory] || [];
+        
+        // Get all services from matching specialties
+        Object.keys(hardcodedClinic.categories).forEach(specialtyName => {
+          // Check if this specialty matches the selected category
+          const matchesCategory = matchingSpecialties.some(s => 
+            specialtyName.toLowerCase().includes(s.toLowerCase()) || 
+            s.toLowerCase().includes(specialtyName.toLowerCase())
+          );
+          
+          if (matchesCategory || mapSpecialtyToCategory(specialtyName) === selectedCategory) {
+            const categoryServices = hardcodedClinic.categories[specialtyName] || [];
+            
+            categoryServices.forEach(serviceItem => {
+              services.push({
+                id: serviceItem.id,
+                name: serviceItem.name,
+                category: serviceItem.category, // Store actual specialty (e.g., "Dermatology") for booking
+                type: 'subcategory'
+              });
+            });
+          }
         });
       }
-    });
+    } else {
+      // Use clinicServices from database (same data as displayed in the list)
+      clinicServices.forEach(serviceRow => {
+        const specialty = serviceRow.specialty; // Actual specialty (e.g., "Dermatology", "Orthopedics")
+        const uiCategory = mapSpecialtyToCategory(specialty); // UI category (dermatology, dentistry, others)
+        
+        // Only include if it matches the selected UI category
+        if (uiCategory === selectedCategory) {
+          const serviceId = `doctor-${serviceRow.doctorId}-${serviceRow.service.toLowerCase().replace(/\s+/g, '-')}`;
+          
+          services.push({
+            id: serviceId,
+            name: serviceRow.service, // Use actual service name from database
+            category: specialty, // Store actual specialty (e.g., "Dermatology") for booking
+            type: 'subcategory'
+          });
+        }
+      });
+    }
     
     console.log('getClinicServices - Returning services:', services);
     return services;

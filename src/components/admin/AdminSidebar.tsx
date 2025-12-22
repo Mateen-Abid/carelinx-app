@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Building2, Calendar, Stethoscope, Users, Settings, Moon, Sun, ChevronLeft } from 'lucide-react';
+import { Home, Building2, Calendar, Stethoscope, Users, Settings, Moon, Sun, ChevronLeft, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -20,6 +20,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isDarkMode = false, onDarkM
     { path: '/admin/clinics', label: 'Clinics', icon: Building2 },
     { path: '/admin/appointments', label: 'Appointments', icon: Calendar },
     { path: '/admin/doctors', label: 'Doctors', icon: Stethoscope },
+    { path: '/admin/services', label: 'Services', icon: ClipboardList },
     { path: '/admin/patients', label: 'Patients', icon: Users },
   ];
 

@@ -172,21 +172,19 @@ const ClinicAdminServices = () => {
     return matchesSpecialty && matchesSearch;
   });
 
-  // Group by specialty and doctor for display
-  const groupedBySpecialtyAndDoctor = filteredServices.reduce((acc, service) => {
-    const key = `${service.specialty}-${service.doctorName}`;
-    if (!acc[key]) {
-      acc[key] = {
-        specialty: service.specialty,
-        doctorName: service.doctorName,
-        services: [] as string[]
+  // Group by specialty for display - collect all unique services and doctors per specialty
+  const groupedBySpecialty = filteredServices.reduce((acc, service) => {
+    if (!acc[service.specialty]) {
+      acc[service.specialty] = {
+        services: new Set<string>(),
+        doctors: new Set<string>() // Store unique doctor names per specialty
       };
     }
-    if (!acc[key].services.includes(service.service)) {
-      acc[key].services.push(service.service);
-    }
+    acc[service.specialty].services.add(service.service);
+    // Add doctor name to the set (automatically handles duplicates)
+    acc[service.specialty].doctors.add(service.doctorName);
     return acc;
-  }, {} as Record<string, { specialty: string; doctorName: string; services: string[] }>);
+  }, {} as Record<string, {services: Set<string>, doctors: Set<string>}>);
 
   if (checkingClinic) {
     return (
@@ -295,26 +293,27 @@ const ClinicAdminServices = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/4">
+                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
                           Specialties
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/3">
+                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           Services
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
                           Doctor's Name
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(groupedBySpecialtyAndDoctor).map(([key, group]) => {
-                        const allServiceKeys = group.services.map(service => `${group.specialty}-${service}`);
+                      {Object.entries(groupedBySpecialty).map(([specialtyName, specialtyData]) => {
+                        const servicesArray = Array.from(specialtyData.services);
+                        const allServiceKeys = servicesArray.map(service => `${specialtyName}-${service}`);
                         const allSelected = allServiceKeys.every(key => selectedServices.includes(key));
                         const someSelected = allServiceKeys.some(key => selectedServices.includes(key));
                         
                         return (
                           <tr
-                            key={key}
+                            key={specialtyName}
                             className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                           >
                             <td className="py-4 px-4 w-12 align-top">
@@ -326,42 +325,48 @@ const ClinicAdminServices = () => {
                                 }}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    // Select all services for this specialty-doctor combination
                                     const newSelections = allServiceKeys.filter(k => !selectedServices.includes(k));
                                     setSelectedServices([...selectedServices, ...newSelections]);
                                   } else {
-                                    // Deselect all services for this specialty-doctor combination
                                     setSelectedServices(selectedServices.filter(k => !allServiceKeys.includes(k)));
                                   }
                                 }}
                                 className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                               />
                             </td>
-                            <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-semibold w-1/4 align-top">
-                              {group.specialty}
+                            <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-semibold w-1/5 align-middle">
+                              {specialtyName}
                             </td>
-                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400 align-top">
+                            <td className="py-4 px-4 align-middle">
                               <div className="flex flex-wrap gap-2">
-                                {group.services.map((service, idx) => {
-                                  const serviceKey = `${group.specialty}-${service}`;
+                                {servicesArray.map((service, idx) => {
+                                  const serviceKey = `${specialtyName}-${service}`;
                                   const isSelected = selectedServices.includes(serviceKey);
                                   return (
-                                    <span
+                                    <button
                                       key={idx}
-                                      className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                      type="button"
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          setSelectedServices(selectedServices.filter(k => k !== serviceKey));
+                                        } else {
+                                          setSelectedServices([...selectedServices, serviceKey]);
+                                        }
+                                      }}
+                                      className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
                                         isSelected 
-                                          ? 'bg-[#00FFA2]/20 text-[#0C2243] border border-[#00FFA2]' 
-                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+                                          ? 'bg-[#00FFA2] text-[#0C2243] border border-[#00FFA2] hover:bg-[#00FFA2]/90' 
+                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                                       }`}
                                     >
                                       {service}
-                                    </span>
+                                    </button>
                                   );
                                 })}
                               </div>
                             </td>
-                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400 align-top">
-                              {group.doctorName}
+                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400 align-middle w-1/5">
+                              {Array.from(specialtyData.doctors).join(', ')}
                             </td>
                           </tr>
                         );

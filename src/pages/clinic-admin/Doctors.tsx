@@ -107,17 +107,9 @@ const ClinicAdminDoctors = () => {
     availability: '',
   });
   
-  const [availableSpecialties] = useState([
-    'Cardiology', 'Dermatology', 'Neurology', 'Pediatrics', 'Orthopedics',
-    'Gastroenterology', 'Dental', 'Physical Therapy', 'Occupational Therapy',
-    'Chiropractic', 'Podiatry', 'Sports Medicine', 'Rehabilitation',
-    'Massage Therapy', 'Acupuncture', 'Nutritionist'
-  ]);
-  
-  const [availableServices] = useState([
-    'Consultation', 'Surgery', 'Follow-up', 'Emergency', 'Routine Check-up',
-    'Vaccination', 'ECG', 'Echocardiography', 'Skin Biopsy', 'Endoscopy'
-  ]);
+  const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
@@ -130,6 +122,91 @@ const ClinicAdminDoctors = () => {
   });
   const [showTreatmentSpecialtyDropdown, setShowTreatmentSpecialtyDropdown] = useState(false);
   const [showTreatmentServiceDropdown, setShowTreatmentServiceDropdown] = useState(false);
+
+  // Fetch super admin specialties and services
+  useEffect(() => {
+    const fetchSuperAdminData = async () => {
+      try {
+        setLoadingSpecialties(true);
+        
+        // Fetch specialties
+        const { data: specialtiesData, error: specialtiesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_specialties' as any)
+          .select('name')
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (specialtiesError) {
+          console.error('Error fetching specialties:', specialtiesError);
+        } else {
+          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
+        }
+
+        // Services will be fetched when a specialty is selected
+      } catch (error) {
+        console.error('Error fetching super admin data:', error);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+
+    fetchSuperAdminData();
+  }, []);
+
+  // Fetch services for selected specialty
+  useEffect(() => {
+    const fetchServicesForSpecialty = async () => {
+      if (newDoctor.specialties.length === 0) {
+        setAvailableServices([]);
+        return;
+      }
+
+      try {
+        // Get the first selected specialty (primary specialty)
+        const selectedSpecialtyName = newDoctor.specialties[0];
+        
+        // Find specialty ID
+        const { data: specialtyData, error: specialtyError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_specialties' as any)
+          .select('id')
+          .eq('name', selectedSpecialtyName)
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .maybeSingle() as any);
+
+        if (specialtyError || !specialtyData) {
+          console.error('Error finding specialty:', specialtyError);
+          setAvailableServices([]);
+          return;
+        }
+
+        // Fetch services for this specialty
+        const { data: servicesData, error: servicesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_services' as any)
+          .select('name')
+          .eq('specialty_id', specialtyData.id)
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (servicesError) {
+          console.error('Error fetching services:', servicesError);
+          setAvailableServices([]);
+        } else {
+          setAvailableServices((servicesData || []).map((s: any) => s.name));
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error);
+        setAvailableServices([]);
+      }
+    };
+
+    fetchServicesForSpecialty();
+  }, [newDoctor.specialties]);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -359,7 +436,8 @@ const ClinicAdminDoctors = () => {
 
   const handleAddSpecialty = (specialty: string) => {
     if (!newDoctor.specialties.includes(specialty)) {
-      setNewDoctor({ ...newDoctor, specialties: [...newDoctor.specialties, specialty] });
+      // Clear services when specialty changes to ensure only services for new specialty are shown
+      setNewDoctor({ ...newDoctor, specialties: [specialty], services: [] });
     }
     setShowSpecialtyDropdown(false);
   };
@@ -395,18 +473,64 @@ const ClinicAdminDoctors = () => {
       return;
     }
 
-    // TODO: Send request to admin/backend
-    // For now, just show success message
-    console.log('Service request:', newServiceName);
-    
-    setShowRequestServiceModal(false);
-    setNewServiceName('');
-    setShowRequestSuccessModal(true);
-    
-    // Auto close success modal after 3 seconds
-    setTimeout(() => {
-      setShowRequestSuccessModal(false);
-    }, 3000);
+    if (!clinic?.id || !user) {
+      toast.error('Clinic information not found');
+      return;
+    }
+
+    if (newDoctor.specialties.length === 0) {
+      toast.error('Please select a specialty first');
+      return;
+    }
+
+    try {
+      // Get the specialty ID from the selected specialty name
+      const selectedSpecialtyName = newDoctor.specialties[0];
+      const { data: specialtyData, error: specialtyError } = await supabase
+        .from('super_admin_specialties')
+        .select('id')
+        .eq('name', selectedSpecialtyName)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (specialtyError || !specialtyData) {
+        console.error('Error fetching specialty:', specialtyError);
+        toast.error('Specialty not found. Please select a valid specialty.');
+        return;
+      }
+
+      // Insert service request into database
+      const { error: requestError } = await supabase
+        .from('service_requests')
+        .insert({
+          clinic_id: clinic.id,
+          clinic_admin_id: user.id,
+          specialty_id: specialtyData.id,
+          service_name: newServiceName.trim(),
+          status: 'pending'
+        });
+
+      if (requestError) {
+        console.error('❌ Error submitting service request:', requestError);
+        toast.error('Failed to submit service request. Please try again.');
+        return;
+      }
+
+      console.log('✅ Service request submitted successfully');
+      toast.success('Service request submitted successfully!');
+      
+      setShowRequestServiceModal(false);
+      setNewServiceName('');
+      setShowRequestSuccessModal(true);
+      
+      // Auto close success modal after 3 seconds
+      setTimeout(() => {
+        setShowRequestSuccessModal(false);
+      }, 3000);
+    } catch (error) {
+      console.error('❌ Error submitting service request:', error);
+      toast.error('Failed to submit service request. Please try again.');
+    }
   };
 
   const handleOpenEditDoctor = (doctor: Doctor) => {
@@ -1247,6 +1371,7 @@ const ClinicAdminDoctors = () => {
                   <Select
                     open={showSpecialtyDropdown}
                     onOpenChange={setShowSpecialtyDropdown}
+                    value={newDoctor.specialties[0] || ''}
                     onValueChange={(value) => {
                       if (value) {
                         handleAddSpecialty(value);
@@ -1257,16 +1382,14 @@ const ClinicAdminDoctors = () => {
                       <SelectValue placeholder="Select a speciality" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableSpecialties
-                        .filter(s => !newDoctor.specialties.includes(s))
-                        .map((specialty) => (
-                          <SelectItem
-                            key={specialty}
-                            value={specialty}
-                          >
-                            {specialty}
-                          </SelectItem>
-                        ))}
+                      {availableSpecialties.map((specialty) => (
+                        <SelectItem
+                          key={specialty}
+                          value={specialty}
+                        >
+                          {specialty}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {newDoctor.specialties.length > 0 && (
@@ -1278,7 +1401,11 @@ const ClinicAdminDoctors = () => {
                         >
                           {specialty}
                           <button
-                            onClick={() => handleRemoveSpecialty(specialty)}
+                            onClick={() => {
+                              handleRemoveSpecialty(specialty);
+                              // Clear services when specialty is removed
+                              setNewDoctor({ ...newDoctor, services: [] });
+                            }}
                             className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors ml-0.5"
                             type="button"
                           >
@@ -1299,21 +1426,32 @@ const ClinicAdminDoctors = () => {
                         handleAddService(value);
                       }
                     }}
+                    disabled={newDoctor.specialties.length === 0}
                   >
-                    <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select the service" />
+                    <SelectTrigger className="mt-1.5 h-10" disabled={newDoctor.specialties.length === 0}>
+                      <SelectValue placeholder={newDoctor.specialties.length === 0 ? "Select a specialty first" : "Select the service"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableServices
-                        .filter(s => !newDoctor.services.includes(s))
-                        .map((service) => (
-                          <SelectItem
-                            key={service}
-                            value={service}
-                          >
-                            {service}
-                          </SelectItem>
-                        ))}
+                      {newDoctor.specialties.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-gray-500">
+                          Please select a specialty first
+                        </div>
+                      ) : availableServices.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-gray-500">
+                          No services available for selected specialty
+                        </div>
+                      ) : (
+                        availableServices
+                          .filter(s => !newDoctor.services.includes(s))
+                          .map((service) => (
+                            <SelectItem
+                              key={service}
+                              value={service}
+                            >
+                              {service}
+                            </SelectItem>
+                          ))
+                      )}
                       <div className="px-2 py-1.5">
                         <button
                           type="button"

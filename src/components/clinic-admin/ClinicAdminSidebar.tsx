@@ -95,15 +95,6 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
             })}
           </div>
         </div>
-        
-        {/* Others Section */}
-        <div className="mt-6">
-          {!isCollapsed && (
-            <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-3 px-3">
-              Others
-            </p>
-          )}
-        </div>
       </nav>
 
       {/* Bottom Section - Settings, Dark mode, and Sign Out */}

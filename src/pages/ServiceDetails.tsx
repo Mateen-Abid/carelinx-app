@@ -12,7 +12,7 @@ import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-import { getClinicByServiceId, getServiceById } from '@/data/clinicsData';
+import { getClinicByServiceId, getServiceById, clinicsData } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
 
 // Generate service database dynamically from clinic data
@@ -178,7 +178,11 @@ const ServiceDetails = () => {
   // Fetch database service data and all doctors providing this service
   useEffect(() => {
     const fetchDatabaseService = async () => {
+      // Reset loading state
+      setLoading(true);
+      
       if (!isDatabaseService) {
+        // For hardcoded services, loading is complete immediately
         setLoading(false);
         return;
       }
@@ -193,13 +197,29 @@ const ServiceDetails = () => {
 
         console.log('🔍 Fetching database service:', { serviceId, serviceName, doctorId });
 
-        // Get clinicId from location state (passed from ClinicDetails) or from doctor
+        // Get clinicId from location state (passed from navigation) or from doctor
         let clinicId: string | null = null;
         
         if (location.state?.clinicId) {
           clinicId = location.state.clinicId;
-        } else if (doctorId) {
-          // Fallback: fetch from first doctor if available
+          // Check if it's a UUID (database clinic) or a name (hardcoded clinic)
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicId);
+          if (!isUUID) {
+            // If it's a clinic name (hardcoded clinic), try to find it in database by name
+            const { data: clinicByName } = await supabase
+              .from('clinics')
+              .select('id')
+              .eq('name', clinicId)
+              .eq('status', 'active')
+              .maybeSingle();
+            if (clinicByName) {
+              clinicId = clinicByName.id;
+            }
+          }
+        }
+        
+        // Fallback: fetch from doctor if clinicId not found
+        if (!clinicId && doctorId) {
           const { data: firstDoctor } = await supabase
             .from('doctors')
             .select('clinic_id')
@@ -331,6 +351,56 @@ const ServiceDetails = () => {
   const service = isDatabaseService ? databaseService : getServiceById(serviceId || '');
   const clinic = isDatabaseService ? databaseClinic : getClinicByServiceId(serviceId || '');
   
+  // For hardcoded services, get all doctors who provide this service from the same clinic
+  const getHardcodedDoctors = () => {
+    if (isDatabaseService || !service || !clinic) return [];
+    
+    const doctors: Array<{name: string, specialization: string, timeSlots: string[]}> = [];
+    const doctorNames = new Set<string>();
+    
+    // Find the clinic in clinicsData
+    const hardcodedClinic = clinicsData.find(c => c.id === clinic.id);
+    if (!hardcodedClinic) return [];
+    
+    // Find all services with the same name in this clinic
+    Object.values(hardcodedClinic.categories).forEach(services => {
+      services.forEach(serviceItem => {
+        // If this service matches the selected service name
+        if (serviceItem.name === service.name && serviceItem.doctorName) {
+          // Add doctor if not already added (to avoid duplicates)
+          if (!doctorNames.has(serviceItem.doctorName)) {
+            doctorNames.add(serviceItem.doctorName);
+            doctors.push({
+              name: serviceItem.doctorName,
+              specialization: `${service.category} - Specialist`,
+              timeSlots: ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM']
+            });
+          }
+        }
+      });
+    });
+    
+    // If no doctors found, use the service's doctorName as fallback
+    if (doctors.length === 0 && service.doctorName) {
+      doctors.push({
+        name: service.doctorName,
+        specialization: `${service.category} - Specialist`,
+        timeSlots: ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM']
+      });
+    }
+    
+    // If still no doctors, use default
+    if (doctors.length === 0) {
+      doctors.push({
+        name: 'Dr. Available Doctor',
+        specialization: `${service.category} - Specialist`,
+        timeSlots: ['10:00 AM – 2:00 PM']
+      });
+    }
+    
+    return doctors;
+  };
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -380,18 +450,7 @@ const ServiceDetails = () => {
             : ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM'],
           doctorId: doctor.id
         }))
-      : [
-      {
-        name: service.doctorName || 'Dr. Ali Ashar',
-        specialization: 'MD, Specialist - 8 yrs experience',
-        timeSlots: ['10:00 AM – 2:00 PM']
-      },
-      {
-        name: 'Dr. Maya Patel',
-        specialization: 'MD, Specialist - 6 yrs experience',
-        timeSlots: ['5:00 PM – 7:00 PM']
-      }
-    ]
+      : getHardcodedDoctors()
   };
 
   const handleBookAppointment = () => {

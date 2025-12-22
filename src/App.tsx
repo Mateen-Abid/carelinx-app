@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminClinics from "./pages/admin/Clinics";
 import AdminAppointments from "./pages/admin/Appointments";
 import AdminDoctors from "./pages/admin/Doctors";
+import AdminServices from "./pages/admin/Services";
 import AdminPatients from "./pages/admin/Patients";
 import AdminSettings from "./pages/admin/Settings";
 import ClinicAdminDashboard from "./pages/clinic-admin/Dashboard";
@@ -184,6 +185,7 @@ const App = () => (
               <Route path="/admin/clinics" element={<AdminClinics />} />
               <Route path="/admin/appointments" element={<AdminAppointments />} />
               <Route path="/admin/doctors" element={<AdminDoctors />} />
+              <Route path="/admin/services" element={<AdminServices />} />
               <Route path="/admin/patients" element={<AdminPatients />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               

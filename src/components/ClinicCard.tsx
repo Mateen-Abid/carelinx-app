@@ -22,6 +22,7 @@ interface ClinicCardProps {
   isCallOnly?: boolean;
   phoneNumber?: string;
   onBookingClick?: () => void;
+  hasSelectedService?: boolean; // Indicates if a service is selected
 }
 
 const ClinicCard: React.FC<ClinicCardProps> = ({
@@ -39,7 +40,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   timingIcon,
   isCallOnly = false,
   phoneNumber,
-  onBookingClick
+  onBookingClick,
+  hasSelectedService = false
 }) => {
   const navigate = useNavigate();
 
@@ -49,6 +51,14 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
       return;
     }
     
+    // If a service is selected and onBookingClick is provided, use that instead
+    if (hasSelectedService && onBookingClick) {
+      console.log('✅ Service selected, calling onBookingClick instead of navigating to ClinicDetails');
+      onBookingClick();
+      return;
+    }
+    
+    // Otherwise, navigate to clinic details page
     // Use the clinic ID if available, otherwise fallback to name-based slug
     if (id) {
       navigate(`/clinic/${id}`);

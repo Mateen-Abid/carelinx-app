@@ -55,22 +55,35 @@ const SearchInput: React.FC<SearchInputProps> = ({
     const isMainCategorySelected = selectedCategory === 'dermatology' || selectedCategory === 'dentistry';
     
     if (isMainCategorySelected) {
-      // Show only subcategories for the selected main category
-      const categoryName = selectedCategory === 'dermatology' ? 'Dermatology' : 'Dental';
+      // Map category ID to actual category names (including all possible categories)
+      const categoryMap: { [key: string]: string[] } = {
+        'dermatology': ['Dermatology'],
+        'dentistry': ['Dental', 'Orthodontics', 'Dental Implants', 'Pediatric Dentistry', 
+                      'Fixed & Removable Prosthodontics', 'Restorative & Cosmetic Dentistry',
+                      'Root Canal & Endodontics', 'Periodontal Treatment', 
+                      'Oral & Maxillofacial Surgery', 'General Dentistry']
+      };
       
+      // Get all category names that match the selected category
+      const categoryNames = categoryMap[selectedCategory] || [];
+      
+      // Show all services from all hardcoded clinics that match any of these categories
       clinicsData.forEach(clinic => {
-        if (clinic.categories[categoryName]) {
-          clinic.categories[categoryName].forEach(service => {
-            if (!options.find(opt => opt.id === service.id)) {
-              options.push({
-                id: service.id,
-                name: service.name,
-                category: service.category,
-                type: 'subcategory'
-              });
-            }
-          });
-        }
+        Object.entries(clinic.categories).forEach(([categoryName, services]) => {
+          // Check if this category matches the selected category
+          if (categoryNames.includes(categoryName)) {
+            services.forEach(service => {
+              if (!options.find(opt => opt.id === service.id)) {
+                options.push({
+                  id: service.id,
+                  name: service.name,
+                  category: service.category,
+                  type: 'subcategory'
+                });
+              }
+            });
+          }
+        });
       });
     } else {
       // Show main categories when no category is selected

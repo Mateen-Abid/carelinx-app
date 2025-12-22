@@ -200,6 +200,7 @@ const ClinicAdminDashboard = () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const weekStart = new Date(today);
       weekStart.setDate(weekStart.getDate() - today.getDay()); // Start of week (Sunday)
+      weekStart.setHours(0, 0, 0, 0); // Ensure it's at midnight for proper comparison
 
       // Fetch bookings for this clinic
       // Note: We'll fetch bookings and profiles separately to avoid join issues
@@ -277,8 +278,17 @@ const ClinicAdminDashboard = () => {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-      // Today's appointments (all statuses for today)
-      const todayBookings = bookingsWithProfiles?.filter((b: any) => b.appointment_date === todayStr) || [];
+      // Today's appointments (all statuses for today) - use proper date comparison
+      const todayBookings = bookingsWithProfiles?.filter((b: any) => {
+        if (!b.appointment_date) return false;
+        const bookingDate = new Date(b.appointment_date);
+        bookingDate.setHours(0, 0, 0, 0);
+        return bookingDate.getTime() === today.getTime();
+      }) || [];
+      
+      console.log('📊 Today\'s appointments count:', todayBookings.length);
+      console.log('📅 Today date:', todayStr);
+      console.log('📋 Sample booking dates:', bookingsWithProfiles?.slice(0, 5).map((b: any) => b.appointment_date));
       
       // Pending approvals (all pending status bookings)
       const pendingBookings = bookingsWithProfiles?.filter((b: any) => b.status === 'pending') || [];
@@ -321,8 +331,13 @@ const ClinicAdminDashboard = () => {
       const newPatients = Array.from(patientFirstBookingMap.entries())
         .filter(([_, firstBookingDate]) => firstBookingDate >= sevenDaysAgo).length;
 
-      // Calculate yesterday's stats for comparison
-      const yesterdayBookings = bookingsWithProfiles?.filter((b: any) => b.appointment_date === yesterdayStr) || [];
+      // Calculate yesterday's stats for comparison - use proper date comparison
+      const yesterdayBookings = bookingsWithProfiles?.filter((b: any) => {
+        if (!b.appointment_date) return false;
+        const bookingDate = new Date(b.appointment_date);
+        bookingDate.setHours(0, 0, 0, 0);
+        return bookingDate.getTime() === yesterday.getTime();
+      }) || [];
       const yesterdayPending = bookingsWithProfiles?.filter((b: any) => 
         b.status === 'pending' && b.appointment_date === yesterdayStr
       ) || [];
@@ -405,15 +420,26 @@ const ClinicAdminDashboard = () => {
 
       // Filter pending requests based on selected pending filter
       let filteredPendingBookings = bookingsWithProfiles || [];
+      
+      // First filter by date range based on selected pending filter
       if (selectedPendingFilter === 'today') {
-        filteredPendingBookings = bookingsWithProfiles?.filter((b: any) => b.appointment_date === todayStr) || [];
+        filteredPendingBookings = bookingsWithProfiles?.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === today.getTime();
+        }) || [];
       } else if (selectedPendingFilter === 'tomorrow') {
-        filteredPendingBookings = bookingsWithProfiles?.filter((b: any) => b.appointment_date === tomorrowStr) || [];
+        filteredPendingBookings = bookingsWithProfiles?.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === tomorrow.getTime();
+        }) || [];
       } else if (selectedPendingFilter === 'this-week') {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 7);
         filteredPendingBookings = bookingsWithProfiles?.filter((b: any) => {
           const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
           return bookingDate >= weekStart && bookingDate < weekEnd;
         }) || [];
       }
@@ -737,164 +763,167 @@ const ClinicAdminDashboard = () => {
               </div>
             </div>
 
-            {/* Upcoming Appointments Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Upcoming Appointments
-                </h2>
-                <div className="flex items-center gap-2">
-                  {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setSelectedTimeFilter(filter)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        selectedTimeFilter === filter
-                          ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
-                    </button>
-                  ))}
+            {/* Upcoming Appointments and Pending Request - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upcoming Appointments Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Upcoming Appointments
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedTimeFilter(filter)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          selectedTimeFilter === filter
+                            ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
+                    <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+                  </div>
+                ) : upcomingAppointments.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Patient Name
+                          </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Doctor's / Treatment
+                          </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Date & Time
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {upcomingAppointments.map((appointment) => (
+                          <tr
+                            key={appointment.id}
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-medium">
+                              {appointment.patient_name}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                              {appointment.doctor_name} / {appointment.specialty}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                              {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No upcoming appointments</p>
+                  </div>
+                )}
               </div>
 
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-                </div>
-              ) : upcomingAppointments.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Patient Name
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Doctor's / Treatment
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Date & Time
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingAppointments.map((appointment) => (
-                        <tr
-                          key={appointment.id}
-                          className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-medium">
-                            {appointment.patient_name}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {appointment.doctor_name} / {appointment.specialty}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                    <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+              {/* Pending Request Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Pending Request
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedPendingFilter(filter)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          selectedPendingFilter === filter
+                            ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">No upcoming appointments</p>
                 </div>
-              )}
-            </div>
 
-            {/* Pending Request Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Pending Request
-                </h2>
-                <div className="flex items-center gap-2">
-                  {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setSelectedPendingFilter(filter)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        selectedPendingFilter === filter
-                          ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
-                    </button>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
+                    <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+                  </div>
+                ) : pendingRequests.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Patient Name
+                          </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Specialty
+                          </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Date & Time
+                          </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingRequests.map((request) => (
+                          <tr
+                            key={request.id}
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-medium">
+                              {request.patient_name}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                              {request.specialty}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                              {formatDate(request.appointment_date)} at {formatTime(request.appointment_time)}
+                            </td>
+                            <td className="py-4 px-4">
+                              <Button
+                                size="sm"
+                                className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
+                                onClick={() => handleViewDetails(request)}
+                              >
+                                View Details
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No pending request</p>
+                  </div>
+                )}
               </div>
-
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-                </div>
-              ) : pendingRequests.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Patient Name
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Specialty
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Date & Time
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingRequests.map((request) => (
-                        <tr
-                          key={request.id}
-                          className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-medium">
-                            {request.patient_name}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {request.specialty}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {formatDate(request.appointment_date)} at {formatTime(request.appointment_time)}
-                          </td>
-                          <td className="py-4 px-4">
-                            <Button
-                              size="sm"
-                              className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
-                              onClick={() => handleViewDetails(request)}
-                            >
-                              View Details
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                    <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">No pending request</p>
-                </div>
-              )}
             </div>
           </div>
         </main>

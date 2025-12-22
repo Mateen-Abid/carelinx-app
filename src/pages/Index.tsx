@@ -27,15 +27,18 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<string>(''); // Track selected service name
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(''); // Track selected service ID for navigation
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<string>('');
+  const selectedClinicRef = useRef<string>(''); // Ref to store clinic name synchronously
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showDistanceFilter, setShowDistanceFilter] = useState(false);
   const [distanceFilter, setDistanceFilter] = useState<'nearest' | 'farthest' | null>(null);
   const [clinicSearchQuery, setClinicSearchQuery] = useState<string>('');
   const [databaseClinics, setDatabaseClinics] = useState<DatabaseClinic[]>([]);
   const [loadingClinics, setLoadingClinics] = useState(true);
-  const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null}>>>({});
+  const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>>({});
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -91,8 +94,16 @@ const Index = () => {
                   availability: doctor.availability,
                   services: doctor.services
                 });
+                
+                // Debug: Log doctor services
+                if (doctor.services) {
+                  console.log(`👨‍⚕️ Doctor ${doctor.name} (${doctor.specialty}) has services:`, doctor.services);
+                } else {
+                  console.log(`⚠️ Doctor ${doctor.name} (${doctor.specialty}) has NO services`);
+                }
               });
               setClinicDoctors(doctorsByClinic);
+              console.log('📋 Doctors grouped by clinic:', Object.keys(doctorsByClinic).length, 'clinics');
             }
           }
         }
@@ -120,13 +131,44 @@ const Index = () => {
     };
   }, []);
 
-  // Generate service cards from clinic data
+  // Generate service cards from database clinics and doctors, with fallback to hardcoded data
   const serviceCards = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cards: any[] = [];
     const defaultIcon = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=40&h=40&fit=crop&crop=center&auto=format";
     const timeIcon = "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=20&h=20&fit=crop&crop=center&auto=format";
 
+    // Generate service cards from database clinics and doctors
+    databaseClinics.forEach(clinic => {
+      const doctors = clinicDoctors[clinic.id] || [];
+      
+      doctors.forEach(doctor => {
+        // Check if doctor has services in the database
+        if (doctor.services && doctor.services.trim().length > 0) {
+          // Parse comma-separated services string
+          const doctorServices = doctor.services.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          
+          // Create a service card for each service this doctor provides
+          doctorServices.forEach(serviceName => {
+            cards.push({
+              clinicName: clinic.name,
+              address: clinic.address,
+              serviceName: serviceName,
+              specialty: doctor.specialty,
+              timeSchedule: '9:00 AM – 6:00 PM • Mon–Sat', // Default schedule
+              serviceIcon: defaultIcon,
+              clinicIcon: clinic.logo_url || defaultIcon,
+              timeIcon: timeIcon,
+              serviceId: `doctor-${doctor.id}-${serviceName.toLowerCase().replace(/\s+/g, '-')}`,
+              doctorName: doctor.name,
+              doctorId: doctor.id
+            });
+          });
+        }
+      });
+    });
+
+    // Always add hardcoded service cards for all hardcoded clinics (for UI purposes)
     clinicsData.forEach(clinic => {
       Object.entries(clinic.categories).forEach(([categoryName, services]) => {
         services.forEach(service => {
@@ -139,15 +181,21 @@ const Index = () => {
             serviceIcon: defaultIcon,
             clinicIcon: clinic.logo,
             timeIcon: timeIcon,
-            serviceId: service.id, // Add the actual service ID
-            doctorName: service.doctorName // Add the doctor name
+            serviceId: service.id,
+            doctorName: service.doctorName
           });
         });
       });
     });
 
+    console.log('✅ Generated service cards (database + hardcoded):', cards.length);
+    console.log('📋 Service cards by clinic:', cards.reduce((acc, card) => {
+      acc[card.clinicName] = (acc[card.clinicName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>));
+
     return cards;
-  }, []);
+  }, [databaseClinics, clinicDoctors]);
 
   // Generate clinic cards - merge database clinics with hardcoded data
   const clinicCards = useMemo(() => {
@@ -178,27 +226,36 @@ const Index = () => {
       };
     });
 
-    // Add hardcoded clinics that aren't in database (for backward compatibility)
-    const hardcodedClinicCards = clinicsData
-      .filter(hc => !databaseClinics.some(dc => dc.name.toLowerCase() === hc.name.toLowerCase()))
-      .map(clinic => ({
-        id: clinic.id,
-        name: clinic.name,
-        address: clinic.address,
-        type: clinic.type,
-        services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
-          name: categoryName,
-          icon: defaultIcon
-        })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
-        doctorCount: clinic.doctorCount,
-        daysOpen: clinic.daysOpen,
-        timing: clinic.timing,
-        logo: clinic.logo,
-        daysIcon: daysIcon,
-        timingIcon: timingIcon
-      }));
+    // Always add all hardcoded clinics (for UI purposes)
+    const hardcodedClinicCards = clinicsData.map(clinic => ({
+      id: clinic.id,
+      name: clinic.name,
+      address: clinic.address,
+      type: clinic.type,
+      services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
+        name: categoryName,
+        icon: defaultIcon
+      })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
+      doctorCount: clinic.doctorCount,
+      daysOpen: clinic.daysOpen,
+      timing: clinic.timing,
+      logo: clinic.logo,
+      daysIcon: daysIcon,
+      timingIcon: timingIcon
+    }));
 
-    return [...dbClinicCards, ...hardcodedClinicCards];
+    // Merge database and hardcoded clinics, prioritizing database clinics if names match
+    const mergedClinicCards = [...dbClinicCards];
+    hardcodedClinicCards.forEach(hc => {
+      const existsInDb = mergedClinicCards.some(dc => 
+        dc.name.toLowerCase() === hc.name.toLowerCase()
+      );
+      if (!existsInDb) {
+        mergedClinicCards.push(hc);
+      }
+    });
+
+    return mergedClinicCards;
   }, [databaseClinics]);
 
   // Generate service mapping from clinic data
@@ -228,22 +285,106 @@ const Index = () => {
     // Clear search query when switching categories to reset subcategory selection
     setSearchQuery('');
     setSelectedCategory(categoryId);
+    setSelectedService(''); // Clear selected service when category changes
+    setSelectedServiceId(''); // Clear selected service ID when category changes
+    setViewMode('services'); // Switch back to services view
+  };
+
+  // Wrapper for viewMode change that preserves selectedCategory when switching views
+  const handleViewModeChange = (mode: 'services' | 'clinics') => {
+    // Never clear selectedCategory when switching views - preserve it so user can navigate back
+    // The selectedCategory should persist across view mode changes
+    setViewMode(mode);
   };
 
   const handleClinicBooking = (clinicName: string) => {
+    console.log('🎯 handleClinicBooking called with clinicName:', clinicName);
+    console.log('📋 Current state:', {
+      selectedService,
+      selectedServiceId,
+      selectedCategory,
+      viewMode
+    });
+    console.log('📋 Available clinics:', clinicCards.map(c => c.name));
+    
+    if (!clinicName || clinicName.trim() === '') {
+      console.error('❌ Empty clinic name passed to handleClinicBooking');
+      return;
+    }
+    
+    // Find the clinic card to get the actual clinic ID
+    const clinicCard = clinicCards.find(c => 
+      c.name.toLowerCase() === clinicName.toLowerCase()
+    );
+    
+    // If a service is already selected, navigate to ServiceDetails page with the selected service
+    if (selectedService && selectedService.trim() && selectedServiceId && selectedServiceId.trim()) {
+      console.log('✅ Service is selected, navigating to ServiceDetails...');
+      
+      // Find the service card that matches the selected service name and clinic
+      const matchingServiceCard = serviceCards.find(card => 
+        card.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+        card.clinicName.toLowerCase() === clinicName.toLowerCase()
+      );
+      
+      // Use the stored serviceId or the one from matching card
+      const serviceIdToUse = matchingServiceCard?.serviceId || selectedServiceId;
+      
+      console.log('🔍 Service ID to use:', serviceIdToUse);
+      console.log('🔍 Matching service card:', matchingServiceCard);
+      
+      if (serviceIdToUse) {
+        // Get the actual clinic ID (UUID) if it's a database clinic, otherwise use clinic name
+        const actualClinicId = clinicCard?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicCard.id)
+          ? clinicCard.id
+          : clinicName; // For hardcoded clinics, use name as fallback
+        
+        console.log('✅ Navigating to ServiceDetails with:', {
+          serviceId: serviceIdToUse,
+          clinicId: actualClinicId,
+          clinicName: clinicName
+        });
+        
+        // Navigate to service details page which has date/time selection
+        navigate(`/service/${serviceIdToUse}`, {
+          state: {
+            clinicId: actualClinicId, // Pass actual clinic ID (UUID) or name
+            clinicName: clinicName,
+            isDatabaseService: serviceIdToUse.startsWith('doctor-')
+          }
+        });
+        return;
+      } else {
+        console.error('❌ No serviceId found, cannot navigate');
+      }
+    } else {
+      console.log('⚠️ No service selected, opening booking modal instead');
+    }
+    
+    // If no service is selected, open the booking modal (fallback behavior)
+    selectedClinicRef.current = clinicName;
     setSelectedClinic(clinicName);
     setIsBookingModalOpen(true);
+    console.log('✅ Selected clinic set to:', clinicName);
   };
 
   // Get clinic services for the selected clinic (memoized to recalculate when dependencies change)
   const getSelectedClinicServices = useMemo(() => {
-    console.log('🔍 getSelectedClinicServices called for clinic:', selectedClinic);
+    // Use ref value if state is not yet updated (for immediate access)
+    const clinicName = selectedClinicRef.current || selectedClinic;
+    console.log('🔍 getSelectedClinicServices called for clinic:', clinicName);
     console.log('📋 Available database clinics:', databaseClinics.map(c => c.name));
     console.log('👨‍⚕️ Clinic doctors data:', clinicDoctors);
     
+    // Early return if no clinic is selected
+    if (!clinicName || clinicName.trim() === '') {
+      console.log('⚠️ No clinic selected, returning empty services');
+      return [];
+    }
+    
     // First try database clinic (case-insensitive match)
     const dbClinic = databaseClinics.find(c => 
-      c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+      c.name.toLowerCase().trim() === clinicName.toLowerCase().trim()
     );
     
     if (dbClinic) {
@@ -254,28 +395,42 @@ const Index = () => {
       
       if (doctors.length > 0) {
         // Convert doctors to services format
-        // Each doctor's specialty becomes a service
+        // Parse actual services from doctors' services column (comma-separated)
         const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
         
         doctors.forEach(doctor => {
-          // Use specialty as the service name, or create a service name from specialty
-          const serviceName = doctor.specialty;
-          const category = doctor.specialty; // Specialty is also the category
-          
-          services.push({
-            id: `doctor-${doctor.id}`,
-            name: serviceName,
-            category: category,
-            doctorName: doctor.name,
-            doctorId: doctor.id
-          });
+          // Check if doctor has services in the database
+          if (doctor.services && doctor.services.trim().length > 0) {
+            // Parse comma-separated services string
+            const doctorServices = doctor.services.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            // Create a service entry for each service this doctor provides
+            doctorServices.forEach(serviceName => {
+              services.push({
+                id: `doctor-${doctor.id}-${serviceName.toLowerCase().replace(/\s+/g, '-')}`,
+                name: serviceName,
+                category: doctor.specialty, // Use specialty as category
+                doctorName: doctor.name,
+                doctorId: doctor.id
+              });
+            });
+          } else {
+            // If no services, use specialty as fallback
+            services.push({
+              id: `doctor-${doctor.id}`,
+              name: doctor.specialty,
+              category: doctor.specialty,
+              doctorName: doctor.name,
+              doctorId: doctor.id
+            });
+          }
         });
         
         console.log('✅ Created services from doctors:', services);
         
         // Also merge with hardcoded services if available for backward compatibility
         const hardcodedClinic = clinicsData.find(c => 
-          c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+          c.name.toLowerCase().trim() === clinicName.toLowerCase().trim()
         );
         if (hardcodedClinic) {
           console.log('📝 Also found hardcoded clinic, merging services');
@@ -302,7 +457,7 @@ const Index = () => {
       console.log('⚠️ No doctors found in database for clinic:', dbClinic.name);
       // If no doctors in database, fall back to hardcoded if available
       const hardcodedClinic = clinicsData.find(c => 
-        c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+        c.name.toLowerCase().trim() === clinicName.toLowerCase().trim()
       );
       if (hardcodedClinic) {
         console.log('📝 Using hardcoded services as fallback');
@@ -328,10 +483,10 @@ const Index = () => {
     console.log('⚠️ Database clinic not found, trying hardcoded');
     // Fall back to hardcoded clinic
     const clinic = clinicsData.find(c => 
-      c.name.toLowerCase().trim() === selectedClinic.toLowerCase().trim()
+      c.name.toLowerCase().trim() === clinicName.toLowerCase().trim()
     );
     if (!clinic) {
-      console.log('❌ Hardcoded clinic also not found for:', selectedClinic);
+      console.log('❌ Hardcoded clinic also not found for:', clinicName);
       return [];
     }
     
@@ -406,8 +561,36 @@ const Index = () => {
 
   // Get schedule for selected clinic
   const getSelectedClinicSchedule = (): Record<string, string> => {
-    const clinicService = serviceCards.find(card => card.clinicName === selectedClinic);
-    return clinicService ? parseTimeSchedule(clinicService.timeSchedule) : {};
+    // Use ref value if state is not yet updated (for immediate access)
+    const clinicName = selectedClinicRef.current || selectedClinic;
+    if (!clinicName || clinicName.trim() === '') {
+      return {};
+    }
+    
+    // First try to find in serviceCards (for service view)
+    const clinicService = serviceCards.find(card => card.clinicName === clinicName);
+    if (clinicService) {
+      return parseTimeSchedule(clinicService.timeSchedule);
+    }
+    
+    // Fallback: try to find in clinicCards (for clinic view)
+    const clinicCard = clinicCards.find(card => card.name === clinicName);
+    if (clinicCard) {
+      // Return a default schedule based on clinic's timing
+      // Format: "Mon–Sat: 9:00 AM – 6:00 PM" -> parse it
+      const defaultSchedule: Record<string, string> = {
+        'Mon': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Tue': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Wed': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Thu': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Fri': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Sat': clinicCard.timing || '9:00 AM – 6:00 PM',
+        'Sun': 'Closed'
+      };
+      return defaultSchedule;
+    }
+    
+    return {};
   };
 
   const handleDateSelect = (date: Date) => {
@@ -417,14 +600,27 @@ const Index = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleOptionSelect = (option: any) => {
-    // If it's a subcategory, keep the parent category selected and set search query
+    console.log('🎯 handleOptionSelect called with option:', option);
+    
+    // If it's a subcategory (service), switch to clinics view and filter by that service
     if (option.type === 'subcategory') {
-      // Don't change selectedCategory, just set the search query to show the subcategory
-      setSearchQuery(option.name);
+      console.log('✅ Service selected:', option.name, 'ID:', option.id);
+      setSelectedService(option.name); // Store the selected service name
+      setSelectedServiceId(option.id); // Store the selected service ID for navigation
+      setSearchQuery(option.name); // Set search query for display
+      setViewMode('clinics'); // Switch to clinics view to show clinics offering this service
+      console.log('✅ Switched to clinics view, service stored:', {
+        name: option.name,
+        id: option.id
+      });
     } else {
       // If it's a main category, set it as selected category
+      console.log('✅ Category selected:', option.id);
       setSelectedCategory(option.id);
       setSearchQuery(''); // Clear search when selecting main category
+      setSelectedService(''); // Clear selected service
+      setSelectedServiceId(''); // Clear selected service ID
+      setViewMode('services'); // Stay in services view
     }
   };
 
@@ -494,28 +690,49 @@ const Index = () => {
     return filtered;
   }, [selectedCategory, searchQuery, serviceCards, serviceMapping]);
 
-  // Filter clinic cards based on search query
+  // Filter clinic cards based on search query and selected service
   const filteredClinicCards = useMemo(() => {
-    if (!clinicSearchQuery.trim()) {
-      return clinicCards;
+    let filtered = clinicCards;
+    
+    // First filter by selected service if one is selected
+    if (selectedService.trim()) {
+      // Get all service cards that match the selected service
+      const matchingServiceCards = serviceCards.filter(card => 
+        card.serviceName.toLowerCase() === selectedService.toLowerCase()
+      );
+      
+      // Get unique clinic names from matching service cards
+      const clinicNamesWithService = new Set(
+        matchingServiceCards.map(card => card.clinicName.toLowerCase())
+      );
+      
+      // Filter clinics to only show those offering the selected service
+      filtered = filtered.filter(clinic =>
+        clinicNamesWithService.has(clinic.name.toLowerCase())
+      );
     }
     
-    return clinicCards.filter(clinic =>
-      clinic.name.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
-      clinic.address.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
-      clinic.type.toLowerCase().includes(clinicSearchQuery.toLowerCase())
-    );
-  }, [clinicCards, clinicSearchQuery]);
+    // Then apply clinic search query filter if present
+    if (clinicSearchQuery.trim()) {
+      filtered = filtered.filter(clinic =>
+        clinic.name.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
+        clinic.address.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
+        clinic.type.toLowerCase().includes(clinicSearchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [clinicCards, clinicSearchQuery, selectedService, serviceCards]);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
       <Header 
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
       />
       <HeroSection 
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
       />
@@ -549,83 +766,8 @@ const Index = () => {
                 </div>
               )}
               
-              {selectedCategory && (
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px]">
-                    Services available at
-                  </h2>
-                
-                {/* Filter Button */}
-                <div className="relative" ref={filterRef}>
-                  <button
-                    onClick={() => setShowDistanceFilter(!showDistanceFilter)}
-                    className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700">Filter</span>
-                    <svg className={`w-4 h-4 text-gray-600 transition-transform ${showDistanceFilter ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  {/* Dropdown Menu */}
-                  {showDistanceFilter && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            setDistanceFilter('nearest');
-                            setShowDistanceFilter(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                            distanceFilter === 'nearest' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            Nearest
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDistanceFilter('farthest');
-                            setShowDistanceFilter(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                            distanceFilter === 'farthest' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            Farthest
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              )}
-              
-              {filteredServiceCards.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
-                  {filteredServiceCards.map((card, index) => (
-                    <ServiceCard
-                      key={index}
-                      {...card}
-                      isSpecial={index === 6}
-                    />
-                  ))}
-                </div>
-              ) : (
+              {/* Services are only shown in the search dropdown, not as cards below */}
+              {!selectedCategory && (
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="w-16 h-16 mb-4">
                     <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -639,8 +781,7 @@ const Index = () => {
                     </svg>
                   </div>
                   <p className="text-gray-500 text-lg font-medium">
-                    {searchQuery.trim() ? `No services found for "${searchQuery}"` : 
-                     selectedCategory ? 'Pick a service first' : 'Pick a specialty first'}
+                    Pick a specialty first
                   </p>
                 </div>
               )}
@@ -681,6 +822,7 @@ const Index = () => {
                       key={index} 
                       {...clinic} 
                       onBookingClick={() => handleClinicBooking(clinic.name)}
+                      hasSelectedService={!!(selectedService && selectedService.trim() && selectedServiceId && selectedServiceId.trim())}
                     />
                   ))}
                 </div>
@@ -710,20 +852,23 @@ const Index = () => {
       {/* Bottom Navigation - Mobile Only */}
       <BottomNavigation 
         viewMode={viewMode} 
-        onViewModeChange={setViewMode} 
+        onViewModeChange={handleViewModeChange} 
       />
 
-      <BookingModal 
-        isOpen={isBookingModalOpen}
-        onClose={() => {
-          setIsBookingModalOpen(false);
-          setSelectedClinic(''); // Reset selected clinic when modal closes
-        }}
-        clinicName={selectedClinic}
-        serviceSchedule={getSelectedClinicSchedule()}
-        clinicServices={getSelectedClinicServices}
-        doctorName={getSelectedClinicServices[0]?.doctorName || 'Dr. Available Doctor'}
-      />
+      {isBookingModalOpen && (
+        <BookingModal 
+          isOpen={isBookingModalOpen}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setSelectedClinic(''); // Reset selected clinic when modal closes
+            selectedClinicRef.current = ''; // Reset ref as well
+          }}
+          clinicName={selectedClinicRef.current || selectedClinic}
+          serviceSchedule={getSelectedClinicSchedule()}
+          clinicServices={getSelectedClinicServices}
+          doctorName={getSelectedClinicServices[0]?.doctorName || 'Dr. Available Doctor'}
+        />
+      )}
     </div>
   );
 };

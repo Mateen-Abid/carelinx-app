@@ -1067,8 +1067,8 @@ const AdminClinics = () => {
           }
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-800">
-          {/* Custom Header with X button */}
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-800 [&>button]:hidden">
+          {/* Custom Header with Close Button */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4">
             <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Clinic Details</DialogTitle>
             <button
