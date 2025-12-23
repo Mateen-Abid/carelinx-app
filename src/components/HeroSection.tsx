@@ -7,9 +7,10 @@ interface HeroSectionProps {
   onViewModeChange: (mode: 'services' | 'clinics') => void;
   selectedCategory: string;
   onCategoryChange: (categoryId: string) => void;
+  superAdminSpecialties?: Array<{id: string, name: string}>;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, selectedCategory, onCategoryChange }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, selectedCategory, onCategoryChange, superAdminSpecialties = [] }) => {
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -120,6 +121,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
               <ServicesFilter 
                 selectedCategory={selectedCategory}
                 onCategoryChange={onCategoryChange}
+                superAdminSpecialties={superAdminSpecialties}
               />
             </div>
           )}

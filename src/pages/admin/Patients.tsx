@@ -50,7 +50,7 @@ const AdminPatients = () => {
   const [selectedPatients, setSelectedPatients] = useState<string[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState('All Clinics');
-  const [selectedDate, setSelectedDate] = useState('All Time');
+  const [selectedDate, setSelectedDate] = useState('To date');
   const [patientsData, setPatientsData] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [clinics, setClinics] = useState<string[]>(['All Clinics']);
@@ -83,7 +83,7 @@ const AdminPatients = () => {
   const [deletingPatient, setDeletingPatient] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
 
-  const dateOptions = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month', 'Last Month'];
+  const dateOptions = ['To date', 'Today', 'Yesterday', 'This Week', 'This Month', 'Last Month'];
 
   useEffect(() => {
     fetchPatients();

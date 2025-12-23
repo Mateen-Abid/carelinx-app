@@ -583,205 +583,6 @@ const ClinicAdminSettings = () => {
                 </div>
               </div>
 
-              {/* General Settings Card */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">General Settings</h2>
-                <div className="space-y-6">
-                  {/* Default Appointment Duration */}
-                  <div>
-                    <Label htmlFor="appointmentDuration" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
-                      Default Appointment Duration
-                    </Label>
-                    <Select value={defaultAppointmentDuration} onValueChange={setDefaultAppointmentDuration}>
-                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Select duration" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15 Minutes">15 Minutes</SelectItem>
-                        <SelectItem value="30 Minutes">30 Minutes</SelectItem>
-                        <SelectItem value="45 Minutes">45 Minutes</SelectItem>
-                        <SelectItem value="60 Minutes">60 Minutes</SelectItem>
-                        <SelectItem value="90 Minutes">90 Minutes</SelectItem>
-                        <SelectItem value="120 Minutes">120 Minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Set average length of bookings.</p>
-                  </div>
-
-                  {/* Timezone */}
-                  <div>
-                    <Label htmlFor="timezone" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
-                      Timezone
-                    </Label>
-                    <Select value={timezone} onValueChange={setTimezone}>
-                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UTC - 12">UTC - 12</SelectItem>
-                        <SelectItem value="UTC - 11">UTC - 11</SelectItem>
-                        <SelectItem value="UTC - 10">UTC - 10</SelectItem>
-                        <SelectItem value="UTC - 9">UTC - 9</SelectItem>
-                        <SelectItem value="UTC - 8">UTC - 8</SelectItem>
-                        <SelectItem value="UTC - 7">UTC - 7</SelectItem>
-                        <SelectItem value="UTC - 6">UTC - 6</SelectItem>
-                        <SelectItem value="UTC - 5">UTC - 5</SelectItem>
-                        <SelectItem value="UTC - 4">UTC - 4</SelectItem>
-                        <SelectItem value="UTC - 3">UTC - 3</SelectItem>
-                        <SelectItem value="UTC - 2">UTC - 2</SelectItem>
-                        <SelectItem value="UTC - 1">UTC - 1</SelectItem>
-                        <SelectItem value="UTC + 0">UTC + 0</SelectItem>
-                        <SelectItem value="UTC + 1">UTC + 1</SelectItem>
-                        <SelectItem value="UTC + 2">UTC + 2</SelectItem>
-                        <SelectItem value="UTC + 3">UTC + 3</SelectItem>
-                        <SelectItem value="UTC + 4">UTC + 4</SelectItem>
-                        <SelectItem value="UTC + 5">UTC + 5</SelectItem>
-                        <SelectItem value="UTC + 6">UTC + 6</SelectItem>
-                        <SelectItem value="UTC + 7">UTC + 7</SelectItem>
-                        <SelectItem value="UTC + 8">UTC + 8</SelectItem>
-                        <SelectItem value="UTC + 9">UTC + 9</SelectItem>
-                        <SelectItem value="UTC + 10">UTC + 10</SelectItem>
-                        <SelectItem value="UTC + 11">UTC + 11</SelectItem>
-                        <SelectItem value="UTC + 12">UTC + 12</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Define clinic's default timezone.</p>
-                  </div>
-
-                  {/* Date Format */}
-                  <div>
-                    <Label htmlFor="dateFormat" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
-                      Date Format
-                    </Label>
-                    <Select value={dateFormat} onValueChange={setDateFormat}>
-                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Select date format" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                        <SelectItem value="YYYY/MM/DD">YYYY/MM/DD</SelectItem>
-                        <SelectItem value="DD-MM-YYYY">DD-MM-YYYY</SelectItem>
-                        <SelectItem value="MM-DD-YYYY">MM-DD-YYYY</SelectItem>
-                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                        <SelectItem value="DD.MM.YYYY">DD.MM.YYYY</SelectItem>
-                        <SelectItem value="MM.DD.YYYY">MM.DD.YYYY</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose how dates are displayed.</p>
-                  </div>
-
-                  {/* Language */}
-                  <div>
-                    <Label htmlFor="language" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
-                      Language
-                    </Label>
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="English (US)">English (US)</SelectItem>
-                        <SelectItem value="English (UK)">English (UK)</SelectItem>
-                        <SelectItem value="Spanish">Spanish</SelectItem>
-                        <SelectItem value="French">French</SelectItem>
-                        <SelectItem value="German">German</SelectItem>
-                        <SelectItem value="Italian">Italian</SelectItem>
-                        <SelectItem value="Portuguese">Portuguese</SelectItem>
-                        <SelectItem value="Arabic">Arabic</SelectItem>
-                        <SelectItem value="Chinese">Chinese</SelectItem>
-                        <SelectItem value="Japanese">Japanese</SelectItem>
-                        <SelectItem value="Korean">Korean</SelectItem>
-                        <SelectItem value="Russian">Russian</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Default interface language.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notification Settings Card */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Appointment Alerts</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Notify admin for new bookings.</p>
-                    </div>
-                    <button
-                      onClick={() => setAppointmentAlerts(!appointmentAlerts)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        appointmentAlerts ? 'bg-[#00FFA2]' : 'bg-[#0C2243]'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          appointmentAlerts ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Doctor Schedule Updates</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Alert when doctors change availability.</p>
-                    </div>
-                    <button
-                      onClick={() => setDoctorScheduleUpdates(!doctorScheduleUpdates)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        doctorScheduleUpdates ? 'bg-[#00FFA2]' : 'bg-[#0C2243]'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          doctorScheduleUpdates ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Patient Reminders</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Send email/SMS reminders before appointments.</p>
-                    </div>
-                    <button
-                      onClick={() => setPatientReminders(!patientReminders)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        patientReminders ? 'bg-[#00FFA2]' : 'bg-[#0C2243]'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          patientReminders ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">System Updates</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Notify for Carelinx maintenance updates.</p>
-                    </div>
-                    <button
-                      onClick={() => setSystemUpdates(!systemUpdates)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        systemUpdates ? 'bg-[#00FFA2]' : 'bg-[#0C2243]'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          systemUpdates ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* Team Members Section */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1000,11 +801,11 @@ const ClinicAdminSettings = () => {
 
         {/* Add Team Member Modal */}
         <Dialog open={showAddTeamMemberModal} onOpenChange={setShowAddTeamMemberModal}>
-          <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-800">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add Team member</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4 overflow-y-auto flex-1 pr-2">
+            <div className="space-y-4 mt-4 overflow-y-auto flex-1 px-1 pb-4 min-h-0">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Team member Name
@@ -1038,7 +839,7 @@ const ClinicAdminSettings = () => {
                 </Select>
               </div>
 
-              <div>
+              <div className="pb-2">
                 <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Description
                 </Label>
@@ -1047,7 +848,8 @@ const ClinicAdminSettings = () => {
                   placeholder="Describe team member role"
                   value={newTeamMember.description}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, description: e.target.value })}
-                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px]"
+                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px] resize-y w-full focus:ring-2 focus:ring-[#0C2243] focus:border-[#0C2243]"
+                  style={{ minHeight: '100px' }}
                 />
               </div>
 

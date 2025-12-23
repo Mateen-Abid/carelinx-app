@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Stethoscope } from 'lucide-react'; // removed User since not needed anymore
 import Image5 from '../assets/image 5.svg'; // adjust path based on your folder structure
 import { clinicsData } from '@/data/clinicsData';
@@ -18,9 +18,10 @@ interface ServiceCategory {
 interface ServicesFilterProps {
   onCategoryChange: (categoryId: string) => void;
   selectedCategory: string;
+  superAdminSpecialties?: Array<{id: string, name: string}>;
 }
 
-const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory }) => {
+const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory, superAdminSpecialties = [] }) => {
 
   // Custom Tooth Icon Component
   const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -112,11 +113,38 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     return subcategories;
   };
 
-  const mainCategories: ServiceCategory[] = [
-    { id: 'dermatology', name: 'Dermatology', icon: DermatologyIcon },
-    { id: 'dentistry', name: 'Dental', icon: ToothIcon },
-    { id: 'others', name: 'Others', icon: OthersIcon }
-  ];
+  // Generate categories from super admin specialties and hardcoded ones
+  const mainCategories: ServiceCategory[] = useMemo(() => {
+    const categories: ServiceCategory[] = [];
+    
+    // Add hardcoded categories first
+    categories.push(
+      { id: 'dermatology', name: 'Dermatology', icon: DermatologyIcon },
+      { id: 'dentistry', name: 'Dental', icon: ToothIcon }
+    );
+    
+    // Add super admin specialties that don't match hardcoded ones
+    superAdminSpecialties.forEach(specialty => {
+      const specialtyNameLower = specialty.name.toLowerCase();
+      // Skip if it matches hardcoded categories
+      if (specialtyNameLower !== 'dermatology' && specialtyNameLower !== 'dental') {
+        // Check if already added
+        if (!categories.find(cat => cat.id === specialty.id || cat.name.toLowerCase() === specialtyNameLower)) {
+          // Use a generic icon for super admin specialties (can be customized later)
+          categories.push({
+            id: specialty.id,
+            name: specialty.name,
+            icon: OthersIcon // Using OthersIcon as default, can be customized
+          });
+        }
+      }
+    });
+    
+    // Add "Others" at the end
+    categories.push({ id: 'others', name: 'Others', icon: OthersIcon });
+    
+    return categories;
+  }, [superAdminSpecialties]);
 
   const handleCategorySelect = (categoryId: string) => {
     onCategoryChange(categoryId);

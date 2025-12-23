@@ -47,7 +47,7 @@ interface Appointment {
 
 const AdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'completed' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -487,7 +487,7 @@ const AdminAppointments = () => {
 
             {/* Status Filter Tabs */}
             <div className="mb-6 flex items-center gap-2">
-              {(['all', 'pending', 'approved', 'completed', 'cancelled'] as const).map((status) => (
+              {(['all', 'pending', 'approved', 'cancelled'] as const).map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}

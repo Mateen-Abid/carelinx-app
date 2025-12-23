@@ -39,6 +39,8 @@ const Index = () => {
   const [databaseClinics, setDatabaseClinics] = useState<DatabaseClinic[]>([]);
   const [loadingClinics, setLoadingClinics] = useState(true);
   const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>>({});
+  const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
+  const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -114,7 +116,57 @@ const Index = () => {
       }
     };
 
+    const fetchSuperAdminData = async () => {
+      try {
+        // Fetch specialties from super_admin_specialties
+        const { data: specialtiesData, error: specialtiesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_specialties' as any)
+          .select('id, name')
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (specialtiesError) {
+          console.error('Error fetching super admin specialties:', specialtiesError);
+        } else {
+          console.log('✅ Fetched super admin specialties:', specialtiesData?.length || 0);
+          setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name })));
+        }
+
+        // Fetch services from super_admin_services with specialty names
+        const { data: servicesData, error: servicesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_services' as any)
+          .select(`
+            id,
+            name,
+            specialty_id,
+            specialties:specialty_id(name)
+          `)
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (servicesError) {
+          console.error('Error fetching super admin services:', servicesError);
+        } else {
+          console.log('✅ Fetched super admin services:', servicesData?.length || 0);
+          const transformedServices = (servicesData || []).map((service: any) => ({
+            id: service.id,
+            name: service.name,
+            specialty_id: service.specialty_id,
+            specialty_name: service.specialties?.name || 'Unknown'
+          }));
+          setSuperAdminServices(transformedServices);
+        }
+      } catch (error) {
+        console.error('Error fetching super admin data:', error);
+      }
+    };
+
     fetchClinics();
+    fetchSuperAdminData();
   }, []);
 
   // Handle clicks outside the filter dropdown
@@ -735,6 +787,7 @@ const Index = () => {
         onViewModeChange={handleViewModeChange}
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
+        superAdminSpecialties={superAdminSpecialties}
       />
       
       {/* Text below the blue section */}
@@ -762,6 +815,8 @@ const Index = () => {
                     onOptionSelect={handleOptionSelect}
                     selectedCategory={selectedCategory}
                     currentSearchQuery={searchQuery}
+                    superAdminServices={superAdminServices}
+                    superAdminSpecialties={superAdminSpecialties}
                   />
                 </div>
               )}

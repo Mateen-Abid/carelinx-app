@@ -44,6 +44,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   hasSelectedService = false
 }) => {
   const navigate = useNavigate();
+  const [logoError, setLogoError] = React.useState(false);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent navigation if booking button was clicked
@@ -82,11 +83,20 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
       className="bg-white flex w-full flex-col min-h-[80px] sm:min-h-[100px] overflow-hidden items-stretch p-3 sm:p-4 rounded-[14px] cursor-pointer hover:shadow-lg transition-shadow duration-200"
     >
       <div className="flex w-full items-center gap-3">
-        <img
-          src={logo}
-          className="aspect-[1] object-contain w-8 sm:w-[34px] shrink-0 rounded-[32px]"
-          alt={`${name} logo`}
-        />
+        {!logoError && logo ? (
+          <img
+            src={logo}
+            className="aspect-[1] object-contain w-8 sm:w-[34px] shrink-0 rounded-[32px]"
+            alt={`${name} logo`}
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <div className="aspect-[1] w-8 sm:w-[34px] shrink-0 rounded-[32px] bg-[#0C2243] flex items-center justify-center">
+            <span className="text-[#00FFA2] text-sm sm:text-base font-bold">
+              {name.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
         <div className="flex flex-col min-w-0 flex-1">
           <div className="text-black text-sm sm:text-base font-medium truncate">
             {name}

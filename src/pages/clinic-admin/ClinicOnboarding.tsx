@@ -38,6 +38,10 @@ const ClinicOnboarding = () => {
     description: '',
   });
 
+  // Available specialties from super admin
+  const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(false);
+
   // Step 2: Contact Details
   const [contactDetails, setContactDetails] = useState({
     email: user?.email || '',
@@ -159,6 +163,35 @@ const ClinicOnboarding = () => {
     };
   }, [user, userRole, navigate, checkingAccess]);
 
+  // Fetch super admin specialties
+  useEffect(() => {
+    const fetchSuperAdminSpecialties = async () => {
+      try {
+        setLoadingSpecialties(true);
+        
+        const { data: specialtiesData, error: specialtiesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_specialties' as any)
+          .select('name')
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (specialtiesError) {
+          console.error('Error fetching specialties:', specialtiesError);
+        } else {
+          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
+        }
+      } catch (error) {
+        console.error('Error fetching super admin specialties:', error);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+
+    fetchSuperAdminSpecialties();
+  }, []);
+
   // Update contactDetails email when user changes
   useEffect(() => {
     if (user?.email && !contactDetails.email) {
@@ -180,24 +213,6 @@ const ClinicOnboarding = () => {
       </ProtectedRoute>
     );
   }
-
-  // Available specialties
-  const availableSpecialties = [
-    'Cardiology',
-    'Dermatology',
-    'Dental',
-    'Endocrinology',
-    'Gastroenterology',
-    'General Practice',
-    'Gynecology',
-    'Neurology',
-    'Oncology',
-    'Orthopedics',
-    'Pediatrics',
-    'Psychiatry',
-    'Pulmonology',
-    'Urology',
-  ];
 
   // Countries list
   const countries = [

@@ -63,16 +63,34 @@ interface ServiceRequest {
   specialty_name?: string; // Joined from specialties table
 }
 
+interface SpecialtyRequest {
+  id: string;
+  clinic_id: string;
+  clinic_admin_id: string;
+  specialty_name: string;
+  description: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  rejection_reason: string | null;
+  clinic_name?: string; // Joined from clinics table
+}
+
 const AdminServices = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [specialtyRequests, setSpecialtyRequests] = useState<SpecialtyRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [loadingSpecialtyRequests, setLoadingSpecialtyRequests] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [selectedSpecialtyRequest, setSelectedSpecialtyRequest] = useState<SpecialtyRequest | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRejectSpecialtyModal, setShowRejectSpecialtyModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   
   // Modals
@@ -91,10 +109,11 @@ const AdminServices = () => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
 
-  // Fetch specialties, services, and service requests
+  // Fetch specialties, services, and requests
   useEffect(() => {
     fetchData();
     fetchServiceRequests();
+    fetchSpecialtyRequests();
   }, []);
 
   const fetchData = async () => {
@@ -156,6 +175,51 @@ const AdminServices = () => {
     }
 
     try {
+      // First check if specialty with this name already exists (case-insensitive)
+      const { data: existingSpecialty, error: checkError } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('super_admin_specialties' as any)
+        .select('id, name, is_active')
+        .ilike('name', newSpecialty.name.trim())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .maybeSingle() as any);
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" which is fine
+        console.error('Error checking existing specialty:', checkError);
+      }
+
+      if (existingSpecialty) {
+        if (existingSpecialty.is_active) {
+          toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
+          return;
+        } else {
+          // If specialty exists but is inactive, reactivate it instead
+          const { error: updateError } = await (supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .from('super_admin_specialties' as any)
+            .update({
+              is_active: true,
+              description: newSpecialty.description.trim() || null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSpecialty.id) as any);
+
+          if (updateError) {
+            console.error('Error reactivating specialty:', updateError);
+            toast.error('Failed to reactivate specialty');
+            return;
+          }
+
+          toast.success('Specialty reactivated successfully');
+          setShowAddSpecialtyModal(false);
+          setNewSpecialty({ name: '', description: '' });
+          fetchData();
+          return;
+        }
+      }
+
+      // If specialty doesn't exist, insert new one
       const { error } = await (supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('super_admin_specialties' as any)
@@ -167,7 +231,13 @@ const AdminServices = () => {
 
       if (error) {
         console.error('Error adding specialty:', error);
-        toast.error('Failed to add specialty');
+        
+        // Check for duplicate key error
+        if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
+          toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
+        } else {
+          toast.error(`Failed to add specialty: ${error.message || 'Unknown error'}`);
+        }
         return;
       }
 
@@ -175,9 +245,14 @@ const AdminServices = () => {
       setShowAddSpecialtyModal(false);
       setNewSpecialty({ name: '', description: '' });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding specialty:', error);
-      toast.error('Failed to add specialty');
+      
+      if (error?.code === '23505' || error?.message?.includes('duplicate key') || error?.message?.includes('unique constraint')) {
+        toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
+      } else {
+        toast.error(`Failed to add specialty: ${error?.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -214,30 +289,33 @@ const AdminServices = () => {
     }
   };
 
-  // Delete specialty (soft delete)
+  // Delete specialty (soft delete) using database function
   const handleDeleteSpecialty = async () => {
     if (!deletingSpecialty) return;
 
+    console.log('🗑️ Deleting specialty:', deletingSpecialty.id, deletingSpecialty.name);
+
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .update({ is_active: false })
-        .eq('id', deletingSpecialty.id) as any);
+      // Use database function to delete specialty and all its services
+      // This bypasses RLS issues by using SECURITY DEFINER
+      const { data, error } = await supabase.rpc('delete_specialty_and_services', {
+        specialty_uuid: deletingSpecialty.id
+      });
 
       if (error) {
-        console.error('Error deleting specialty:', error);
-        toast.error('Failed to delete specialty');
+        console.error('❌ Error deleting specialty:', error);
+        toast.error(`Failed to delete specialty: ${error.message || error.code || 'Unknown error'}`);
         return;
       }
 
-      toast.success('Specialty deleted successfully');
+      console.log('✅ Specialty and services deleted successfully:', data);
+      toast.success(`Specialty and ${data?.deleted_services_count || 0} service(s) deleted successfully`);
       setShowDeleteSpecialtyModal(false);
       setDeletingSpecialty(null);
       fetchData();
-    } catch (error) {
-      console.error('Error deleting specialty:', error);
-      toast.error('Failed to delete specialty');
+    } catch (error: any) {
+      console.error('❌ Exception deleting specialty:', error);
+      toast.error(`Failed to delete specialty: ${error?.message || error?.code || 'Unknown error'}`);
     }
   };
 
@@ -309,30 +387,33 @@ const AdminServices = () => {
     }
   };
 
-  // Delete service (soft delete)
+  // Delete service (soft delete) using database function
   const handleDeleteService = async () => {
     if (!deletingService) return;
 
+    console.log('🗑️ Deleting service:', deletingService.id, deletingService.name);
+
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_services' as any)
-        .update({ is_active: false })
-        .eq('id', deletingService.id) as any);
+      // Use database function to delete service
+      // This bypasses RLS issues by using SECURITY DEFINER
+      const { data, error } = await supabase.rpc('delete_service', {
+        service_uuid: deletingService.id
+      });
 
       if (error) {
-        console.error('Error deleting service:', error);
-        toast.error('Failed to delete service');
+        console.error('❌ Error deleting service:', error);
+        toast.error(`Failed to delete service: ${error.message || error.code || 'Unknown error'}`);
         return;
       }
 
+      console.log('✅ Service deleted successfully:', data);
       toast.success('Service deleted successfully');
       setShowDeleteServiceModal(false);
       setDeletingService(null);
       fetchData();
-    } catch (error) {
-      console.error('Error deleting service:', error);
-      toast.error('Failed to delete service');
+    } catch (error: any) {
+      console.error('❌ Exception deleting service:', error);
+      toast.error(`Failed to delete service: ${error?.message || error?.code || 'Unknown error'}`);
     }
   };
 
@@ -379,6 +460,50 @@ const AdminServices = () => {
       setServiceRequests([]);
     } finally {
       setLoadingRequests(false);
+    }
+  };
+
+  const fetchSpecialtyRequests = async () => {
+    try {
+      setLoadingSpecialtyRequests(true);
+      
+      // Fetch pending specialty requests with clinic names
+      const { data: requestsData, error: requestsError } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('specialty_requests' as any)
+        .select(`
+          *,
+          clinics:clinic_id(name)
+        `)
+        .eq('status', 'pending')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .order('requested_at', { ascending: false }) as any);
+
+      if (requestsError) {
+        console.error('Error fetching specialty requests:', requestsError);
+        if (requestsError.code === '42P01' || requestsError.message?.includes('does not exist')) {
+          console.log('Specialty requests table does not exist yet');
+          setSpecialtyRequests([]);
+        } else {
+          setSpecialtyRequests([]);
+        }
+      } else {
+        // Map the data to include clinic names
+        const mappedRequests = (requestsData || []).map((req: any) => ({
+          ...req,
+          clinic_name: req.clinics?.name || 'Unknown Clinic',
+        }));
+        setSpecialtyRequests(mappedRequests);
+        console.log('✅ Specialty requests fetched:', mappedRequests.length);
+      }
+    } catch (error: any) {
+      console.error('Error fetching specialty requests:', error);
+      if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
+        toast.error('Failed to fetch specialty requests');
+      }
+      setSpecialtyRequests([]);
+    } finally {
+      setLoadingSpecialtyRequests(false);
     }
   };
 
@@ -476,6 +601,99 @@ const AdminServices = () => {
     }
   };
 
+  // Handle approve specialty request
+  const handleApproveSpecialtyRequest = async (request: SpecialtyRequest) => {
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    try {
+      // First, add the specialty to super_admin_specialties
+      const { data: specialtyData, error: specialtyError } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('super_admin_specialties' as any)
+        .insert({
+          name: request.specialty_name,
+          description: request.description,
+          is_active: true,
+          created_by: user.id
+        })
+        .select()
+        .single() as any);
+
+      if (specialtyError) {
+        console.error('Error adding specialty:', specialtyError);
+        toast.error('Failed to add specialty');
+        return;
+      }
+
+      // Then, update the request status to approved
+      const { error: updateError } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('specialty_requests' as any)
+        .update({
+          status: 'approved',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user.id
+        })
+        .eq('id', request.id) as any);
+
+      if (updateError) {
+        console.error('Error updating request:', updateError);
+        toast.error('Failed to approve request');
+        return;
+      }
+
+      toast.success('Specialty request approved and added successfully!');
+      fetchSpecialtyRequests(); // Refresh requests list
+      fetchData(); // Refresh specialties list
+    } catch (error) {
+      console.error('Error approving specialty request:', error);
+      toast.error('Failed to approve request');
+    }
+  };
+
+  // Handle reject specialty request
+  const handleRejectSpecialtyRequest = async () => {
+    if (!selectedSpecialtyRequest || !user) {
+      return;
+    }
+
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('specialty_requests' as any)
+        .update({
+          status: 'rejected',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user.id,
+          rejection_reason: rejectionReason.trim()
+        })
+        .eq('id', selectedSpecialtyRequest.id) as any);
+
+      if (error) {
+        console.error('Error rejecting specialty request:', error);
+        toast.error('Failed to reject request');
+        return;
+      }
+
+      toast.success('Specialty request rejected');
+      setShowRejectSpecialtyModal(false);
+      setRejectionReason('');
+      setSelectedSpecialtyRequest(null);
+      fetchSpecialtyRequests(); // Refresh requests list
+    } catch (error) {
+      console.error('Error rejecting specialty request:', error);
+      toast.error('Failed to reject request');
+    }
+  };
+
   // Show all services (no filtering)
   const filteredServices = services;
 
@@ -519,6 +737,78 @@ const AdminServices = () => {
                   Add Service
                 </Button>
               </div>
+            </div>
+
+            {/* Specialty Requests Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Specialty Requests</h2>
+                <span className="px-3 py-1 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium">
+                  {specialtyRequests.length} Pending
+                </span>
+              </div>
+              
+              {loadingSpecialtyRequests ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
+                  <p className="text-gray-500 dark:text-gray-400">Loading requests...</p>
+                </div>
+              ) : specialtyRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {specialtyRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="border border-[#0C2243]/20 dark:border-[#0C2243]/30 bg-white dark:bg-gray-800 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+                              {request.specialty_name}
+                            </h3>
+                            <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium">
+                              Pending
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <p><span className="font-medium">Clinic:</span> {request.clinic_name || 'N/A'}</p>
+                            <p><span className="font-medium">Requested:</span> {new Date(request.requested_at).toLocaleDateString()}</p>
+                            {request.description && (
+                              <p><span className="font-medium">Description:</span> {request.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button
+                            onClick={() => handleApproveSpecialtyRequest(request)}
+                            className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
+                            size="sm"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setSelectedSpecialtyRequest(request);
+                              setShowRejectSpecialtyModal(true);
+                            }}
+                            variant="outline"
+                            className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            size="sm"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No pending specialty requests</p>
+                </div>
+              )}
             </div>
 
             {/* Service Requests Section */}
@@ -1028,6 +1318,56 @@ const AdminServices = () => {
             </Button>
             <Button
               onClick={handleRejectRequest}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reject Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Specialty Request Modal */}
+      <Dialog open={showRejectSpecialtyModal} onOpenChange={setShowRejectSpecialtyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Reject Specialty Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Specialty: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.specialty_name}</span>
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Clinic: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.clinic_name}</span>
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="rejection-reason-specialty" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Reason for Rejection <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="rejection-reason-specialty"
+                placeholder="Please provide a reason for rejecting this specialty request..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectSpecialtyModal(false);
+                setRejectionReason('');
+                setSelectedSpecialtyRequest(null);
+              }}
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRejectSpecialtyRequest}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Reject Request

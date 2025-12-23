@@ -15,6 +15,8 @@ interface SearchInputProps {
   selectedCategory?: string;
   currentSearchQuery?: string;
   clinicServices?: SearchOption[]; // Add clinic-specific services
+  superAdminServices?: Array<{id: string, name: string, specialty_id: string, specialty_name: string}>;
+  superAdminSpecialties?: Array<{id: string, name: string}>;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
@@ -23,7 +25,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onOptionSelect,
   selectedCategory = 'all',
   currentSearchQuery = '',
-  clinicServices
+  clinicServices,
+  superAdminServices = [],
+  superAdminSpecialties = []
 }) => {
   // Dynamic placeholder based on selected category
   const getPlaceholder = () => {
@@ -67,6 +71,25 @@ const SearchInput: React.FC<SearchInputProps> = ({
       // Get all category names that match the selected category
       const categoryNames = categoryMap[selectedCategory] || [];
       
+      // Add super admin services for specialties that match the selected category
+      superAdminSpecialties.forEach(specialty => {
+        if (categoryNames.includes(specialty.name)) {
+          // Add services from super admin for this specialty
+          superAdminServices
+            .filter(service => service.specialty_name === specialty.name)
+            .forEach(service => {
+              if (!options.find(opt => opt.id === `super-${service.id}`)) {
+                options.push({
+                  id: `super-${service.id}`,
+                  name: service.name,
+                  category: service.specialty_name,
+                  type: 'subcategory'
+                });
+              }
+            });
+        }
+      });
+      
       // Show all services from all hardcoded clinics that match any of these categories
       clinicsData.forEach(clinic => {
         Object.entries(clinic.categories).forEach(([categoryName, services]) => {
@@ -85,6 +108,24 @@ const SearchInput: React.FC<SearchInputProps> = ({
           }
         });
       });
+    } else if (selectedCategory && selectedCategory !== 'all') {
+      // Handle super admin specialty selected by ID (when specialty is selected directly)
+      const selectedSpecialty = superAdminSpecialties.find(s => s.id === selectedCategory || s.name.toLowerCase() === selectedCategory.toLowerCase());
+      if (selectedSpecialty) {
+        // Add all services for this super admin specialty
+        superAdminServices
+          .filter(service => service.specialty_id === selectedSpecialty.id || service.specialty_name === selectedSpecialty.name)
+          .forEach(service => {
+            if (!options.find(opt => opt.id === `super-${service.id}`)) {
+              options.push({
+                id: `super-${service.id}`,
+                name: service.name,
+                category: service.specialty_name,
+                type: 'subcategory'
+              });
+            }
+          });
+      }
     } else {
       // Show main categories when no category is selected
       getAllCategories().forEach(category => {

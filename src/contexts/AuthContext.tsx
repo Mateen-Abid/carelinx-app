@@ -282,6 +282,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
+      // Check for invitation token
+      const invitationToken = sessionStorage.getItem('invitation_token');
+      if (invitationToken && data.user) {
+        try {
+          // Verify invitation exists and is valid
+          const { data: invitationData, error: inviteError } = await supabase
+            .from('super_admin_invitations')
+            .select('*')
+            .eq('invitation_token', invitationToken)
+            .eq('email', email)
+            .eq('status', 'pending')
+            .single();
+
+          if (!inviteError && invitationData) {
+            // Check if invitation is expired
+            if (new Date(invitationData.expires_at) >= new Date()) {
+              // Assign super_admin role
+              const { error: roleError } = await supabase
+                .from('user_roles')
+                .insert({
+                  user_id: data.user.id,
+                  role_type: 'super_admin',
+                  is_active: true,
+                });
+
+              if (!roleError) {
+                // Update invitation status
+                await supabase
+                  .from('super_admin_invitations')
+                  .update({
+                    status: 'accepted',
+                    accepted_at: new Date().toISOString(),
+                    accepted_by: data.user.id,
+                  })
+                  .eq('id', invitationData.id);
+
+                // Clear invitation token from sessionStorage
+                sessionStorage.removeItem('invitation_token');
+                
+                console.log('✅ Super admin role assigned via invitation');
+                toast.success('Account created! Super admin access granted.');
+              } else {
+                console.error('❌ Error assigning super_admin role:', roleError);
+              }
+            } else {
+              console.log('⚠️ Invitation expired');
+              sessionStorage.removeItem('invitation_token');
+            }
+          } else {
+            console.log('⚠️ Invalid invitation token');
+            sessionStorage.removeItem('invitation_token');
+          }
+        } catch (inviteErr: any) {
+          console.error('❌ Error processing invitation:', inviteErr);
+          sessionStorage.removeItem('invitation_token');
+        }
+      }
+
       toast.success('Account created successfully! Please check your email to confirm your account.');
       return { error: null };
     } catch (error: any) {

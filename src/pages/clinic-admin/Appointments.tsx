@@ -53,7 +53,7 @@ const ClinicAdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'completed' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
   const [appointmentsData, setAppointmentsData] = useState<Appointment[]>([]);
@@ -589,7 +589,6 @@ const ClinicAdminAppointments = () => {
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'approved' && appointment.status === 'approved') ||
       (statusFilter === 'pending' && appointment.status === 'pending') ||
-      (statusFilter === 'completed' && appointment.status === 'completed') ||
       (statusFilter === 'cancelled' && appointment.status === 'cancelled');
     
     const matchesSearch = searchQuery === '' ||
@@ -658,7 +657,7 @@ const ClinicAdminAppointments = () => {
               <div className="flex items-center justify-between mb-4">
                 {/* Status Filter Tabs */}
                 <div className="flex gap-2">
-                  {(['all', 'pending', 'approved', 'completed', 'cancelled'] as const).map((filter) => (
+                  {(['all', 'pending', 'approved', 'cancelled'] as const).map((filter) => (
                     <button
                       key={filter}
                       onClick={() => setStatusFilter(filter)}
@@ -687,7 +686,7 @@ const ClinicAdminAppointments = () => {
                     >
                       {filter === 'today' ? 'Today' : 
                        filter === 'tomorrow' ? 'Tomorrow' : 
-                       filter === 'this-week' ? 'This week' : 'All time'}
+                       filter === 'this-week' ? 'This week' : 'To date'}
                     </button>
                   ))}
                 </div>

@@ -34,6 +34,8 @@ const Auth = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const message = urlParams.get('message');
     const mode = urlParams.get('mode');
+    const inviteToken = urlParams.get('invite');
+    const inviteEmail = urlParams.get('email');
     
     if (message) {
       setAuthMessage(message);
@@ -44,6 +46,17 @@ const Auth = () => {
       setIsLogin(false);
     } else if (mode === 'login') {
       setIsLogin(true);
+    }
+
+    // Pre-fill email if invitation token is present
+    if (inviteToken && inviteEmail) {
+      setFormData(prev => ({
+        ...prev,
+        email: decodeURIComponent(inviteEmail)
+      }));
+      setIsLogin(false); // Force signup mode for invitations
+      // Store invitation token in sessionStorage for later use
+      sessionStorage.setItem('invitation_token', inviteToken);
     }
     
     if (user && userRole) {

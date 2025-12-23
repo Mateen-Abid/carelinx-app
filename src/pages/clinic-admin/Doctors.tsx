@@ -84,8 +84,10 @@ const ClinicAdminDoctors = () => {
   const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
   const [tempSelectedSpecialty, setTempSelectedSpecialty] = useState<string>('all');
   const [showRequestServiceModal, setShowRequestServiceModal] = useState(false);
+  const [showRequestSpecialtyModal, setShowRequestSpecialtyModal] = useState(false);
   const [showRequestSuccessModal, setShowRequestSuccessModal] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
+  const [newSpecialtyName, setNewSpecialtyName] = useState('');
   const [newDoctor, setNewDoctor] = useState({
     name: '',
     gender: '',
@@ -467,6 +469,16 @@ const ClinicAdminDoctors = () => {
     });
   };
 
+  const handleRequestNewSpecialty = () => {
+    console.log('handleRequestNewSpecialty called');
+    setShowSpecialtyDropdown(false);
+    // Use requestAnimationFrame to ensure state updates properly
+    requestAnimationFrame(() => {
+      console.log('Opening request specialty modal');
+      setShowRequestSpecialtyModal(true);
+    });
+  };
+
   const handleSubmitServiceRequest = async () => {
     if (!newServiceName.trim()) {
       toast.error('Please enter a service name');
@@ -530,6 +542,51 @@ const ClinicAdminDoctors = () => {
     } catch (error) {
       console.error('❌ Error submitting service request:', error);
       toast.error('Failed to submit service request. Please try again.');
+    }
+  };
+
+  const handleSubmitSpecialtyRequest = async () => {
+    if (!newSpecialtyName.trim()) {
+      toast.error('Please enter a specialty name');
+      return;
+    }
+
+    if (!clinic?.id || !user) {
+      toast.error('Clinic information not found');
+      return;
+    }
+
+    try {
+      // Insert specialty request into database
+      const { error: requestError } = await supabase
+        .from('specialty_requests')
+        .insert({
+          clinic_id: clinic.id,
+          clinic_admin_id: user.id,
+          specialty_name: newSpecialtyName.trim(),
+          status: 'pending'
+        });
+
+      if (requestError) {
+        console.error('❌ Error submitting specialty request:', requestError);
+        toast.error('Failed to submit specialty request. Please try again.');
+        return;
+      }
+
+      console.log('✅ Specialty request submitted successfully');
+      toast.success('Specialty request submitted successfully!');
+      
+      setShowRequestSpecialtyModal(false);
+      setNewSpecialtyName('');
+      setShowRequestSuccessModal(true);
+      
+      // Auto close success modal after 3 seconds
+      setTimeout(() => {
+        setShowRequestSuccessModal(false);
+      }, 3000);
+    } catch (error) {
+      console.error('❌ Error submitting specialty request:', error);
+      toast.error('Failed to submit specialty request. Please try again.');
     }
   };
 
@@ -1390,6 +1447,19 @@ const ClinicAdminDoctors = () => {
                           {specialty}
                         </SelectItem>
                       ))}
+                      <div className="px-2 py-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRequestNewSpecialty();
+                          }}
+                          className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          Other / Request a New Specialty
+                        </button>
+                      </div>
                     </SelectContent>
                   </Select>
                   {newDoctor.specialties.length > 0 && (
@@ -1960,6 +2030,45 @@ const ClinicAdminDoctors = () => {
               className="bg-[#0C2243] hover:bg-[#0a1a35] text-white w-full"
             >
               Request Service
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request New Specialty Modal */}
+      <Dialog open={showRequestSpecialtyModal} onOpenChange={setShowRequestSpecialtyModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Request a New Specialty</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Can't find the specialty you're looking for? Submit a request and the admin will add it.
+            </p>
+            <div>
+              <Label htmlFor="specialty-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Enter the specialty name
+              </Label>
+              <Input
+                id="specialty-name"
+                value={newSpecialtyName}
+                onChange={(e) => setNewSpecialtyName(e.target.value)}
+                placeholder="Specialty name"
+                className="mt-1.5 h-10"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmitSpecialtyRequest();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleSubmitSpecialtyRequest}
+              className="bg-[#0C2243] hover:bg-[#0a1a35] text-white w-full"
+            >
+              Request Specialty
             </Button>
           </DialogFooter>
         </DialogContent>

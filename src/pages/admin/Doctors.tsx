@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
-import { Filter, X, Info } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Filter, X, Info, Eye, Trash2, MoreVertical } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -10,7 +11,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface Doctor {
   id: string;
@@ -23,6 +33,17 @@ interface Doctor {
   clinic_name?: string;
   email?: string | null;
   phone?: string | null;
+  services?: string | null;
+}
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  clinic?: string;
+  clinics?: { name: string };
+  status: string;
+  doctor_name?: string;
 }
 
 const AdminDoctors = () => {
@@ -34,6 +55,14 @@ const AdminDoctors = () => {
   const [doctorsData, setDoctorsData] = useState<Doctor[]>([]);
   const [specialties, setSpecialties] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
+  
+  // Modal states
+  const [isDoctorDetailsModalOpen, setIsDoctorDetailsModalOpen] = useState(false);
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [doctorAppointments, setDoctorAppointments] = useState<Appointment[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [deletingDoctor, setDeletingDoctor] = useState(false);
 
   useEffect(() => {
     fetchDoctors();
@@ -126,6 +155,7 @@ const AdminDoctors = () => {
           clinic_name: clinicName,
           email: doctor.email,
           phone: doctor.phone,
+          services: doctor.services || null,
         };
       });
 
@@ -196,6 +226,71 @@ const AdminDoctors = () => {
         {config.label}
       </span>
     );
+  };
+
+  const handleViewDoctorDetails = async (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsDoctorDetailsModalOpen(true);
+    setLoadingAppointments(true);
+
+    try {
+      // Fetch appointments for this doctor
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: appointments, error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('bookings' as any)
+        .select('*')
+        .eq('doctor_name', doctor.name)
+        .order('appointment_date', { ascending: false })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .limit(10) as any);
+
+      if (error) {
+        console.error('Error fetching appointments:', error);
+      } else {
+        setDoctorAppointments((appointments as Appointment[]) || []);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  };
+
+
+  const handleDeleteDoctor = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsDeleteConfirmModalOpen(true);
+  };
+
+  const handleConfirmDeleteDoctor = async () => {
+    if (!selectedDoctor) return;
+
+    setDeletingDoctor(true);
+    try {
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('doctors' as any)
+        .delete()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .eq('id', selectedDoctor.id)) as any;
+
+      if (error) {
+        console.error('Error deleting doctor:', error);
+        toast.error('Failed to delete doctor: ' + error.message);
+        return;
+      }
+
+      toast.success('Doctor deleted successfully');
+      setIsDeleteConfirmModalOpen(false);
+      setSelectedDoctor(null);
+      fetchDoctors();
+    } catch (error) {
+      console.error('Error deleting doctor:', error);
+      toast.error('Failed to delete doctor');
+    } finally {
+      setDeletingDoctor(false);
+    }
   };
 
   return (
@@ -303,12 +398,32 @@ const AdminDoctors = () => {
                           {getStatusBadge(doctor.status)}
                         </td>
                         <td className="py-4 px-6">
-                          <button
-                            className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
-                            aria-label="View doctor info"
-                          >
-                            <Info className="w-5 h-5" />
-                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
+                                aria-label="View doctor actions"
+                              >
+                                <MoreVertical className="w-5 h-5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem 
+                                className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => handleViewDoctorDetails(doctor)}
+                              >
+                                <Eye className="w-4 h-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400"
+                                onClick={() => handleDeleteDoctor(doctor)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Doctor
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))
@@ -330,7 +445,7 @@ const AdminDoctors = () => {
         <Dialog open={isSpecialtyModalOpen} onOpenChange={setIsSpecialtyModalOpen}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">Specialty</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Specialty</DialogTitle>
             </DialogHeader>
             <div className="mt-6">
               {/* Specialty Buttons Grid */}
@@ -343,7 +458,7 @@ const AdminDoctors = () => {
                       (selectedSpecialty === 'all' && specialty === 'All') ||
                       (selectedSpecialty === specialty && specialty !== 'All')
                         ? 'bg-[#00FFA2] text-[#0C2243]'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     {specialty}
@@ -352,14 +467,14 @@ const AdminDoctors = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setSelectedSpecialty('all');
                     setIsSpecialtyModalOpen(false);
                   }}
-                  className="flex-1 bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
+                  className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-700"
                 >
                   Clear filters
                 </Button>
@@ -371,6 +486,115 @@ const AdminDoctors = () => {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Doctor Details Modal */}
+        <Dialog open={isDoctorDetailsModalOpen} onOpenChange={setIsDoctorDetailsModalOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Doctor Details</DialogTitle>
+              <DialogDescription className="sr-only">
+                View detailed information about the doctor
+              </DialogDescription>
+            </DialogHeader>
+            {selectedDoctor && (
+              <div className="space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Name</Label>
+                    <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedDoctor.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Specialty</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.specialty}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Clinic</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.clinic_name || 'Unknown Clinic'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Status</Label>
+                    <div className="mt-1">{getStatusBadge(selectedDoctor.status)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Email</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Phone</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Availability</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.availability}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Services</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedDoctor.services || 'N/A'}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-gray-500 dark:text-gray-400 text-xs mb-2 block">Appointment History</Label>
+                  {loadingAppointments ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                  ) : doctorAppointments.length > 0 ? (
+                    <div className="space-y-2">
+                      {doctorAppointments.map((apt) => (
+                        <div key={apt.id} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{apt.clinic || apt.clinics?.name || 'Unknown Clinic'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(apt.appointment_date).toLocaleDateString()} at {apt.appointment_time}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Status: {apt.status}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No appointment history</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog open={isDeleteConfirmModalOpen} onOpenChange={setIsDeleteConfirmModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Delete Doctor</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this doctor? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedDoctor && (
+              <div className="py-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Doctor: <span className="font-semibold text-gray-900 dark:text-white">{selectedDoctor.name}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Clinic: <span className="font-semibold text-gray-900 dark:text-white">{selectedDoctor.clinic_name || 'Unknown'}</span>
+                </p>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteConfirmModalOpen(false)}
+                disabled={deletingDoctor}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmDeleteDoctor}
+                disabled={deletingDoctor}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deletingDoctor ? 'Deleting...' : 'Delete Doctor'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

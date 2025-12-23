@@ -3,7 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Check, X, Eye, Edit, Ban, Trash2, MoreVertical, ChevronRight, AlertTriangle, OctagonAlert } from 'lucide-react';
+import { Search, Plus, Check, X, Eye, Edit, Ban, MoreVertical, ChevronRight, AlertTriangle, OctagonAlert } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -55,7 +55,6 @@ const AdminClinics = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
-  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newlyAddedClinic, setNewlyAddedClinic] = useState<Clinic | null>(null);
@@ -76,11 +75,8 @@ const AdminClinics = () => {
     specialties: [] as string[],
   });
   
-  // Suspend/Remove form state
+  // Suspend form state
   const [suspendReason, setSuspendReason] = useState('');
-  const [removeConfirmName, setRemoveConfirmName] = useState('');
-  const [suspendConfirmName, setSuspendConfirmName] = useState('');
-  const [showSuspendWarningModal, setShowSuspendWarningModal] = useState(false);
   
   // Edit clinic form state
   const [editClinicForm, setEditClinicForm] = useState({
@@ -510,17 +506,15 @@ const AdminClinics = () => {
         suspended_reason: suspendReason,
       });
 
-      // Close both modals
-      setShowSuspendWarningModal(false);
+      // Close modal
       setShowSuspendModal(false);
       setSuspendReason('');
-      setSuspendConfirmName('');
       
       // Refresh the clinics list to show updated status
       await fetchClinics();
       
       // Show success message
-      alert(`Clinic "${selectedClinic.name}" has been suspended successfully. The status will be updated in the dashboard.`);
+      alert(`Clinic "${selectedClinic.name}" has been suspended successfully. It will no longer be visible on the public page.`);
       
       setSelectedClinic(null);
     } catch (error) {
@@ -529,33 +523,6 @@ const AdminClinics = () => {
     }
   };
 
-  const handleRemoveClinic = async () => {
-    if (!selectedClinic || removeConfirmName !== selectedClinic.name) {
-      alert('Please type the clinic name correctly to confirm');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('clinics')
-        .delete()
-        .eq('id', selectedClinic.id);
-
-      if (error) {
-        console.error('Error removing clinic:', error);
-        alert('Error removing clinic: ' + error.message);
-        return;
-      }
-
-      setShowRemoveModal(false);
-      setRemoveConfirmName('');
-      setSelectedClinic(null);
-      fetchClinics();
-    } catch (error) {
-      console.error('Error removing clinic:', error);
-      alert('Error removing clinic');
-    }
-  };
 
   const handleOpenEditModal = (clinic: Clinic) => {
     setSelectedClinic(clinic);
@@ -643,35 +610,49 @@ const AdminClinics = () => {
   const handleOpenSuspendModal = (clinic: Clinic) => {
     setSelectedClinic(clinic);
     setSuspendReason('');
-    setSuspendConfirmName('');
-    // Show suspend modal first (with reason field)
     setShowSuspendModal(true);
   };
 
-  const handleSuspendClinicClick = () => {
-    // When user clicks "Suspend Clinic" in the first modal, show warning modal
-    if (!suspendReason.trim()) {
+  const handleSuspendClinicClick = async () => {
+    // Directly suspend the clinic after reason is provided
+    if (!selectedClinic || !suspendReason.trim()) {
       alert('Please provide a reason for suspension');
       return;
     }
-    setShowSuspendModal(false);
-    setShowSuspendWarningModal(true);
+    
+    await handleSuspendClinic();
   };
 
-  const handleConfirmSuspendWarning = () => {
-    if (!selectedClinic || suspendConfirmName !== selectedClinic.name) {
-      alert('Please type the clinic name correctly to confirm');
-      return;
+  const handleUnsuspendClinic = async (clinic: Clinic) => {
+    if (!clinic) return;
+
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .update({
+          status: 'active',
+          suspended_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', clinic.id);
+
+      if (error) {
+        console.error('Error unsuspending clinic:', error);
+        alert('Error unsuspending clinic: ' + error.message);
+        return;
+      }
+
+      // Refresh the clinics list to show updated status
+      await fetchClinics();
+      
+      // Show success message
+      alert(`Clinic "${clinic.name}" has been unsuspended successfully. It will now be visible on the public page.`);
+    } catch (error) {
+      console.error('Error unsuspending clinic:', error);
+      alert('Error unsuspending clinic');
     }
-    // Now actually suspend the clinic
-    handleSuspendClinic();
   };
 
-  const handleOpenRemoveModal = (clinic: Clinic) => {
-    setSelectedClinic(clinic);
-    setRemoveConfirmName('');
-    setShowRemoveModal(true);
-  };
 
 
   return (
@@ -685,12 +666,6 @@ const AdminClinics = () => {
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clinics</h1>
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Filter
-                </Button>
                 <Button 
                   onClick={() => setShowAddModal(true)}
                   className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium px-6"
@@ -701,45 +676,8 @@ const AdminClinics = () => {
               </div>
             </div>
 
-            {/* Filters Section */}
-            <div className="mb-6 space-y-4">
-              {/* Status and Date Filters Row */}
-              <div className="flex items-center gap-4 flex-wrap">
-                {/* Status Filter Tabs */}
-                <div className="flex items-center gap-2">
-                  {(['all', 'active', 'pending', 'suspended'] as const).map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setStatusFilter(status)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        statusFilter === status
-                          ? 'bg-[#00FFA2] text-[#0C2243]'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Date Filter Tabs */}
-                <div className="flex items-center gap-2 ml-auto">
-                  {(['today', 'tomorrow', 'this-week', 'all-time'] as const).map((date) => (
-                    <button
-                      key={date}
-                      onClick={() => setDateFilter(date)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        dateFilter === date
-                          ? 'bg-[#00FFA2] text-[#0C2243]'
-                          : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                      }`}
-                    >
-                      {date === 'this-week' ? 'This week' : date === 'all-time' ? 'All time' : date.charAt(0).toUpperCase() + date.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+            {/* Search Section */}
+            <div className="mb-6">
               {/* Search Bar */}
               <div className="w-full">
                 <div className="relative max-w-md">
@@ -863,20 +801,23 @@ const AdminClinics = () => {
                                 <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                 <span className="text-sm text-gray-900 dark:text-gray-100">Edit Clinic Info</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleOpenSuspendModal(clinic)}
-                                className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-red-600 dark:text-red-400"
-                              >
-                                <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                <span className="text-sm">Suspend Clinic</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleOpenRemoveModal(clinic)}
-                                className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-red-600 dark:text-red-400"
-                              >
-                                <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                <span className="text-sm">Remove Clinic</span>
-                              </DropdownMenuItem>
+                              {clinic.status === 'suspended' ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleUnsuspendClinic(clinic)}
+                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-green-600 dark:text-green-400"
+                                >
+                                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                  <span className="text-sm">Unsuspend Clinic</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenSuspendModal(clinic)}
+                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-red-600 dark:text-red-400"
+                                >
+                                  <Ban className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                  <span className="text-sm">Suspend Clinic</span>
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
@@ -1214,18 +1155,33 @@ const AdminClinics = () => {
           
           {/* Action Buttons Footer */}
           <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <Button
-              onClick={() => {
-                if (selectedClinic) {
-                  handleOpenSuspendModal(selectedClinic);
-                  setShowDetailsModal(false);
-                }
-              }}
-              className="bg-red-600 border-2 border-white text-white hover:bg-red-700 flex items-center gap-2 px-4 py-2 rounded-lg"
-            >
-              <X className="w-4 h-4 text-white" />
-              <span className="text-white">Suspend Clinic</span>
-            </Button>
+            {selectedClinic?.status === 'suspended' ? (
+              <Button
+                onClick={() => {
+                  if (selectedClinic) {
+                    handleUnsuspendClinic(selectedClinic);
+                    setShowDetailsModal(false);
+                  }
+                }}
+                className="bg-green-600 border-2 border-white text-white hover:bg-green-700 flex items-center gap-2 px-4 py-2 rounded-lg"
+              >
+                <Check className="w-4 h-4 text-white" />
+                <span className="text-white">Unsuspend Clinic</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  if (selectedClinic) {
+                    handleOpenSuspendModal(selectedClinic);
+                    setShowDetailsModal(false);
+                  }
+                }}
+                className="bg-red-600 border-2 border-white text-white hover:bg-red-700 flex items-center gap-2 px-4 py-2 rounded-lg"
+              >
+                <Ban className="w-4 h-4 text-white" />
+                <span className="text-white">Suspend Clinic</span>
+              </Button>
+            )}
             <Button
               onClick={() => {
                 if (selectedClinic) {
@@ -1238,14 +1194,6 @@ const AdminClinics = () => {
             >
               <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               <span>Edit Clinic Info</span>
-            </Button>
-            <Button
-              onClick={() => {
-                setShowDetailsModal(false);
-              }}
-              className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white px-4 py-2 rounded-lg"
-            >
-              View Full Profile
             </Button>
           </div>
         </DialogContent>
@@ -1274,11 +1222,11 @@ const AdminClinics = () => {
             </div>
 
             {/* Main Heading */}
-            <h3 className="text-xl font-bold text-center mb-3 text-gray-900 dark:text-white">Remove Clinic</h3>
+            <h3 className="text-xl font-bold text-center mb-3 text-gray-900 dark:text-white">Suspend Clinic</h3>
             
             {/* Description Text */}
             <p className="text-sm text-gray-700 dark:text-gray-300 text-center mb-6">
-              You're about to suspend <span className="font-bold text-red-600">'{selectedClinic?.name}'</span>. This action will temporarily restrict their access to the platform.
+              You're about to suspend <span className="font-bold text-red-600">'{selectedClinic?.name}'</span>. This clinic will be hidden from the public page until you unsuspend it.
             </p>
 
             {/* Reason Input Field */}
@@ -1310,8 +1258,9 @@ const AdminClinics = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSuspendClinicClick} 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
+              onClick={handleSuspendClinicClick}
+              disabled={!suspendReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Suspend Clinic
             </Button>
@@ -1319,63 +1268,6 @@ const AdminClinics = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Warning Modal (Second Modal - confirmation with clinic name) */}
-      <Dialog open={showSuspendWarningModal} onOpenChange={setShowSuspendWarningModal}>
-        <DialogContent className="max-w-md p-0">
-          {/* Custom Header */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">Warning</DialogTitle>
-          </div>
-          
-          <div className="px-6 py-6">
-            {/* Trash Icon Section */}
-            <div className="flex justify-center mb-6">
-              <Trash2 className="w-16 h-16 text-red-600" />
-            </div>
-
-            {/* Main Heading */}
-            <h3 className="text-xl font-bold text-center mb-3 text-gray-900 dark:text-white">Remove Clinic</h3>
-            
-            {/* Warning Message */}
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
-              This action cannot be undone. All clinic data, doctors, and associated records will be permanently deleted.
-            </p>
-
-            {/* Confirmation Prompt */}
-            <p className="text-sm text-gray-900 dark:text-white mb-3 text-center">
-              To confirm, please type the clinic name below
-            </p>
-
-            {/* Input Field */}
-            <Input
-              placeholder="Enter clinic name"
-              value={suspendConfirmName}
-              onChange={(e) => setSuspendConfirmName(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Action Buttons Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowSuspendWarningModal(false);
-                setSuspendConfirmName('');
-              }}
-              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleConfirmSuspendWarning} 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
-            >
-              Remove Clinic
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
@@ -1544,41 +1436,6 @@ const AdminClinics = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Remove Clinic Modal */}
-      <Dialog open={showRemoveModal} onOpenChange={setShowRemoveModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Warning</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="flex justify-center mb-4">
-              <Trash2 className="w-16 h-16 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-center mb-2">Remove Clinic</h3>
-            <p className="text-sm text-gray-600 text-center mb-4">
-              This action cannot be undone. All clinic data, doctors, and associated records will be permanently deleted.
-            </p>
-            <p className="text-sm text-gray-600 mb-2">To confirm, please type the clinic name below</p>
-            <Input
-              placeholder="Enter clinic name"
-              value={removeConfirmName}
-              onChange={(e) => setRemoveConfirmName(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemoveModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleRemoveClinic} 
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={removeConfirmName !== selectedClinic?.name}
-            >
-              Remove Clinic
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </ProtectedRoute>
   );
 };

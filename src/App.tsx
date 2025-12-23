@@ -17,6 +17,7 @@ import MyBookings from "./pages/MyBookings";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
+import InviteAcceptance from "./pages/InviteAcceptance";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminClinics from "./pages/admin/Clinics";
 import AdminAppointments from "./pages/admin/Appointments";
@@ -176,6 +177,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/invite/:token" element={<InviteAcceptance />} />
               <Route path="/clinic/:clinicId" element={<ClinicDetails />} />
               <Route path="/service/:serviceId" element={<ServiceDetails />} />
               <Route path="/my-bookings" element={<MyBookings />} />

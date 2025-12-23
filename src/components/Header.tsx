@@ -79,30 +79,28 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                 </svg>
               </div>
             </button>
-            <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium ml-4 lg:ml-6">
-              <div 
-                onClick={() => navigate('/')}
-                className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                Home
-              </div>
-              {user && (
-                <>
-                  <div 
-                    onClick={() => navigate('/my-bookings')}
-                    className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    Booking
-                  </div>
-                  <div 
-                    onClick={() => navigate('/profile')}
-                    className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    Profile
-                  </div>
-                </>
-              )}
-            </nav>
+            {user && (
+              <nav className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium ml-4 lg:ml-6">
+                <div 
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Home
+                </div>
+                <div 
+                  onClick={() => navigate('/my-bookings')}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Booking
+                </div>
+                <div 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  Profile
+                </div>
+              </nav>
+            )}
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4 text-sm font-normal tracking-[-0.28px]">

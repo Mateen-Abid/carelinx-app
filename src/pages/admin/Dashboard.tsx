@@ -3,6 +3,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useNavigate } from 'react-router-dom';
 import { X, Edit } from 'lucide-react';
@@ -53,6 +55,7 @@ const AdminDashboard = () => {
   const [allClinics, setAllClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [clinicStats, setClinicStats] = useState({
     totalDoctors: 0,
@@ -60,6 +63,18 @@ const AdminDashboard = () => {
     totalAppointments: 0,
   });
   const [loadingStats, setLoadingStats] = useState(false);
+  
+  // Edit clinic form state
+  const [editClinicForm, setEditClinicForm] = useState({
+    name: '',
+    description: '',
+    specialties: [] as string[],
+    contact_email: '',
+    contact_phone: '',
+    address: '',
+  });
+  const [editSpecialtyInput, setEditSpecialtyInput] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -356,6 +371,89 @@ const AdminDashboard = () => {
     await fetchClinicStats(clinic);
   };
 
+  const handleOpenEditModal = (clinic: Clinic) => {
+    setSelectedClinic(clinic);
+    setEditClinicForm({
+      name: clinic.name || '',
+      description: clinic.description || '',
+      specialties: clinic.specialties || [],
+      contact_email: clinic.contact_email || '',
+      contact_phone: clinic.contact_phone || '',
+      address: clinic.address || '',
+    });
+    setEditSpecialtyInput('');
+    setShowEditModal(true);
+  };
+
+  const handleAddEditSpecialty = () => {
+    if (editSpecialtyInput.trim() && !editClinicForm.specialties.includes(editSpecialtyInput.trim())) {
+      setEditClinicForm({
+        ...editClinicForm,
+        specialties: [...editClinicForm.specialties, editSpecialtyInput.trim()],
+      });
+      setEditSpecialtyInput('');
+    }
+  };
+
+  const handleRemoveEditSpecialty = (specialty: string) => {
+    setEditClinicForm({
+      ...editClinicForm,
+      specialties: editClinicForm.specialties.filter((s) => s !== specialty),
+    });
+  };
+
+  const handleSaveEditClinic = async () => {
+    if (!selectedClinic) return;
+
+    if (!editClinicForm.name || !editClinicForm.address) {
+      alert('Please fill in clinic name and address');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .update({
+          name: editClinicForm.name,
+          description: editClinicForm.description || null,
+          specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
+          contact_email: editClinicForm.contact_email || null,
+          contact_phone: editClinicForm.contact_phone || null,
+          address: editClinicForm.address,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedClinic.id);
+
+      if (error) {
+        console.error('Error updating clinic:', error);
+        alert('Error updating clinic: ' + error.message);
+        return;
+      }
+
+      // Update the selectedClinic state to reflect changes immediately
+      setSelectedClinic({
+        ...selectedClinic,
+        name: editClinicForm.name,
+        description: editClinicForm.description || undefined,
+        specialties: editClinicForm.specialties,
+        contact_email: editClinicForm.contact_email || undefined,
+        contact_phone: editClinicForm.contact_phone || undefined,
+        address: editClinicForm.address,
+      });
+
+      setShowEditModal(false);
+      // Refresh the dashboard data to show updated data
+      await fetchDashboardData();
+      alert('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
+    } catch (error) {
+      console.error('Error updating clinic:', error);
+      alert('Error updating clinic');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleStatusCardClick = (status: 'all' | 'active' | 'pending' | 'suspended') => {
     setSelectedStatusFilter(status);
     // Also set time filter to all-time to show all clinics of that status
@@ -370,7 +468,7 @@ const AdminDashboard = () => {
     { id: 'today', label: 'Today' },
     { id: 'tomorrow', label: 'Tomorrow' },
     { id: 'this-week', label: 'This week' },
-    { id: 'all-time', label: 'All time' },
+    { id: 'all-time', label: 'To date' },
   ];
 
   return (
@@ -715,8 +813,8 @@ const AdminDashboard = () => {
               <Button
                 onClick={() => {
                   if (selectedClinic) {
+                    handleOpenEditModal(selectedClinic);
                     setShowDetailsModal(false);
-                    navigate('/admin/clinics');
                   }
                 }}
                 variant="outline"
@@ -725,16 +823,131 @@ const AdminDashboard = () => {
                 <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 <span>Edit Clinic Info</span>
               </Button>
-              <Button
-                onClick={() => {
-                  setShowDetailsModal(false);
-                  navigate('/admin/clinics');
-                }}
-                className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white px-4 py-2 rounded-lg"
-              >
-                View Full Profile
-              </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Clinic Info Modal */}
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Edit Clinic Information</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="edit-name">Clinic Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editClinicForm.name}
+                  onChange={(e) => setEditClinicForm({ ...editClinicForm, name: e.target.value })}
+                  className="mt-1"
+                  placeholder="Enter clinic name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-address">Address *</Label>
+                <Input
+                  id="edit-address"
+                  value={editClinicForm.address}
+                  onChange={(e) => setEditClinicForm({ ...editClinicForm, address: e.target.value })}
+                  className="mt-1"
+                  placeholder="Enter clinic address"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editClinicForm.description}
+                  onChange={(e) => setEditClinicForm({ ...editClinicForm, description: e.target.value })}
+                  className="mt-1"
+                  placeholder="Enter clinic description"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-contact-email">Contact Email</Label>
+                <Input
+                  id="edit-contact-email"
+                  type="email"
+                  value={editClinicForm.contact_email}
+                  onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_email: e.target.value })}
+                  className="mt-1"
+                  placeholder="Enter contact email"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-contact-phone">Contact Phone</Label>
+                <Input
+                  id="edit-contact-phone"
+                  value={editClinicForm.contact_phone}
+                  onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_phone: e.target.value })}
+                  className="mt-1"
+                  placeholder="Enter contact phone"
+                />
+              </div>
+
+              <div>
+                <Label>Specialties</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={editSpecialtyInput}
+                    onChange={(e) => setEditSpecialtyInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddEditSpecialty();
+                      }
+                    }}
+                    placeholder="Add specialty"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddEditSpecialty}
+                    variant="outline"
+                    className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white border-0"
+                  >
+                    Add
+                  </Button>
+                </div>
+                {editClinicForm.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {editClinicForm.specialties.map((specialty, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-full"
+                      >
+                        {specialty}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEditSpecialty(specialty)}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={savingEdit}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEditClinic}
+                disabled={savingEdit}
+                className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
+              >
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

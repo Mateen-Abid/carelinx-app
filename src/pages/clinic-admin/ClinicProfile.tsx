@@ -73,6 +73,8 @@ const ClinicAdminClinicProfile = () => {
   const [savingHours, setSavingHours] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(false);
   
   // Edit Profile Form State
   const [editProfileForm, setEditProfileForm] = useState({
@@ -88,6 +90,35 @@ const ClinicAdminClinicProfile = () => {
   const [editHoursForm, setEditHoursForm] = useState<{
     [key: number]: { opening: string; closing: string; isClosed: boolean }
   }>({});
+
+  // Fetch super admin specialties
+  useEffect(() => {
+    const fetchSuperAdminSpecialties = async () => {
+      try {
+        setLoadingSpecialties(true);
+        
+        const { data: specialtiesData, error: specialtiesError } = await (supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('super_admin_specialties' as any)
+          .select('name')
+          .eq('is_active', true)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .order('name', { ascending: true }) as any);
+
+        if (specialtiesError) {
+          console.error('Error fetching specialties:', specialtiesError);
+        } else {
+          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
+        }
+      } catch (error) {
+        console.error('Error fetching super admin specialties:', error);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+
+    fetchSuperAdminSpecialties();
+  }, []);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -479,11 +510,6 @@ const ClinicAdminClinicProfile = () => {
     }));
   };
 
-  const availableSpecialties = [
-    'Cardiology', 'Dentistry', 'Pediatrics', 'Orthopedics', 'Neurology',
-    'Dermatology', 'Ophthalmology', 'Psychiatry', 'Oncology', 'Gastroenterology',
-    'Endocrinology', 'Rheumatology', 'Urology', 'Gynecology', 'General Practice',
-  ];
 
   if (checkingClinic) {
     return (
