@@ -3,7 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Filter, X, Info, Eye, Trash2, MoreVertical } from 'lucide-react';
+import { Filter, X, Info, Eye, Trash2, MoreVertical, Settings } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -59,10 +59,12 @@ const AdminDoctors = () => {
   // Modal states
   const [isDoctorDetailsModalOpen, setIsDoctorDetailsModalOpen] = useState(false);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [doctorAppointments, setDoctorAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [deletingDoctor, setDeletingDoctor] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
 
   useEffect(() => {
     fetchDoctors();
@@ -293,6 +295,41 @@ const AdminDoctors = () => {
     }
   };
 
+  const handleChangeStatus = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setIsStatusChangeModalOpen(true);
+  };
+
+  const handleConfirmStatusChange = async (newStatus: 'active' | 'inactive' | 'on-leave') => {
+    if (!selectedDoctor) return;
+
+    setChangingStatus(true);
+    try {
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('doctors' as any)
+        .update({ status: newStatus })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .eq('id', selectedDoctor.id)) as any;
+
+      if (error) {
+        console.error('Error updating doctor status:', error);
+        toast.error('Failed to update doctor status: ' + error.message);
+        return;
+      }
+
+      toast.success(`Doctor status updated to ${newStatus === 'on-leave' ? 'On Leave' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`);
+      setIsStatusChangeModalOpen(false);
+      setSelectedDoctor(null);
+      fetchDoctors(); // Refresh to show updated status
+    } catch (error) {
+      console.error('Error updating doctor status:', error);
+      toast.error('Failed to update doctor status');
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   return (
     <ProtectedRoute allowedRoles={['super_admin']}>
       <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
@@ -414,6 +451,13 @@ const AdminDoctors = () => {
                               >
                                 <Eye className="w-4 h-4" />
                                 View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => handleChangeStatus(doctor)}
+                              >
+                                <Settings className="w-4 h-4" />
+                                Change Status
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400"
@@ -557,6 +601,67 @@ const AdminDoctors = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Change Status Modal */}
+        <Dialog open={isStatusChangeModalOpen} onOpenChange={setIsStatusChangeModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Change Doctor Status</DialogTitle>
+              <DialogDescription>
+                Select the new status for this doctor. This change will be visible to clinic admins.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedDoctor && (
+              <div className="py-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Doctor: <span className="font-semibold text-gray-900 dark:text-white">{selectedDoctor.name}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Clinic: <span className="font-semibold text-gray-900 dark:text-white">{selectedDoctor.clinic_name || 'Unknown'}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Current Status: <span className="font-semibold">{getStatusBadge(selectedDoctor.status)}</span>
+                </p>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Select New Status:</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {(['active', 'inactive', 'on-leave'] as const).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => handleConfirmStatusChange(status)}
+                        disabled={changingStatus || selectedDoctor.status === status}
+                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left ${
+                          selectedDoctor.status === status
+                            ? 'bg-[#00FFA2] text-[#0C2243] cursor-default'
+                            : changingStatus
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{status === 'on-leave' ? 'On Leave' : status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                          {selectedDoctor.status === status && (
+                            <span className="text-xs">(Current)</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsStatusChangeModalOpen(false)}
+                disabled={changingStatus}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

@@ -55,8 +55,12 @@ const Auth = () => {
         email: decodeURIComponent(inviteEmail)
       }));
       setIsLogin(false); // Force signup mode for invitations
-      // Store invitation token in sessionStorage for later use
+      // Store invitation token in both sessionStorage and localStorage for reliability
+      // localStorage persists even if sessionStorage is cleared
       sessionStorage.setItem('invitation_token', inviteToken);
+      localStorage.setItem('invitation_token', inviteToken);
+      localStorage.setItem('invitation_email', decodeURIComponent(inviteEmail));
+      console.log('💾 Invitation token saved to sessionStorage and localStorage:', inviteToken);
     }
     
     if (user && userRole) {

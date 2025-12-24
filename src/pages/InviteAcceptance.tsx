@@ -120,7 +120,7 @@ const InviteAcceptance = () => {
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-[#00FFA2]" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You've been invited!</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              You've been invited to join CareLinix as a Super Admin.
+              You've been invited to join CareLinix as a {invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}.
             </p>
           </div>
 
@@ -133,6 +133,12 @@ const InviteAcceptance = () => {
               <div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Email:</span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">{invitation.email}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">
+                  {invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}
+                </span>
               </div>
             </div>
           </div>

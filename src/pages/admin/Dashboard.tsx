@@ -40,7 +40,7 @@ interface Clinic {
 const AdminDashboard = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'tomorrow' | 'this-week' | 'all-time'>('all-time');
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'this-week' | 'all-time'>('all-time');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'pending' | 'suspended' | null>(null);
   const [stats, setStats] = useState({
     totalClinics: 0,
@@ -223,8 +223,6 @@ const AdminDashboard = () => {
         
         if (selectedTimeFilter === 'today') {
           return clinicDate >= today && clinicDate < tomorrow;
-        } else if (selectedTimeFilter === 'tomorrow') {
-          return clinicDate >= tomorrow && clinicDate < new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
         } else if (selectedTimeFilter === 'this-week') {
           return clinicDate >= thisWeekStart;
         } else {
@@ -466,7 +464,6 @@ const AdminDashboard = () => {
 
   const timeFilters = [
     { id: 'today', label: 'Today' },
-    { id: 'tomorrow', label: 'Tomorrow' },
     { id: 'this-week', label: 'This week' },
     { id: 'all-time', label: 'To date' },
   ];

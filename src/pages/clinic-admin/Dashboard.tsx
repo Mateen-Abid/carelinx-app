@@ -65,6 +65,8 @@ const ClinicAdminDashboard = () => {
   const [checkingClinic, setCheckingClinic] = useState(true);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
+  const [loadingPending, setLoadingPending] = useState(false);
   
   // Statistics
   const [stats, setStats] = useState({
@@ -154,12 +156,28 @@ const ClinicAdminDashboard = () => {
     checkClinicExists();
   }, [user, navigate]);
 
-  // Fetch dashboard data when clinic is loaded or filter changes
+  // Fetch dashboard data when clinic is loaded (stats only, not appointments)
   useEffect(() => {
     if (clinic?.id) {
       fetchDashboardData(clinic.id);
     }
-  }, [clinic?.id, selectedTimeFilter, selectedPendingFilter]);
+  }, [clinic?.id]);
+
+  // Fetch upcoming appointments when time filter changes
+  useEffect(() => {
+    if (clinic?.id && !loading) {
+      fetchUpcomingAppointments(clinic.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinic?.id, selectedTimeFilter]);
+
+  // Fetch pending requests when pending filter changes
+  useEffect(() => {
+    if (clinic?.id && !loading) {
+      fetchPendingRequests(clinic.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinic?.id, selectedPendingFilter]);
 
   // Fetch trends when period changes
   useEffect(() => {
@@ -504,6 +522,224 @@ const ClinicAdminDashboard = () => {
     } catch (error) {
       console.error('❌ Error fetching dashboard data:', error);
       setLoading(false);
+    }
+  };
+
+  // Separate function to fetch upcoming appointments only
+  const fetchUpcomingAppointments = async (clinicId: string) => {
+    try {
+      setLoadingUpcoming(true);
+      
+      // Get today's date range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - today.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+
+      // Fetch bookings
+      let bookingsData: any[] = [];
+      const { data: bookingsById, error: errorById } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('clinic_id', clinicId)
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true });
+
+      if (!errorById && bookingsById) {
+        bookingsData = bookingsById;
+      } else if (clinic?.name) {
+        const { data: bookingsByName } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('clinic', clinic.name)
+          .order('appointment_date', { ascending: true })
+          .order('appointment_time', { ascending: true });
+        if (bookingsByName) bookingsData = bookingsByName;
+      }
+
+      // Fetch profiles
+      let bookingsWithProfiles: any[] = [];
+      if (bookingsData.length > 0) {
+        const userIds = [...new Set(bookingsData.map((b: any) => b.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', userIds);
+
+        const profileMap = new Map();
+        profilesData?.forEach((profile: any) => {
+          profileMap.set(profile.user_id, profile);
+        });
+
+        bookingsWithProfiles = bookingsData.map((booking: any) => ({
+          ...booking,
+          profiles: profileMap.get(booking.user_id),
+        }));
+      }
+
+      // Filter by date range
+      let filteredBookings = bookingsWithProfiles;
+      if (selectedTimeFilter === 'today') {
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === today.getTime();
+        });
+      } else if (selectedTimeFilter === 'tomorrow') {
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === tomorrow.getTime();
+        });
+      } else if (selectedTimeFilter === 'this-week') {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate >= weekStart && bookingDate < weekEnd;
+        });
+      }
+
+      // Filter for confirmed/rescheduled appointments
+      const upcoming = filteredBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          const todayDate = new Date(today);
+          todayDate.setHours(0, 0, 0, 0);
+          return (b.status === 'confirmed' || b.status === 'rescheduled') && bookingDate.getTime() >= todayDate.getTime();
+        })
+        .sort((a: any, b: any) => {
+          const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          return a.appointment_time.localeCompare(b.appointment_time);
+        })
+        .slice(0, 10);
+
+      setUpcomingAppointments(upcoming.map((booking: any) => ({
+        id: booking.id,
+        patient_name: booking.profiles?.full_name || 'Unknown Patient',
+        doctor_name: booking.doctor_name,
+        specialty: booking.specialty,
+        appointment_date: booking.appointment_date,
+        appointment_time: booking.appointment_time,
+        status: booking.status as 'pending' | 'confirmed' | 'cancelled',
+        user_id: booking.user_id,
+      })));
+    } catch (error) {
+      console.error('❌ Error fetching upcoming appointments:', error);
+    } finally {
+      setLoadingUpcoming(false);
+    }
+  };
+
+  // Separate function to fetch pending requests only
+  const fetchPendingRequests = async (clinicId: string) => {
+    try {
+      setLoadingPending(true);
+      
+      // Get today's date range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - today.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+
+      // Fetch bookings
+      let bookingsData: any[] = [];
+      const { data: bookingsById, error: errorById } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('clinic_id', clinicId)
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true });
+
+      if (!errorById && bookingsById) {
+        bookingsData = bookingsById;
+      } else if (clinic?.name) {
+        const { data: bookingsByName } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('clinic', clinic.name)
+          .order('appointment_date', { ascending: true })
+          .order('appointment_time', { ascending: true });
+        if (bookingsByName) bookingsData = bookingsByName;
+      }
+
+      // Fetch profiles
+      let bookingsWithProfiles: any[] = [];
+      if (bookingsData.length > 0) {
+        const userIds = [...new Set(bookingsData.map((b: any) => b.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', userIds);
+
+        const profileMap = new Map();
+        profilesData?.forEach((profile: any) => {
+          profileMap.set(profile.user_id, profile);
+        });
+
+        bookingsWithProfiles = bookingsData.map((booking: any) => ({
+          ...booking,
+          profiles: profileMap.get(booking.user_id),
+        }));
+      }
+
+      // Filter by date range
+      let filteredBookings = bookingsWithProfiles;
+      if (selectedPendingFilter === 'today') {
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === today.getTime();
+        });
+      } else if (selectedPendingFilter === 'tomorrow') {
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === tomorrow.getTime();
+        });
+      } else if (selectedPendingFilter === 'this-week') {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        filteredBookings = bookingsWithProfiles.filter((b: any) => {
+          const bookingDate = new Date(b.appointment_date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate >= weekStart && bookingDate < weekEnd;
+        });
+      }
+
+      // Filter for pending status
+      const pending = filteredBookings
+        .filter((b: any) => b.status === 'pending')
+        .sort((a: any, b: any) => {
+          const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          return a.appointment_time.localeCompare(b.appointment_time);
+        })
+        .slice(0, 10);
+
+      setPendingRequests(pending.map((booking: any) => ({
+        id: booking.id,
+        patient_name: booking.profiles?.full_name || 'Unknown Patient',
+        doctor_name: booking.doctor_name,
+        specialty: booking.specialty,
+        appointment_date: booking.appointment_date,
+        appointment_time: booking.appointment_time,
+        status: booking.status as 'pending' | 'confirmed' | 'cancelled',
+        user_id: booking.user_id,
+      })));
+    } catch (error) {
+      console.error('❌ Error fetching pending requests:', error);
+    } finally {
+      setLoadingPending(false);
     }
   };
 
@@ -1199,7 +1435,7 @@ const ClinicAdminDashboard = () => {
                   </div>
                 </div>
 
-                {loading ? (
+                {loadingUpcoming ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
                     <p className="text-gray-500 dark:text-gray-400">Loading...</p>
@@ -1273,7 +1509,7 @@ const ClinicAdminDashboard = () => {
                   </div>
                 </div>
 
-                {loading ? (
+                {loadingPending ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
                     <p className="text-gray-500 dark:text-gray-400">Loading...</p>

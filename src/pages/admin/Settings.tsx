@@ -76,7 +76,6 @@ const AdminSettings = () => {
     status: 'active' | 'inactive' | 'on-leave';
     access_level: 'super_admin' | 'clinic_admin' | 'public_user' | '';
     email: string;
-    password: string;
   }>({
     name: '',
     role: '',
@@ -84,7 +83,6 @@ const AdminSettings = () => {
     status: 'active',
     access_level: '',
     email: '',
-    password: '',
   });
 
   // Edit profile form state
@@ -150,6 +148,7 @@ const AdminSettings = () => {
     try {
       setLoadingTeamMembers(true);
       console.log('🔍 Fetching team members from database...');
+      console.log('👤 Current user:', user?.id, user?.email);
       
       const { data, error } = await supabase
         .from('team_members')
@@ -158,18 +157,34 @@ const AdminSettings = () => {
 
       if (error) {
         console.error('❌ Error fetching team members:', error);
-        // Don't show toast on initial load if table doesn't exist yet
-        if (error.code !== '42P01') {
-          toast.error('Failed to load team members');
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        
+        // Show detailed error for debugging
+        if (error.code === '42501') {
+          console.error('⚠️ RLS Policy Error: User may not have permission to view team members');
+          toast.error('Permission denied. Please check RLS policies.');
+        } else if (error.code === '42P01') {
+          console.error('⚠️ Table does not exist');
+          // Don't show toast on initial load if table doesn't exist yet
+        } else {
+          toast.error(`Failed to load team members: ${error.message}`);
         }
         setTeamMembers([]);
         return;
       }
 
       console.log('✅ Team members fetched:', data?.length || 0);
+      console.log('📋 Team members data:', data);
       setTeamMembers(data || []);
+      
+      if (data && data.length === 0) {
+        console.log('ℹ️ No team members found in database');
+      }
     } catch (error: any) {
-      console.error('❌ Error fetching team members:', error);
+      console.error('❌ Exception fetching team members:', error);
+      console.error('❌ Exception details:', JSON.stringify(error, null, 2));
       // Don't show toast if it's just a missing table error
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
         toast.error('Failed to load team members');
@@ -282,16 +297,16 @@ const AdminSettings = () => {
         return;
       }
 
-      // If access level is selected, email and password are required
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (!newTeamMember.email || !newTeamMember.password)) {
-        toast.error('Email and password are required when assigning system access');
+      // If access level is selected, email is required (password not needed for invitation)
+      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && !newTeamMember.email) {
+        toast.error('Email is required when assigning system access');
         return;
       }
 
-      let userId: string | null = null;
+      let invitationData: any = null;
 
-      // If access level is provided, create user account and assign role via edge function
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && newTeamMember.email && newTeamMember.password) {
+      // If access level is provided, send invitation via edge function
+      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && newTeamMember.email) {
         try {
           // Get current session for authorization
           const { data: { session } } = await supabase.auth.getSession();
@@ -300,14 +315,31 @@ const AdminSettings = () => {
             return;
           }
 
-          // Call edge function to create user account with role
-          const { data: functionData, error: functionError } = await supabase.functions.invoke('super-processor', {
-            body: {
-              email: newTeamMember.email,
-              password: newTeamMember.password,
-              full_name: newTeamMember.name,
-              access_level: newTeamMember.access_level,
-            },
+          // Only allow super_admin or clinic_admin roles for invitations
+          if (newTeamMember.access_level !== 'super_admin' && newTeamMember.access_level !== 'clinic_admin') {
+            toast.error('Invitations can only be sent for Super Admin or Clinic Admin roles');
+            return;
+          }
+
+          // Get current app URL (for invitation link)
+          const appUrl = window.location.origin;
+
+          // Prepare request body
+          const requestBody = {
+            email: newTeamMember.email,
+            name: newTeamMember.name,
+            role_type: newTeamMember.access_level,
+            app_url: appUrl,
+          };
+
+          // Log request body for debugging
+          console.log('📤 Sending invitation request:', requestBody);
+          console.log('📤 Access level:', newTeamMember.access_level);
+          console.log('📤 Email:', newTeamMember.email);
+
+          // Call edge function to send invitation
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('send-invitation', {
+            body: requestBody,
             headers: {
               Authorization: `Bearer ${session.access_token}`,
             },
@@ -327,31 +359,38 @@ const AdminSettings = () => {
               console.error('📝 DEPLOYMENT REQUIRED:');
               console.error('1. Make sure you have Supabase CLI installed: npm install -g supabase');
               console.error('2. Login to Supabase: supabase login');
-              console.error('3. Link your project: supabase link --project-ref flqignqyqpdgvztpqucd');
-              console.error('4. Deploy the function: supabase functions deploy super-processor');
-              console.error('   OR use the function name you created in Supabase Dashboard');
+              console.error('3. Link your project: supabase link --project-ref YOUR_PROJECT_REF');
+              console.error('4. Deploy the function: supabase functions deploy send-invitation');
             } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
               toast.error('Unauthorized. Please check your session and try again.');
             } else if (errorMessage.includes('403')) {
-              toast.error('Access denied. Only super admin can create team member accounts.');
+              toast.error('Access denied. Only super admin can send invitations.');
             } else {
-              toast.error(`Failed to create user account: ${errorMessage}`);
+              toast.error(`Failed to send invitation: ${errorMessage}`);
             }
             return;
           }
 
           if (functionData?.error) {
             console.error('❌ Edge function error:', functionData.error);
-            toast.error(`Failed to create user account: ${functionData.error}`);
+            toast.error(`Failed to send invitation: ${functionData.error}`);
             return;
           }
 
-          userId = functionData?.user_id;
-          console.log('✅ User account created via edge function:', userId);
-          toast.success(`User account created with ${newTeamMember.access_level} access`);
+          invitationData = functionData;
+          console.log('✅ Invitation sent successfully:', functionData);
+          
+          // Show success message with invitation URL for testing
+          toast.success(`Invitation sent to ${newTeamMember.email}!`);
+          
+          // For testing: log the invitation URL
+          if (functionData?.test_url) {
+            console.log('🔗 Invitation URL (for testing):', functionData.test_url);
+            toast.info(`Invitation URL: ${functionData.test_url}`, { duration: 10000 });
+          }
         } catch (error: any) {
-          console.error('❌ Error setting up user access:', error);
-          toast.error('Failed to create user account. Please try again.');
+          console.error('❌ Error sending invitation:', error);
+          toast.error('Failed to send invitation. Please try again.');
           return;
         }
       }
@@ -361,30 +400,78 @@ const AdminSettings = () => {
         ? 'Full Access' 
         : 'Limited Access';
 
-      // Add team member to database
-      const { data, error } = await supabase
-        .from('team_members')
-        .insert({
-          name: newTeamMember.name,
-          role: newTeamMember.role,
-          description: newTeamMember.description || null,
-          status: newTeamMember.status,
-          permissions: permissions,
-          access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user' : null,
-          email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
-          user_id: userId,
-        })
-        .select()
-        .single();
+      // Always add team member to database (for tracking purposes)
+      // This ensures the team member appears in the list even if invitation fails
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .insert({
+            name: newTeamMember.name,
+            role: newTeamMember.role,
+            description: newTeamMember.description || null,
+            status: newTeamMember.status,
+            permissions: permissions,
+            access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user' : null,
+            email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
+            user_id: invitationData?.user_id || null, // Use user_id from invitation if available
+          })
+          .select()
+          .single();
 
-      if (error) {
-        console.error('❌ Error adding team member:', error);
-        toast.error('Failed to add team member');
-        return;
+        if (error) {
+          console.error('❌ Error adding team member:', error);
+          console.error('❌ Error code:', error.code);
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error details:', JSON.stringify(error, null, 2));
+          console.error('📝 Attempted insert data:', {
+            name: newTeamMember.name,
+            role: newTeamMember.role,
+            description: newTeamMember.description || null,
+            status: newTeamMember.status,
+            permissions: permissions,
+            access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level : null,
+            email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
+            user_id: invitationData?.user_id || null,
+          });
+          
+          // Show detailed error message
+          if (error.code === '42501') {
+            toast.error('Permission denied. Please check RLS policies. Error: ' + error.message);
+            console.error('⚠️ RLS Policy Error: User may not have permission to insert team members');
+          } else if (error.code === '23503') {
+            toast.error('Foreign key constraint error. Please check user_id reference.');
+          } else if (error.code === '23514') {
+            toast.error('Check constraint violation. Please check field values.');
+          } else {
+            toast.error(`Failed to add team member: ${error.message}`);
+          }
+          
+          // Show appropriate error message
+          if (invitationData) {
+            toast.warning('Invitation sent but failed to add to team members list. The invitation is still valid.');
+            console.log('⚠️ Team member not added to database, but invitation was sent successfully');
+          } else {
+            return;
+          }
+        } else {
+          console.log('✅ Team member added successfully:', data);
+          console.log('📋 Added team member data:', JSON.stringify(data, null, 2));
+          if (invitationData) {
+            toast.success(`Invitation sent and team member added successfully!`);
+          } else {
+            toast.success('Team member added successfully!');
+          }
+        }
+      } catch (dbError: any) {
+        console.error('❌ Exception adding team member:', dbError);
+        console.error('❌ Exception details:', JSON.stringify(dbError, null, 2));
+        if (invitationData) {
+          toast.warning('Invitation sent but failed to add to team members list. The invitation is still valid.');
+        } else {
+          toast.error('Failed to add team member. Please try again.');
+          return;
+        }
       }
-
-      console.log('✅ Team member added:', data);
-      toast.success('Team member added successfully');
       
       // Reset form
       setNewTeamMember({
@@ -394,12 +481,14 @@ const AdminSettings = () => {
         status: 'active',
         access_level: '' as const,
         email: '',
-        password: '',
       });
       setShowAddTeamMemberModal(false);
       
-      // Refresh team members list
-      fetchTeamMembers();
+      // Always refresh team members list (even if insert failed, to show current state)
+      console.log('🔄 Refreshing team members list...');
+      setTimeout(() => {
+        fetchTeamMembers();
+      }, 500); // Small delay to ensure database has updated
     } catch (error) {
       console.error('❌ Error adding team member:', error);
       toast.error('Failed to add team member');
@@ -772,8 +861,7 @@ const AdminSettings = () => {
                     setNewTeamMember({ 
                       ...newTeamMember, 
                       access_level: accessLevel as 'super_admin' | 'clinic_admin' | 'public_user' | '', 
-                      email: accessLevel ? '' : newTeamMember.email, 
-                      password: accessLevel ? '' : newTeamMember.password 
+                      email: accessLevel ? '' : newTeamMember.email
                     });
                   }}
                 >
@@ -784,52 +872,33 @@ const AdminSettings = () => {
                     <SelectItem value="no-access">No System Access</SelectItem>
                     <SelectItem value="super_admin">Super Admin (Admin Pages)</SelectItem>
                     <SelectItem value="clinic_admin">Clinic Admin (Clinic Admin Pages)</SelectItem>
-                    <SelectItem value="public_user">Public User (Booking Pages)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings'}
-                  {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages (to be created)'}
-                  {newTeamMember.access_level === 'public_user' && 'Access to appointment booking pages'}
+                  {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings. An invitation email will be sent.'}
+                  {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages. An invitation email will be sent.'}
                   {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Team member will not have system login access'}
                 </p>
               </div>
 
               {newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (
-                <>
-                  <div>
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Email <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter email for system access"
-                      value={newTeamMember.email}
-                      onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
-                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for login to the system</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Password <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter password (min 6 characters)"
-                      value={newTeamMember.password}
-                      onChange={(e) => setNewTeamMember({ ...newTeamMember, password: e.target.value })}
-                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
-                      required
-                      minLength={6}
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
-                  </div>
-                </>
+                <div>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email to send invitation"
+                    value={newTeamMember.email}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
+                    className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    An invitation email will be sent to this address. User will create their password during signup.
+                  </p>
+                </div>
               )}
             </div>
             <DialogFooter className="mt-6 flex-shrink-0 border-t border-gray-200 dark:border-gray-700 pt-4">
@@ -844,7 +913,6 @@ const AdminSettings = () => {
                     status: 'active',
                     access_level: '' as const,
                     email: '',
-                    password: '',
                   });
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

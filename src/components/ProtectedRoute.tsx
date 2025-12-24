@@ -14,8 +14,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/'
 }) => {
   const { user, userRole, loading } = useAuth();
+  const [isChecking, setIsChecking] = React.useState(true);
 
-  if (loading) {
+  // Wait a bit for role to load if user exists
+  React.useEffect(() => {
+    if (user && !userRole && !loading) {
+      // Give it more time to fetch role from DB
+      const timer = setTimeout(() => {
+        setIsChecking(false);
+      }, 1000); // Wait 1 second for role to load
+      return () => clearTimeout(timer);
+    } else {
+      setIsChecking(false);
+    }
+  }, [user, userRole, loading]);
+
+  if (loading || isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -37,15 +51,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const storedRole = localStorage.getItem('userRole') as UserRole | null;
     if (storedRole) {
       effectiveRole = storedRole;
+      console.log('📋 Using cached role from localStorage:', storedRole);
     }
   }
 
-  // If still no role, deny access (user needs to be assigned a role)
+  // If still no role after waiting, deny access
   if (!effectiveRole || !allowedRoles.includes(effectiveRole)) {
     console.log('🚫 Access denied. User role:', effectiveRole, 'Required roles:', allowedRoles);
+    console.log('🚫 User:', user?.email, 'UserRole from context:', userRole, 'Cached role:', localStorage.getItem('userRole'));
     return <Navigate to={redirectTo} replace />;
   }
 
+  console.log('✅ Access granted. User role:', effectiveRole, 'Required roles:', allowedRoles);
   return <>{children}</>;
 };
 

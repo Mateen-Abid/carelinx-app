@@ -14,6 +14,9 @@ CREATE TABLE public.team_members (
   description TEXT,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on-leave')),
   permissions TEXT NOT NULL DEFAULT 'Limited Access' CHECK (permissions IN ('Full Access', 'Limited Access')),
+  access_level TEXT CHECK (access_level IN ('super_admin', 'clinic_admin', 'public_user')),
+  email TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -77,6 +80,8 @@ EXECUTE FUNCTION public.update_updated_at_column();
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_team_members_status ON public.team_members(status);
 CREATE INDEX IF NOT EXISTS idx_team_members_role ON public.team_members(role);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON public.team_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_access_level ON public.team_members(access_level);
 
 -- Add comment
 COMMENT ON TABLE public.team_members IS 'Stores team members managed by super admin. These are internal staff members, not user accounts.';

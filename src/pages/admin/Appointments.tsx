@@ -141,15 +141,16 @@ const AdminAppointments = () => {
         console.log('✅ Profiles fetched:', profilesData?.length || 0, 'profiles');
       }
 
-      // Fetch all clinics to map clinic_id to clinic name
+      // Fetch only active clinics to map clinic_id to clinic name
       const { data: clinicsData, error: clinicsError } = await supabase
         .from('clinics')
-        .select('id, name');
+        .select('id, name, status')
+        .eq('status', 'active');
 
       if (clinicsError) {
         console.error('❌ Error fetching clinics:', clinicsError);
       } else {
-        console.log('✅ Clinics fetched:', clinicsData?.length || 0, 'clinics');
+        console.log('✅ Active clinics fetched:', clinicsData?.length || 0, 'active clinics');
       }
 
       // Fetch all doctors from ALL clinics to validate appointments
@@ -170,8 +171,11 @@ const AdminAppointments = () => {
       });
 
       const clinicMap = new Map<string, string>();
+      // Only map active clinics
       clinicsData?.forEach(clinic => {
-        clinicMap.set(clinic.id, clinic.name);
+        if (clinic.status === 'active') {
+          clinicMap.set(clinic.id, clinic.name);
+        }
       });
 
       // Create doctor maps for validation
@@ -193,24 +197,33 @@ const AdminAppointments = () => {
         sampleDoctorNames: Array.from(doctorNameMap).slice(0, 5)
       });
 
-      // Extract unique clinics from bookings and clinics table
+      // Extract unique clinics - only from active clinics
       const uniqueClinics = new Set<string>(['All Clinics']);
       
-      // Add clinics from clinics table
+      // Add only active clinics from clinics table
       clinicsData?.forEach(clinic => {
-        if (clinic.name) {
+        if (clinic.name && clinic.status === 'active') {
           uniqueClinics.add(clinic.name);
         }
       });
       
-      // Add clinics from bookings (both clinic name and mapped from clinic_id)
+      // Add clinics from bookings only if they match active clinics
       bookingsData?.forEach(booking => {
-        if (booking.clinic) {
-          uniqueClinics.add(booking.clinic);
-        }
-        // Also add clinic name if we have clinic_id
+        // Only add if clinic_id matches an active clinic
         if (booking.clinic_id && clinicMap.has(booking.clinic_id)) {
-          uniqueClinics.add(clinicMap.get(booking.clinic_id)!);
+          const clinicName = clinicMap.get(booking.clinic_id)!;
+          // Verify it's an active clinic
+          const clinic = clinicsData?.find(c => c.id === booking.clinic_id);
+          if (clinic && clinic.status === 'active') {
+            uniqueClinics.add(clinicName);
+          }
+        }
+        // Also check if clinic name matches an active clinic name
+        if (booking.clinic) {
+          const clinic = clinicsData?.find(c => c.name === booking.clinic && c.status === 'active');
+          if (clinic) {
+            uniqueClinics.add(booking.clinic);
+          }
         }
       });
       

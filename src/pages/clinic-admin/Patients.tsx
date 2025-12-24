@@ -327,14 +327,13 @@ const ClinicAdminPatients = () => {
 
   // Filter patients
   const filteredPatients = patients.filter(patient => {
-    const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
     const matchesGender = !genderFilter || genderFilter === 'all' || patient.gender === genderFilter;
     const matchesSearch = !searchQuery || 
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase());
     
-    return matchesStatus && matchesGender && matchesSearch;
+    return matchesGender && matchesSearch;
   });
 
   // Sort patients
@@ -764,22 +763,6 @@ const ClinicAdminPatients = () => {
                     </div>
                   </div>
 
-                  {/* Right Side: Status Filters */}
-                  <div className="flex items-center gap-2">
-                    {(['all', 'active', 'inactive'] as const).map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => setStatusFilter(status)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          statusFilter === status
-                            ? 'bg-[#00FFA2] text-[#0C2243]'
-                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                        }`}
-                      >
-                        {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 
@@ -830,9 +813,6 @@ const ClinicAdminPatients = () => {
                           </button>
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Status
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           Action
                         </th>
                       </tr>
@@ -877,9 +857,6 @@ const ClinicAdminPatients = () => {
                                 ? format(new Date(patient.lastAppointment), 'MMM d, yyyy')
                                 : 'N/A'}
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            {getStatusBadge(patient.status)}
                           </td>
                           <td className="py-3 px-4">
                             <DropdownMenu>

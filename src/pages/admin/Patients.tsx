@@ -330,20 +330,14 @@ const AdminPatients = () => {
     }
   };
 
-  // Filter patients based on status, search, clinic, date, and filter modal options
+  // Filter patients based on search, clinic, date, and filter modal options
   const filteredPatients = patientsData.filter((patient) => {
-    // Status filter (from tabs)
-    const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
-    
     // Search filter
     const matchesSearch =
       searchQuery === '' ||
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.contact.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter modal: Status
-    const matchesFilterStatus = filterStatus === 'all' || patient.status === filterStatus;
     
     // Filter modal: Gender
     const matchesFilterGender = filterGender === 'all' || patient.gender.toLowerCase() === filterGender.toLowerCase();
@@ -397,7 +391,7 @@ const AdminPatients = () => {
     const matchesFilterDoctor = filterDoctor === 'all' || 
       (patient.doctorNames && patient.doctorNames.some(name => name.toLowerCase() === filterDoctor.toLowerCase()));
     
-    return matchesStatus && matchesSearch && matchesFilterStatus && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
+    return matchesSearch && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
   });
 
   const handleSelectPatient = (patientId: string) => {
@@ -578,22 +572,6 @@ const AdminPatients = () => {
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Patients</h1>
                   
-                  {/* Status Filter Tabs */}
-                  <div className="flex items-center gap-2">
-                    {(['all', 'active', 'inactive'] as const).map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => setStatusFilter(status)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          statusFilter === status
-                            ? 'bg-[#00FFA2] text-[#0C2243]'
-                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                        }`}
-                      >
-                        {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Right Side: Dropdowns and Filter Button */}
@@ -687,7 +665,6 @@ const AdminPatients = () => {
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Age</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Contact</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Last Appointment</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>
@@ -720,9 +697,6 @@ const AdminPatients = () => {
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">{patient.lastAppointment}</span>
-                          </td>
-                          <td className="py-4 px-6">
-                            {getStatusBadge(patient.status)}
                           </td>
                           <td className="py-4 px-6">
                             <DropdownMenu>
@@ -763,7 +737,7 @@ const AdminPatients = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        <td colSpan={7} className="py-8 text-center text-gray-500 dark:text-gray-400">
                           No patients found
                         </td>
                       </tr>
@@ -1047,21 +1021,6 @@ const AdminPatients = () => {
                 </div>
               </div>
 
-              {/* Status Dropdown */}
-              <div>
-                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</Label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10">
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Doctor Dropdown */}
               <div>
                 <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Doctor</Label>
@@ -1125,7 +1084,6 @@ const AdminPatients = () => {
                   onClick={() => {
                     setFilterDateFrom('');
                     setFilterDateTo('');
-                    setFilterStatus('all');
                     setFilterDoctor('all');
                     setFilterGender('all');
                     setFilterAgeRange('all');
