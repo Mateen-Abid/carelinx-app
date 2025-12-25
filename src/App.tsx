@@ -33,6 +33,8 @@ import ClinicAdminPatients from "./pages/clinic-admin/Patients";
 import ClinicAdminClinicProfile from "./pages/clinic-admin/ClinicProfile";
 import ClinicAdminSettings from "./pages/clinic-admin/Settings";
 import ClinicOnboarding from "./pages/clinic-admin/ClinicOnboarding";
+import DoctorAppointments from "./pages/doctor/Appointments";
+import DoctorPatients from "./pages/doctor/Patients";
 
 const queryClient = new QueryClient();
 
@@ -200,6 +202,10 @@ const App = () => (
               <Route path="/clinic-admin/patients" element={<ClinicAdminPatients />} />
               <Route path="/clinic-admin/clinic-profile" element={<ClinicAdminClinicProfile />} />
               <Route path="/clinic-admin/settings" element={<ClinicAdminSettings />} />
+              
+              {/* Doctor Routes */}
+              <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+              <Route path="/doctor/patients" element={<DoctorPatients />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

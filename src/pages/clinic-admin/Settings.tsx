@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Key, LogOut, ArrowRight, Plus, Filter, Info } from 'lucide-react';
+import { Edit, Key, LogOut, ArrowRight, Plus, Info, Copy, Check } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import {
   Select,
@@ -24,6 +24,15 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  created_at: string;
+  doctor_id?: string | null;
+}
 
 const ClinicAdminSettings = () => {
   const { user, signOut, updateProfile, changePassword } = useAuth();
@@ -53,26 +62,28 @@ const ClinicAdminSettings = () => {
   const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showInvitationLinkModal, setShowInvitationLinkModal] = useState(false);
+  const [invitationLink, setInvitationLink] = useState<string>('');
+  const [invitedDoctorEmail, setInvitedDoctorEmail] = useState<string>('');
 
-  // Add team member form state
+  // Add team member form state (for doctors only)
   const [newTeamMember, setNewTeamMember] = useState<{
     name: string;
-    role: string;
-    description: string;
-    status: 'active' | 'inactive' | 'on-leave';
-    access_level: 'super_admin' | 'clinic_admin' | 'public_user' | '';
     email: string;
-    password: string;
+    doctor_id: string;
   }>({
     name: '',
-    role: '',
-    description: '',
-    status: 'active',
-    access_level: '',
     email: '',
-    password: '',
+    doctor_id: '',
   });
+
+  // Get clinic ID
+  const [clinicId, setClinicId] = useState<string | null>(null);
   
+  // Clinic doctors state (for dropdown)
+  const [clinicDoctors, setClinicDoctors] = useState<Array<{ id: string; name: string; email: string | null }>>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
 
   // Edit profile form state
   const [profileData, setProfileData] = useState({
@@ -92,34 +103,110 @@ const ClinicAdminSettings = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoadingTeamMembers(true);
-      console.log('🔍 Fetching team members from database...');
+      console.log('🔍 Fetching doctors from clinic_admin_invitations...');
       
-      const { data, error } = await supabase
-        .from('team_members')
+      if (!user) {
+        setTeamMembers([]);
+        setLoadingTeamMembers(false);
+        return;
+      }
+
+      // Get clinic ID first
+      const { data: clinicData, error: clinicError } = await (supabase
+        .from('clinics' as any)
+        .select('id')
+        .eq('clinic_admin_id', user.id)
+        .eq('status', 'active')
+        .single() as any);
+
+      if (clinicError || !clinicData) {
+        console.error('❌ Error fetching clinic:', clinicError);
+        setTeamMembers([]);
+        setLoadingTeamMembers(false);
+        return;
+      }
+
+      setClinicId(clinicData.id);
+
+      // Fetch clinic doctors for dropdown
+      await fetchClinicDoctors(clinicData.id);
+
+      // Fetch invitations (doctors) for this clinic
+      const { data, error } = await (supabase
+        .from('clinic_admin_invitations' as any)
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('clinic_id', clinicData.id)
+        .order('created_at', { ascending: false }) as any);
 
       if (error) {
-        console.error('❌ Error fetching team members:', error);
-        // Don't show toast on initial load if table doesn't exist yet
+        console.error('❌ Error fetching doctor invitations:', error);
         if (error.code !== '42P01') {
-          toast.error('Failed to load team members');
+          toast.error('Failed to load doctors');
         }
         setTeamMembers([]);
         return;
       }
 
-      console.log('✅ Team members fetched:', data?.length || 0);
-      setTeamMembers(data || []);
+      // Map invitations to TeamMember format
+      const mappedMembers: TeamMember[] = (data || []).map((invitation: any) => ({
+        id: invitation.id,
+        name: invitation.name || invitation.email || 'N/A',
+        email: invitation.email,
+        status: invitation.status,
+        created_at: invitation.created_at,
+        doctor_id: invitation.doctor_id,
+      }));
+
+      console.log('✅ Doctors fetched:', mappedMembers.length);
+      setTeamMembers(mappedMembers);
     } catch (error: any) {
       console.error('❌ Error fetching team members:', error);
-      // Don't show toast if it's just a missing table error
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
-        toast.error('Failed to load team members');
+        toast.error('Failed to load doctors');
       }
       setTeamMembers([]);
     } finally {
       setLoadingTeamMembers(false);
+    }
+  };
+
+  const fetchClinicDoctors = async (clinicIdParam: string) => {
+    try {
+      setLoadingDoctors(true);
+      console.log('🔍 Fetching clinic doctors for dropdown...');
+      
+      const { data: doctorsData, error: doctorsError } = await (supabase
+        .from('doctors' as any)
+        .select('id, name, email')
+        .eq('clinic_id', clinicIdParam)
+        .order('name', { ascending: true }) as any);
+
+      if (doctorsError) {
+        console.error('❌ Error fetching clinic doctors:', doctorsError);
+        setClinicDoctors([]);
+        return;
+      }
+
+      console.log('✅ Clinic doctors fetched:', doctorsData?.length || 0);
+      setClinicDoctors(doctorsData || []);
+    } catch (error) {
+      console.error('❌ Error fetching clinic doctors:', error);
+      setClinicDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  // Handle doctor selection from dropdown
+  const handleDoctorSelect = (doctorId: string) => {
+    setSelectedDoctorId(doctorId);
+    const selectedDoctor = clinicDoctors.find(d => d.id === doctorId);
+    if (selectedDoctor) {
+      setNewTeamMember({
+        name: selectedDoctor.name,
+        email: selectedDoctor.email || '',
+        doctor_id: doctorId, // Store doctor_id for edge function
+      });
     }
   };
 
@@ -181,25 +268,26 @@ const ClinicAdminSettings = () => {
       }
 
       if (profileData) {
+        const profile = profileData as any;
         setProfileData({
-          fullName: profileData.full_name || 'Dr. Adebayo',
-          email: profileData.email || user.email || 'admin@lushcare.com',
+          fullName: profile.full_name || 'Dr. Adebayo',
+          email: profile.email || user.email || 'admin@lushcare.com',
         });
 
         // Format joined date
-        if (profileData.created_at) {
-          const joinedDateObj = new Date(profileData.created_at);
+        if (profile.created_at) {
+          const joinedDateObj = new Date(profile.created_at);
           const formattedDate = joinedDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
           setJoinedDate(formattedDate);
         }
       }
 
       // Fetch admin settings (including general settings)
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('admin_settings')
+      const { data: settingsData, error: settingsError } = await (supabase
+        .from('admin_settings' as any)
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .single() as any);
 
       if (!settingsError && settingsData) {
         // Load general settings
@@ -232,12 +320,12 @@ const ClinicAdminSettings = () => {
       }
 
       // Fetch user role from user_roles table
-      const { data: userRoleData, error: userRoleError } = await supabase
-        .from('user_roles')
+      const { data: userRoleData, error: userRoleError } = await (supabase
+        .from('user_roles' as any)
         .select('role_type')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .single() as any);
 
       if (!userRoleError && userRoleData?.role_type) {
         // Map role_type to display name
@@ -268,132 +356,166 @@ const ClinicAdminSettings = () => {
 
   const handleAddTeamMember = async () => {
     try {
-      if (!newTeamMember.name || !newTeamMember.role) {
-        toast.error('Please fill in all required fields');
+      // Validate fields
+      if (!selectedDoctorId || !newTeamMember.doctor_id) {
+        toast.error('Please select a doctor from the dropdown');
         return;
       }
 
-      // If access level is selected, email and password are required
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (!newTeamMember.email || !newTeamMember.password)) {
-        toast.error('Email and password are required when assigning system access');
+      if (!newTeamMember.email || !newTeamMember.email.trim()) {
+        toast.error('Please enter email address for the doctor');
         return;
       }
 
-      let userId: string | null = null;
-
-      // If access level is provided, create user account and assign role via edge function
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && newTeamMember.email && newTeamMember.password) {
-        try {
-          // Get current session for authorization
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            toast.error('Session expired. Please login again.');
-            return;
-          }
-
-          // Call edge function to create user account with role
-          const { data: functionData, error: functionError } = await supabase.functions.invoke('super-processor', {
-            body: {
-              email: newTeamMember.email,
-              password: newTeamMember.password,
-              full_name: newTeamMember.name,
-              access_level: newTeamMember.access_level,
-            },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-
-          if (functionError) {
-            console.error('❌ Error calling edge function:', functionError);
-            console.error('Full error details:', JSON.stringify(functionError, null, 2));
-            
-            // Check for different error types
-            const errorMessage = functionError.message || String(functionError);
-            
-            if (errorMessage.includes('Function not found') || 
-                errorMessage.includes('404') || 
-                errorMessage.includes('Failed to send a request')) {
-              toast.error('Edge function not deployed. Please deploy the function first. Check console for instructions.');
-              console.error('📝 DEPLOYMENT REQUIRED:');
-              console.error('1. Make sure you have Supabase CLI installed: npm install -g supabase');
-              console.error('2. Login to Supabase: supabase login');
-              console.error('3. Link your project: supabase link --project-ref flqignqyqpdgvztpqucd');
-              console.error('4. Deploy the function: supabase functions deploy super-processor');
-              console.error('   OR use the function name you created in Supabase Dashboard');
-            } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-              toast.error('Unauthorized. Please check your session and try again.');
-            } else if (errorMessage.includes('403')) {
-              toast.error('Access denied. Only super admin can create team member accounts.');
-            } else {
-              toast.error(`Failed to create user account: ${errorMessage}`);
-            }
-            return;
-          }
-
-          if (functionData?.error) {
-            console.error('❌ Edge function error:', functionData.error);
-            toast.error(`Failed to create user account: ${functionData.error}`);
-            return;
-          }
-
-          userId = functionData?.user_id;
-          console.log('✅ User account created via edge function:', userId);
-          toast.success(`User account created with ${newTeamMember.access_level} access`);
-        } catch (error: any) {
-          console.error('❌ Error setting up user access:', error);
-          toast.error('Failed to create user account. Please try again.');
-          return;
-        }
-      }
-
-      // Determine permissions based on role
-      const permissions = newTeamMember.role.toLowerCase().includes('admin') 
-        ? 'Full Access' 
-        : 'Limited Access';
-
-      // Add team member to database
-      const { data, error } = await supabase
-        .from('team_members')
-        .insert({
-          name: newTeamMember.name,
-          role: newTeamMember.role,
-          description: newTeamMember.description || null,
-          status: newTeamMember.status,
-          permissions: permissions,
-          access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user' : null,
-          email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
-          user_id: userId,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error adding team member:', error);
-        toast.error('Failed to add team member');
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newTeamMember.email.trim())) {
+        toast.error('Please enter a valid email address');
         return;
       }
 
-      console.log('✅ Team member added:', data);
-      toast.success('Team member added successfully');
+      if (!clinicId) {
+        toast.error('Clinic not found. Please refresh the page.');
+        return;
+      }
+
+      // Get current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Session expired. Please login again.');
+        return;
+      }
+
+      // Get current app URL (for invitation link)
+      const appUrl = window.location.origin;
+
+      // Prepare request body with trimmed values
+      const requestBody = {
+        email: newTeamMember.email.trim(),
+        name: newTeamMember.name.trim(),
+        doctor_id: newTeamMember.doctor_id, // Pass existing doctor_id
+        app_url: appUrl,
+      };
+
+      console.log('📤 Sending doctor invitation request:', {
+        email: requestBody.email,
+        name: requestBody.name,
+        app_url: requestBody.app_url,
+        clinicId: clinicId,
+        hasResendKey: !!requestBody.resend_api_key
+      });
+
+      // Call edge function to send doctor invitation
+      let functionData: any = null;
+      let functionError: any = null;
       
+      try {
+        const result = await supabase.functions.invoke('send-doctor-invitation', {
+          body: requestBody,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        functionData = result.data;
+        functionError = result.error;
+      } catch (err: any) {
+        console.error('❌ Exception calling edge function:', err);
+        functionError = err;
+      }
+
+      if (functionError) {
+        console.error('❌ Error calling edge function:', functionError);
+        console.error('❌ Full error object:', JSON.stringify(functionError, null, 2));
+        console.error('❌ Error name:', functionError.name);
+        console.error('❌ Error message:', functionError.message);
+        console.error('❌ Error context:', functionError.context);
+        
+        // Try to get error message from response
+        let errorMessage = functionError.message || String(functionError);
+        let errorDetails = '';
+        
+        // Check if there's a response with error details
+        if (functionError.context) {
+          console.error('❌ Error context exists:', functionError.context);
+          if (functionError.context.body) {
+            try {
+              const errorBody = typeof functionError.context.body === 'string' 
+                ? JSON.parse(functionError.context.body) 
+                : functionError.context.body;
+              errorMessage = errorBody.error || errorMessage;
+              errorDetails = errorBody.received ? JSON.stringify(errorBody.received) : '';
+              console.error('❌ Parsed error body:', errorBody);
+            } catch (e) {
+              console.error('Could not parse error body:', e);
+            }
+          }
+        }
+        
+        // Try to get error from data if available
+        if (functionData && functionData.error) {
+          errorMessage = functionData.error;
+          console.error('❌ Error from function data:', functionData.error);
+        }
+        
+        console.error('❌ Final error message:', errorMessage);
+        if (errorDetails) {
+          console.error('❌ Error details:', errorDetails);
+        }
+        
+        // Show user-friendly error message
+        if (errorMessage.includes('Function not found') || 
+            errorMessage.includes('404') || 
+            errorMessage.includes('Failed to send a request')) {
+          toast.error('Edge function not deployed. Please deploy the function first.');
+          console.error('📝 DEPLOYMENT REQUIRED:');
+          console.error('Deploy the function: supabase functions deploy send-doctor-invitation');
+        } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+          toast.error('Unauthorized. Please check your session and try again.');
+        } else if (errorMessage.includes('403')) {
+          toast.error('Access denied. Only clinic admin can send doctor invitations.');
+        } else if (errorMessage.includes('400') || errorMessage.includes('Missing required fields') || errorMessage.includes('Validation')) {
+          toast.error(`Validation error: ${errorMessage}`);
+        } else if (errorMessage.includes('Clinic not found')) {
+          toast.error('Clinic not found or not active. Please check your clinic status.');
+        } else {
+          toast.error(`Failed to send invitation: ${errorMessage || 'Unknown error. Check console and Supabase logs.'}`);
+          console.error('📝 Please check Supabase Dashboard → Edge Functions → send-doctor-invitation → Logs for detailed error');
+        }
+        return;
+      }
+
+      if (functionData?.error) {
+        console.error('❌ Edge function error:', functionData.error);
+        toast.error(`Failed to send invitation: ${functionData.error}`);
+        return;
+      }
+
+      console.log('✅ Doctor invitation sent successfully:', functionData);
+      toast.success(`Invitation sent to ${newTeamMember.email}!`);
+      
+      // Show invitation link in modal
+      const invitationUrl = functionData?.invitation_url || functionData?.test_url;
+      if (invitationUrl) {
+        setInvitationLink(invitationUrl);
+        setInvitedDoctorEmail(newTeamMember.email);
+        setShowInvitationLinkModal(true);
+        console.log('🔗 Invitation URL:', invitationUrl);
+      }
+
       // Reset form
       setNewTeamMember({
         name: '',
-        role: '',
-        description: '',
-        status: 'active',
-        access_level: '' as const,
         email: '',
-        password: '',
+        doctor_id: '',
       });
+      setSelectedDoctorId('');
       setShowAddTeamMemberModal(false);
       
       // Refresh team members list
       fetchTeamMembers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding team member:', error);
-      toast.error('Failed to add team member');
+      toast.error('Failed to send invitation. Please try again.');
     }
   };
 
@@ -405,11 +527,11 @@ const ClinicAdminSettings = () => {
       }
 
       // Check if settings exist
-      const { data: existingSettings } = await supabase
-        .from('admin_settings')
+      const { data: existingSettings } = await (supabase
+        .from('admin_settings' as any)
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .single() as any);
 
       const settingsData = {
         user_id: user.id,
@@ -426,16 +548,16 @@ const ClinicAdminSettings = () => {
       let error;
       if (existingSettings) {
         // Update existing settings
-        const { error: updateError } = await supabase
-          .from('admin_settings')
+        const { error: updateError } = await (supabase
+          .from('admin_settings' as any)
           .update(settingsData)
-          .eq('user_id', user.id);
+          .eq('user_id', user.id) as any);
         error = updateError;
       } else {
         // Insert new settings
-        const { error: insertError } = await supabase
-          .from('admin_settings')
-          .insert(settingsData);
+        const { error: insertError } = await (supabase
+          .from('admin_settings' as any)
+          .insert(settingsData) as any);
         error = insertError;
       }
 
@@ -596,13 +718,6 @@ const ClinicAdminSettings = () => {
                       <Plus className="w-4 h-4 mr-2" />
                       Add Team member
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filter
-                    </Button>
                   </div>
                 </div>
 
@@ -612,16 +727,15 @@ const ClinicAdminSettings = () => {
                     <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                       <tr>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Role</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Access Level</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loadingTeamMembers ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
                             Loading...
                           </td>
                         </tr>
@@ -635,27 +749,23 @@ const ClinicAdminSettings = () => {
                               <span className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</span>
                             </td>
                             <td className="py-4 px-6">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.role}</span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.email}</span>
                             </td>
                             <td className="py-4 px-6">
-                              {member.access_level ? (
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  member.access_level === 'super_admin' 
-                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                                    : member.access_level === 'clinic_admin'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                }`}>
-                                  {member.access_level === 'super_admin' ? 'Super Admin' : 
-                                   member.access_level === 'clinic_admin' ? 'Clinic Admin' : 
-                                   'Public User'}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-gray-400 dark:text-gray-500">No Access</span>
-                              )}
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.permissions}</span>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                member.status === 'accepted' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : member.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : member.status === 'expired'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                              }`}>
+                                {member.status === 'accepted' ? 'Accepted' : 
+                                 member.status === 'pending' ? 'Pending' : 
+                                 member.status === 'expired' ? 'Expired' : 
+                                 'Cancelled'}
+                              </span>
                             </td>
                             <td className="py-4 px-6">
                               <button
@@ -669,8 +779,8 @@ const ClinicAdminSettings = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                            No team members found. Click "Add Team member" to add one.
+                          <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                            No doctors found. Click "Add Team member" to invite a doctor.
                           </td>
                         </tr>
                       )}
@@ -807,138 +917,71 @@ const ClinicAdminSettings = () => {
             </DialogHeader>
             <div className="space-y-4 mt-4 overflow-y-auto flex-1 px-1 pb-4 min-h-0">
               <div>
+                <Label htmlFor="doctor" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select Doctor <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={selectedDoctorId} 
+                  onValueChange={handleDoctorSelect}
+                  disabled={loadingDoctors}
+                >
+                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
+                    <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor from your clinic"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clinicDoctors.length === 0 ? (
+                      <SelectItem value="no-doctors" disabled>
+                        No doctors found in your clinic
+                      </SelectItem>
+                    ) : (
+                      clinicDoctors.map((doctor) => (
+                        <SelectItem key={doctor.id} value={doctor.id}>
+                          {doctor.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Select a doctor from your clinic to send invitation
+                </p>
+              </div>
+
+              <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Team member Name
+                  Doctor Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Enter Team member Name"
+                  placeholder="Doctor name will be auto-filled"
                   value={newTeamMember.name}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                  required
+                  disabled={!!selectedDoctorId}
                 />
               </div>
 
               <div>
-                <Label htmlFor="role" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Role Name
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email <span className="text-red-500">*</span>
                 </Label>
-                <Select value={newTeamMember.role} onValueChange={(value) => setNewTeamMember({ ...newTeamMember, role: value })}>
-                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="Doctor">Doctor</SelectItem>
-                    <SelectItem value="Nurse">Nurse</SelectItem>
-                    <SelectItem value="Contributor">Contributor</SelectItem>
-                    <SelectItem value="Billing Specialist">Billing Specialist</SelectItem>
-                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="pb-2">
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe team member role"
-                  value={newTeamMember.description}
-                  onChange={(e) => setNewTeamMember({ ...newTeamMember, description: e.target.value })}
-                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px] resize-y w-full focus:ring-2 focus:ring-[#0C2243] focus:border-[#0C2243]"
-                  style={{ minHeight: '100px' }}
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email to send invitation"
+                  value={newTeamMember.email}
+                  onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
+                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                  required
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Status
-                </Label>
-                <Select value={newTeamMember.status} onValueChange={(value: any) => setNewTeamMember({ ...newTeamMember, status: value })}>
-                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select team member status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="on-leave">On Leave</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="access_level" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  System Access Level <span className="text-gray-400 text-xs">(Optional)</span>
-                </Label>
-                <Select 
-                  value={newTeamMember.access_level === '' ? 'no-access' : newTeamMember.access_level || 'no-access'} 
-                  onValueChange={(value: string) => {
-                    const accessLevel = value === 'no-access' ? '' : value;
-                    setNewTeamMember({ 
-                      ...newTeamMember, 
-                      access_level: accessLevel as 'super_admin' | 'clinic_admin' | 'public_user' | '', 
-                      email: accessLevel ? '' : newTeamMember.email, 
-                      password: accessLevel ? '' : newTeamMember.password 
-                    });
-                  }}
-                >
-                  <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select access level (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-access">No System Access</SelectItem>
-                    <SelectItem value="super_admin">Super Admin (Admin Pages)</SelectItem>
-                    <SelectItem value="clinic_admin">Clinic Admin (Clinic Admin Pages)</SelectItem>
-                    <SelectItem value="public_user">Public User (Booking Pages)</SelectItem>
-                  </SelectContent>
-                </Select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings'}
-                  {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages'}
-                  {newTeamMember.access_level === 'public_user' && 'Access to appointment booking pages'}
-                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Team member will not have system login access'}
+                  {selectedDoctorId && !newTeamMember.email 
+                    ? '⚠️ Please enter email address for this doctor'
+                    : 'An invitation email will be sent to this address. Doctor will create their password during signup.'}
                 </p>
               </div>
-
-              {newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (
-                <>
-                  <div>
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Email <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter email for system access"
-                      value={newTeamMember.email}
-                      onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
-                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
-                      required
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for login to the system</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Password <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter password (min 6 characters)"
-                      value={newTeamMember.password}
-                      onChange={(e) => setNewTeamMember({ ...newTeamMember, password: e.target.value })}
-                      className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
-                      required
-                      minLength={6}
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
-                  </div>
-                </>
-              )}
             </div>
             <DialogFooter className="mt-6 flex-shrink-0 border-t border-gray-200 dark:border-gray-700 pt-4">
               <Button
@@ -947,13 +990,10 @@ const ClinicAdminSettings = () => {
                   setShowAddTeamMemberModal(false);
                   setNewTeamMember({ 
                     name: '', 
-                    role: '', 
-                    description: '', 
-                    status: 'active',
-                    access_level: '',
                     email: '',
-                    password: '',
+                    doctor_id: '',
                   });
+                  setSelectedDoctorId('');
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -963,7 +1003,71 @@ const ClinicAdminSettings = () => {
                 onClick={handleAddTeamMember}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Add Team member
+                Send Invitation
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Invitation Link Modal */}
+        <Dialog open={showInvitationLinkModal} onOpenChange={setShowInvitationLinkModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Invitation Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Share this link with the doctor:
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={invitationLink}
+                    readOnly
+                    className="bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(invitationLink);
+                        toast.success('Link copied to clipboard!');
+                      } catch (err) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = invitationLink;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        toast.success('Link copied to clipboard!');
+                      }
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  <strong>Note:</strong> An invitation email has been sent to <strong>{invitedDoctorEmail}</strong>. 
+                  You can also share this link directly with the doctor.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button
+                onClick={() => {
+                  setShowInvitationLinkModal(false);
+                  setInvitationLink('');
+                  setInvitedDoctorEmail('');
+                }}
+                className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
+              >
+                Done
               </Button>
             </DialogFooter>
           </DialogContent>

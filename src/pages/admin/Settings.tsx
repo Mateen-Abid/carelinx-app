@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Key, LogOut, Plus, Filter, Info, ArrowRight, X } from 'lucide-react';
+import { Edit, Key, LogOut, Plus, Info, ArrowRight, X } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import {
   Select,
@@ -147,27 +147,25 @@ const AdminSettings = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoadingTeamMembers(true);
-      console.log('🔍 Fetching team members from database...');
+      console.log('🔍 Fetching team members from super_admin_invitations...');
       console.log('👤 Current user:', user?.id, user?.email);
       
+      // Fetch from super_admin_invitations table (dynamic - shows only what's in DB)
       const { data, error } = await supabase
-        .from('team_members')
+        .from('super_admin_invitations')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching team members:', error);
+        console.error('❌ Error fetching invitations:', error);
         console.error('❌ Error code:', error.code);
         console.error('❌ Error message:', error.message);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
         
-        // Show detailed error for debugging
         if (error.code === '42501') {
-          console.error('⚠️ RLS Policy Error: User may not have permission to view team members');
+          console.error('⚠️ RLS Policy Error: User may not have permission to view invitations');
           toast.error('Permission denied. Please check RLS policies.');
         } else if (error.code === '42P01') {
           console.error('⚠️ Table does not exist');
-          // Don't show toast on initial load if table doesn't exist yet
         } else {
           toast.error(`Failed to load team members: ${error.message}`);
         }
@@ -175,17 +173,51 @@ const AdminSettings = () => {
         return;
       }
 
-      console.log('✅ Team members fetched:', data?.length || 0);
-      console.log('📋 Team members data:', data);
-      setTeamMembers(data || []);
+      // Map invitations data to TeamMember format
+      const mappedMembers: TeamMember[] = (data || []).map((invitation: any) => {
+        // Determine role based on role_type
+        const roleName = invitation.role_type === 'super_admin' ? 'Super Admin' : 
+                        invitation.role_type === 'clinic_admin' ? 'Clinic Admin' : 
+                        'Admin';
+        
+        // Determine status based on invitation status
+        let memberStatus: 'active' | 'inactive' | 'on-leave' = 'active';
+        if (invitation.status === 'pending') {
+          memberStatus = 'active'; // Pending invitations are considered active
+        } else if (invitation.status === 'accepted') {
+          memberStatus = 'active';
+        } else if (invitation.status === 'expired' || invitation.status === 'cancelled') {
+          memberStatus = 'inactive';
+        }
+        
+        // Determine permissions based on access level
+        const permissions: 'Full Access' | 'Limited Access' = 
+          invitation.role_type === 'super_admin' ? 'Full Access' : 'Limited Access';
+        
+        return {
+          id: invitation.id,
+          name: invitation.name || invitation.email || 'N/A',
+          role: roleName,
+          description: `Invited as ${invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}`,
+          status: memberStatus,
+          permissions: permissions,
+          access_level: invitation.role_type as 'super_admin' | 'clinic_admin' | 'public_user' | null,
+          email: invitation.email,
+          user_id: invitation.accepted_by || null,
+          created_at: invitation.created_at,
+          updated_at: invitation.updated_at || invitation.accepted_at,
+        };
+      });
+
+      console.log('✅ Team members fetched from invitations:', mappedMembers.length);
+      console.log('📋 Mapped team members data:', mappedMembers);
+      setTeamMembers(mappedMembers);
       
-      if (data && data.length === 0) {
-        console.log('ℹ️ No team members found in database');
+      if (mappedMembers.length === 0) {
+        console.log('ℹ️ No invitations found in database');
       }
     } catch (error: any) {
       console.error('❌ Exception fetching team members:', error);
-      console.error('❌ Exception details:', JSON.stringify(error, null, 2));
-      // Don't show toast if it's just a missing table error
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
         toast.error('Failed to load team members');
       }
@@ -292,21 +324,21 @@ const AdminSettings = () => {
 
   const handleAddTeamMember = async () => {
     try {
-      if (!newTeamMember.name || !newTeamMember.role) {
+      if (!newTeamMember.name || !newTeamMember.role || !newTeamMember.access_level) {
         toast.error('Please fill in all required fields');
         return;
       }
 
-      // If access level is selected, email is required (password not needed for invitation)
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && !newTeamMember.email) {
-        toast.error('Email is required when assigning system access');
+      // Email is required when access level is selected
+      if (!newTeamMember.email) {
+        toast.error('Email is required for system access');
         return;
       }
 
       let invitationData: any = null;
 
-      // If access level is provided, send invitation via edge function
-      if (newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && newTeamMember.email) {
+      // Send invitation via edge function (access_level is now required)
+      if (newTeamMember.access_level && newTeamMember.email) {
         try {
           // Get current session for authorization
           const { data: { session } } = await supabase.auth.getSession();
@@ -411,8 +443,8 @@ const AdminSettings = () => {
             description: newTeamMember.description || null,
             status: newTeamMember.status,
             permissions: permissions,
-            access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user' : null,
-            email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
+            access_level: newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user',
+            email: newTeamMember.email,
             user_id: invitationData?.user_id || null, // Use user_id from invitation if available
           })
           .select()
@@ -429,8 +461,8 @@ const AdminSettings = () => {
             description: newTeamMember.description || null,
             status: newTeamMember.status,
             permissions: permissions,
-            access_level: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.access_level : null,
-            email: (newTeamMember.access_level && newTeamMember.access_level !== 'no-access') ? newTeamMember.email : null,
+            access_level: newTeamMember.access_level,
+            email: newTeamMember.email,
             user_id: invitationData?.user_id || null,
           });
           
@@ -685,23 +717,14 @@ const AdminSettings = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Team members</h2>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAddTeamMemberModal(true)}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Team member
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filter
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddTeamMemberModal(true)}
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Team member
+                  </Button>
                 </div>
 
                 {/* Team Members Table */}
@@ -710,6 +733,7 @@ const AdminSettings = () => {
                     <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                       <tr>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Role</th>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Access Level</th>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
@@ -719,7 +743,7 @@ const AdminSettings = () => {
                     <tbody>
                       {loadingTeamMembers ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
                             Loading...
                           </td>
                         </tr>
@@ -731,6 +755,9 @@ const AdminSettings = () => {
                           >
                             <td className="py-4 px-6">
                               <span className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.email || 'N/A'}</span>
                             </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">{member.role}</span>
@@ -767,7 +794,7 @@ const AdminSettings = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
                             No team members found. Click "Add Team member" to add one.
                           </td>
                         </tr>
@@ -852,54 +879,49 @@ const AdminSettings = () => {
 
               <div>
                 <Label htmlFor="access_level" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  System Access Level <span className="text-gray-400 text-xs">(Optional)</span>
+                  System Access Level <span className="text-red-500">*</span>
                 </Label>
                 <Select 
-                  value={newTeamMember.access_level === '' ? 'no-access' : newTeamMember.access_level || 'no-access'} 
+                  value={newTeamMember.access_level || ''} 
                   onValueChange={(value: string) => {
-                    const accessLevel = value === 'no-access' ? '' : value;
                     setNewTeamMember({ 
                       ...newTeamMember, 
-                      access_level: accessLevel as 'super_admin' | 'clinic_admin' | 'public_user' | '', 
-                      email: accessLevel ? '' : newTeamMember.email
+                      access_level: value as 'super_admin' | 'clinic_admin'
                     });
                   }}
                 >
                   <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select access level (optional)" />
+                    <SelectValue placeholder="Select access level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-access">No System Access</SelectItem>
-                    <SelectItem value="super_admin">Super Admin (Admin Pages)</SelectItem>
-                    <SelectItem value="clinic_admin">Clinic Admin (Clinic Admin Pages)</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                    <SelectItem value="clinic_admin">Clinic Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings. An invitation email will be sent.'}
                   {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages. An invitation email will be sent.'}
-                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Team member will not have system login access'}
+                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Please select an access level'}
                 </p>
               </div>
 
-              {newTeamMember.access_level && newTeamMember.access_level !== 'no-access' && (
-                <div>
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Email <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email to send invitation"
-                    value={newTeamMember.email}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
-                    className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    An invitation email will be sent to this address. User will create their password during signup.
-                  </p>
-                </div>
-              )}
+              <div>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email to send invitation"
+                  value={newTeamMember.email}
+                  onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
+                  className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  An invitation email will be sent to this address. User will create their password during signup.
+                </p>
+              </div>
             </div>
             <DialogFooter className="mt-6 flex-shrink-0 border-t border-gray-200 dark:border-gray-700 pt-4">
               <Button

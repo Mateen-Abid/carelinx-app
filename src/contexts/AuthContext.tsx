@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export type UserRole = 'patient' | 'clinic_admin' | 'super_admin';
+export type UserRole = 'patient' | 'clinic_admin' | 'super_admin' | 'doctor';
 
 interface AuthContextType {
   user: User | null;
@@ -45,6 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fully dynamic - no hardcoded emails
   const fetchUserRole = async (userId: string, email?: string): Promise<UserRole> => {
     try {
+      // Early return if userId is invalid
+      if (!userId) {
+        console.log('⚠️ Invalid user ID, returning patient role');
+        return 'patient';
+      }
+      
       // First check user_roles table (new roles system)
       console.log('🔍 Fetching role for user_id:', userId, 'email:', email);
       
@@ -72,6 +78,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('📋 user_roles query result:', { userRoleData, userRoleError });
 
+      // Handle RLS/auth errors silently (user might not be logged in)
+      if (userRoleError && (userRoleError.code === 'PGRST301' || userRoleError.code === '42501' || userRoleError.message?.includes('JWT'))) {
+        console.log('ℹ️ Auth/RLS error (user may not be logged in), returning patient role');
+        return 'patient';
+      }
+
       if (!userRoleError && userRoleData?.role_type) {
         // Map role_type to UserRole
         let role: UserRole;
@@ -79,6 +91,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           role = 'super_admin';
         } else if (userRoleData.role_type === 'clinic_admin') {
           role = 'clinic_admin';
+        } else if (userRoleData.role_type === 'doctor') {
+          role = 'doctor';
         } else if (userRoleData.role_type === 'public_user') {
           role = 'patient'; // Map public_user to patient for backward compatibility
         } else {
@@ -91,8 +105,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return role;
       }
       
-      // Log the error for debugging
-      if (userRoleError) {
+      // Log the error for debugging (but skip RLS/auth errors)
+      if (userRoleError && userRoleError.code !== 'PGRST301' && userRoleError.code !== '42501' && !userRoleError.message?.includes('JWT')) {
         console.error('❌ Error fetching from user_roles:', userRoleError);
         console.error('❌ Error code:', userRoleError.code);
         console.error('❌ Error message:', userRoleError.message);
@@ -207,7 +221,108 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Keep loading true until role is fetched - this prevents ProtectedRoute from redirecting
               setLoading(true);
               
-              // Fetch role immediately (don't clear cache yet)
+              // AUTO-ASSIGN ROLE FROM INVITATION (if email is confirmed)
+              // IMPORTANT: Only call for invited users (check for invitation token or pending invitation)
+              // Existing admins should NOT be affected by this logic
+              if (session.user.email_confirmed_at) {
+                // Check if this is an invited user (has invitation token or pending invitation)
+                const invitationToken = sessionStorage.getItem('invitation_token') || localStorage.getItem('invitation_token');
+                const invitationEmail = localStorage.getItem('invitation_email');
+                
+                // Only proceed if user has invitation token OR email matches invitation
+                const isInvitedUser = invitationToken || 
+                  (invitationEmail && invitationEmail.toLowerCase() === userEmail.toLowerCase());
+                
+                if (isInvitedUser) {
+                  console.log('✅ Email is confirmed and user has invitation, checking for pending invitations...');
+                  try {
+                    // Add timeout to prevent hanging
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Function call timeout')), 5000)
+                    );
+                    
+                    // Try super admin/clinic admin invitation first
+                    const functionPromise = supabase
+                      .rpc('auto_assign_role_from_invitation', {
+                        p_user_id: session.user.id,
+                        p_user_email: userEmail
+                      });
+                    
+                    const { data: autoAssignResult, error: autoAssignError } = await Promise.race([
+                      functionPromise,
+                      timeoutPromise
+                    ]) as any;
+                    
+                    if (!autoAssignError && autoAssignResult) {
+                      console.log('📋 Auto-assign result:', autoAssignResult);
+                      if (autoAssignResult.role_assigned) {
+                        console.log(`✅ Role ${autoAssignResult.role_type} automatically assigned from invitation`);
+                        // Wait a bit for database to sync
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                      } else {
+                        console.log('ℹ️ No role assigned (invitation may not be pending)');
+                      }
+                    } else if (autoAssignError) {
+                      // Don't log as error if function doesn't exist yet (migration not run)
+                      if (autoAssignError.code !== '42883' && autoAssignError.message?.includes('function') === false) {
+                        console.error('❌ Error in auto-assign function:', autoAssignError);
+                      } else {
+                        console.log('ℹ️ Auto-assign function not available yet (migration may not be run)');
+                      }
+                    }
+
+                    // Also check for clinic admin invitation (doctor role)
+                    try {
+                      const doctorFunctionPromise = supabase
+                        .rpc('auto_assign_doctor_role_from_invitation', {
+                          p_user_id: session.user.id,
+                          p_user_email: userEmail
+                        });
+                      
+                      const { data: doctorAssignResult, error: doctorAssignError } = await Promise.race([
+                        doctorFunctionPromise,
+                        timeoutPromise
+                      ]) as any;
+                      
+                      if (!doctorAssignError && doctorAssignResult) {
+                        console.log('📋 Doctor auto-assign result:', doctorAssignResult);
+                        if (doctorAssignResult.role_assigned) {
+                          console.log('✅ Doctor role automatically assigned from clinic invitation');
+                          // Wait a bit for database to sync
+                          await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                      } else if (doctorAssignError) {
+                        // Don't log as error if function doesn't exist yet
+                        if (doctorAssignError.code !== '42883' && doctorAssignError.message?.includes('function') === false) {
+                          console.error('❌ Error in doctor auto-assign function:', doctorAssignError);
+                        } else {
+                          console.log('ℹ️ Doctor auto-assign function not available yet (migration may not be run)');
+                        }
+                      }
+                    } catch (doctorAssignErr: any) {
+                      if (doctorAssignErr?.message === 'Function call timeout') {
+                        console.warn('⚠️ Doctor auto-assign function call timed out, continuing...');
+                      } else {
+                        console.log('ℹ️ Doctor auto-assign function call failed (this is okay if migration not run):', doctorAssignErr);
+                      }
+                    }
+                  } catch (autoAssignErr: any) {
+                    // Handle timeout or other errors
+                    if (autoAssignErr?.message === 'Function call timeout') {
+                      console.warn('⚠️ Auto-assign function call timed out, continuing with role fetch...');
+                    } else {
+                      console.log('ℹ️ Auto-assign function call failed (this is okay if migration not run):', autoAssignErr);
+                    }
+                  }
+                } else {
+                  // Not an invited user - skip auto-assign (existing admins won't be affected)
+                  console.log('ℹ️ Not an invited user, skipping auto-assign');
+                }
+              }
+              
+              // Fetch role AFTER auto-assign (so we get the updated role)
+              // IMPORTANT: Always fetch role, even if auto-assign failed or timed out
+              console.log('🔄 Fetching user role...');
               fetchUserRole(session.user.id, userEmail)
                 .then((dbRole) => {
                   console.log('✅ Role fetched on SIGNED_IN:', dbRole);
@@ -218,7 +333,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   console.error('❌ Error fetching role on SIGNED_IN:', err);
                   // On error, check if we have a cached role
                   const cachedRole = localStorage.getItem('userRole') as UserRole | null;
-                  if (cachedRole && (cachedRole === 'super_admin' || cachedRole === 'clinic_admin')) {
+                  if (cachedRole && (cachedRole === 'super_admin' || cachedRole === 'clinic_admin' || cachedRole === 'doctor')) {
                     console.log('✅ Using cached role after SIGNED_IN error:', cachedRole);
                     setUserRole(cachedRole);
                     setLoading(false);
@@ -226,65 +341,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setLoading(false);
                   }
                 });
-            } else {
-              // For other events (INITIAL_SESSION, etc.), use cached role if available
+            } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+              // For INITIAL_SESSION and TOKEN_REFRESHED, use cached role immediately
+              // Don't fetch from DB to avoid unnecessary reloads on page focus
               const storedRole = localStorage.getItem('userRole') as UserRole | null;
               
-              if (storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin')) {
-                // Only use cached role if it's a valid admin role
+              if (storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin' || storedRole === 'doctor')) {
+                // Use cached role immediately - no DB fetch
+                setUserRole(storedRole);
+                setLoading(false);
+                console.log('✅ Using cached role from localStorage (no DB fetch):', storedRole);
+              } else if (storedRole) {
+                // Patient role - also use cached
+                setUserRole(storedRole);
+                setLoading(false);
+              } else {
+                // No cached role - fetch from DB (only if needed)
+                setLoading(false);
+                // Fetch in background without blocking
+                if (session.user && session.user.id) {
+                  fetchUserRole(session.user.id, userEmail)
+                    .then((dbRole) => {
+                      console.log('📋 User role from database (background fetch):', dbRole);
+                      if (dbRole) {
+                        setUserRole(dbRole);
+                        localStorage.setItem('userRole', dbRole);
+                      }
+                    })
+                    .catch((err) => {
+                      // Silently handle errors
+                      if (err?.code !== 'PGRST301' && err?.code !== '42501' && !err?.message?.includes('JWT')) {
+                        console.error('❌ Error fetching user role:', err);
+                      }
+                    });
+                }
+              }
+            } else {
+              // For other events, use cached role if available
+              const storedRole = localStorage.getItem('userRole') as UserRole | null;
+              
+              if (storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin' || storedRole === 'doctor')) {
+                // Only use cached role if it's a valid admin/doctor role
                 setUserRole(storedRole);
                 setLoading(false);
                 console.log('✅ Using cached role from localStorage:', storedRole);
               } else {
                 setLoading(false);
               }
-              
-              // Fetch from DB in background (will update role if different from localStorage)
-              fetchUserRole(session.user.id, userEmail)
-                .then((dbRole) => {
-                  console.log('📋 User role from database:', dbRole, 'for:', userEmail);
-                  // Only update if we got a valid role (not patient from error)
-                  if (dbRole && dbRole !== 'patient') {
-                    setUserRole(dbRole);
-                    localStorage.setItem('userRole', dbRole);
-                  } else if (dbRole === 'patient' && storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin')) {
-                    // If DB returned patient but we have a valid cached role, keep the cached role
-                    console.log('⚠️ DB returned patient, but keeping cached role:', storedRole);
-                    setUserRole(storedRole);
-                    localStorage.setItem('userRole', storedRole);
-                  }
-                })
-                .catch((err) => {
-                  console.error('❌ Error fetching user role:', err);
-                  // If fetch fails and we have a valid cached role, keep it
-                  if (storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin')) {
-                    console.log('✅ Keeping cached role after error:', storedRole);
-                    setUserRole(storedRole);
-                    localStorage.setItem('userRole', storedRole);
-                  } else {
-                    // Try direct query as last resort
-                    supabase
-                      .from('user_roles')
-                      .select('role_type, is_active')
-                      .eq('user_id', session.user.id)
-                      .eq('is_active', true)
-                      .maybeSingle()
-                      .then(({ data: directData, error: directError }) => {
-                        if (!directError && directData?.role_type) {
-                          let role: UserRole = 'patient';
-                          if (directData.role_type === 'super_admin') role = 'super_admin';
-                          else if (directData.role_type === 'clinic_admin') role = 'clinic_admin';
-                          
-                          setUserRole(role);
-                          localStorage.setItem('userRole', role);
-                          console.log('✅ Role set via direct query:', role);
-                        } else if (!storedRole) {
-                          setUserRole('patient');
-                          localStorage.setItem('userRole', 'patient');
-                        }
-                      });
-                  }
-                });
             }
           } else {
             setUserRole(null);
@@ -318,34 +421,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
           }
           
-          // Fetch from DB (will update role if different from localStorage)
-          // Do this in background, don't block UI
-          fetchUserRole(session.user.id, userEmail)
-            .then((dbRole) => {
-              console.log('📋 User role from database:', dbRole, 'for:', userEmail);
-              // Only update if we got a valid role (not patient from error)
-              if (dbRole && dbRole !== 'patient') {
-                setUserRole(dbRole);
-                localStorage.setItem('userRole', dbRole);
-              } else if (dbRole === 'patient' && storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin')) {
-                // If DB returned patient but we have a valid cached role, keep the cached role
-                console.log('⚠️ DB returned patient, but keeping cached role:', storedRole);
-                setUserRole(storedRole);
-                localStorage.setItem('userRole', storedRole);
-              }
-            })
-            .catch((err) => {
-              console.error('❌ Error fetching user role:', err);
-              // If fetch fails and we have a valid cached role, keep it
-              if (storedRole && (storedRole === 'super_admin' || storedRole === 'clinic_admin')) {
-                console.log('✅ Keeping cached role after error:', storedRole);
-                setUserRole(storedRole);
-                localStorage.setItem('userRole', storedRole);
-              } else if (!storedRole) {
-                setUserRole('patient');
-                localStorage.setItem('userRole', 'patient');
-              }
-            });
+          // Only fetch from DB if no cached role exists (to avoid unnecessary reloads)
+          // If cached role exists, skip DB fetch to prevent page reload on focus
+          if (!storedRole && session.user && session.user.id) {
+            // Only fetch if no cached role - this prevents reload on page focus
+            fetchUserRole(session.user.id, userEmail)
+              .then((dbRole) => {
+                console.log('📋 User role from database (initial load):', dbRole, 'for:', userEmail);
+                // Only update if we got a valid role (not patient from error)
+                if (dbRole && dbRole !== 'patient') {
+                  setUserRole(dbRole);
+                  localStorage.setItem('userRole', dbRole);
+                }
+              })
+              .catch((err) => {
+                // Silently handle errors - don't log if it's just RLS or auth errors
+                if (err?.code !== 'PGRST301' && err?.code !== '42501' && !err?.message?.includes('JWT')) {
+                  console.error('❌ Error fetching user role:', err);
+                }
+              });
+          }
         } else {
           setUserRole(null);
           localStorage.removeItem('userRole');
@@ -652,6 +747,106 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // IMPORTANT: Wait a bit for session to be fully established
         await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // AUTO-ASSIGN ROLE FROM INVITATION (if email is confirmed)
+        // IMPORTANT: Only call for invited users (check for invitation token or pending invitation)
+        // Existing admins should NOT be affected by this logic
+        if (data.user.email_confirmed_at) {
+          // Check if this is an invited user (has invitation token or pending invitation)
+          const invitationToken = sessionStorage.getItem('invitation_token') || localStorage.getItem('invitation_token');
+          const invitationEmail = localStorage.getItem('invitation_email');
+          
+          // Only proceed if user has invitation token OR email matches invitation
+          const isInvitedUser = invitationToken || 
+            (invitationEmail && invitationEmail.toLowerCase() === email.toLowerCase());
+          
+          if (isInvitedUser) {
+            console.log('✅ Email is confirmed and user has invitation, checking for pending invitations...');
+            try {
+              // Add timeout to prevent hanging
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Function call timeout')), 5000)
+              );
+              
+              const functionPromise = supabase
+                .rpc('auto_assign_role_from_invitation', {
+                  p_user_id: data.user.id,
+                  p_user_email: userEmail
+                });
+              
+              const { data: autoAssignResult, error: autoAssignError } = await Promise.race([
+                functionPromise,
+                timeoutPromise
+              ]) as any;
+              
+              if (!autoAssignError && autoAssignResult) {
+                console.log('📋 Auto-assign result:', autoAssignResult);
+                if (autoAssignResult.role_assigned) {
+                  console.log(`✅ Role ${autoAssignResult.role_type} automatically assigned from invitation`);
+                  toast.success(`${autoAssignResult.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'} access granted!`);
+                  // Wait a bit for database to sync
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                } else {
+                  console.log('ℹ️ No role assigned (invitation may not be pending)');
+                }
+              } else if (autoAssignError) {
+                // Don't log as error if function doesn't exist yet (migration not run)
+                if (autoAssignError.code !== '42883' && autoAssignError.message?.includes('function') === false) {
+                  console.error('❌ Error in auto-assign function:', autoAssignError);
+                } else {
+                  console.log('ℹ️ Auto-assign function not available yet (migration may not be run)');
+                }
+              }
+
+              // Also check for clinic admin invitation (doctor role)
+              try {
+                const doctorFunctionPromise = supabase
+                  .rpc('auto_assign_doctor_role_from_invitation', {
+                    p_user_id: data.user.id,
+                    p_user_email: userEmail
+                  });
+                
+                const { data: doctorAssignResult, error: doctorAssignError } = await Promise.race([
+                  doctorFunctionPromise,
+                  timeoutPromise
+                ]) as any;
+                
+                if (!doctorAssignError && doctorAssignResult) {
+                  console.log('📋 Doctor auto-assign result:', doctorAssignResult);
+                  if (doctorAssignResult.role_assigned) {
+                    console.log('✅ Doctor role automatically assigned from clinic invitation');
+                    toast.success('Doctor access granted!');
+                    // Wait a bit for database to sync
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                  }
+                } else if (doctorAssignError) {
+                  // Don't log as error if function doesn't exist yet
+                  if (doctorAssignError.code !== '42883' && doctorAssignError.message?.includes('function') === false) {
+                    console.error('❌ Error in doctor auto-assign function:', doctorAssignError);
+                  } else {
+                    console.log('ℹ️ Doctor auto-assign function not available yet (migration may not be run)');
+                  }
+                }
+              } catch (doctorAssignErr: any) {
+                if (doctorAssignErr?.message === 'Function call timeout') {
+                  console.warn('⚠️ Doctor auto-assign function call timed out, continuing...');
+                } else {
+                  console.log('ℹ️ Doctor auto-assign function call failed (this is okay if migration not run):', doctorAssignErr);
+                }
+              }
+            } catch (autoAssignErr: any) {
+              // Handle timeout or other errors
+              if (autoAssignErr?.message === 'Function call timeout') {
+                console.warn('⚠️ Auto-assign function call timed out, continuing with role fetch...');
+              } else {
+                console.log('ℹ️ Auto-assign function call failed (this is okay if migration not run):', autoAssignErr);
+              }
+            }
+          } else {
+            // Not an invited user - skip auto-assign (existing admins won't be affected)
+            console.log('ℹ️ Not an invited user, skipping auto-assign');
+          }
+        }
         
         // Declare role variable early so it can be updated by invitation flow
         let role: UserRole = 'patient';
@@ -1196,6 +1391,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.log('🚀 Redirecting to clinic admin dashboard for:', userEmail, 'Role:', effectiveRole);
               window.location.href = '/clinic-admin/dashboard';
             }
+          } else if (effectiveRole === 'doctor') {
+            console.log('🚀 Redirecting to doctor appointments for:', userEmail, 'Role:', effectiveRole);
+            window.location.href = '/doctor/appointments';
           } else {
             console.log('🚀 Redirecting to patient homepage for:', userEmail, 'Role:', effectiveRole);
             console.log('⚠️ WARNING: User has patient role. If invitation was sent, check console logs above for role assignment errors.');

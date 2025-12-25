@@ -189,17 +189,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
 
+      const bookingPayload = {
+        doctorName: appointmentData.doctorName,
+        specialty: appointmentData.specialty || 'General',
+        clinic: appointmentData.clinic,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        userId: user.user.id,
+        doctorId: appointmentData.doctorId || null
+      };
+      
+      console.log('📤 Sending booking request to edge function:', {
+        ...bookingPayload,
+        userId: user.user.id.substring(0, 8) + '...' // Partially hide user_id for privacy
+      });
+      
       // Call the edge function to process the booking
       const { data, error } = await supabase.functions.invoke('process-booking', {
-        body: {
-          doctorName: appointmentData.doctorName,
-          specialty: appointmentData.specialty || 'General',
-          clinic: appointmentData.clinic,
-          date: appointmentData.date,
-          time: appointmentData.time,
-          userId: user.user.id,
-          doctorId: appointmentData.doctorId || null
-        }
+        body: bookingPayload
       });
 
       if (error) throw error;

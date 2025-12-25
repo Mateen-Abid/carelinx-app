@@ -500,6 +500,20 @@ const ServiceDetails = () => {
           ? (selectedDoctorFromDb?.specialty || serviceData.category || serviceData.name)
           : serviceData.name;
         
+        const finalDoctorId = isDatabaseService 
+          ? (selectedDoctorData?.doctorId || selectedDoctorFromDb?.id || databaseDoctors[0]?.id) 
+          : undefined;
+        
+        console.log('📝 Booking appointment with:', {
+          doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
+          selectedDoctor: selectedDoctor,
+          selectedDoctorData: selectedDoctorData,
+          selectedDoctorFromDb: selectedDoctorFromDb,
+          databaseDoctors: databaseDoctors.map(d => ({ id: d.id, name: d.name })),
+          doctorId: finalDoctorId,
+          isDatabaseService: isDatabaseService
+        });
+        
         const bookingId = await addAppointment({
           doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
           specialty: specialty,
@@ -507,9 +521,7 @@ const ServiceDetails = () => {
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: timeSlot,
           status: 'pending',
-          doctorId: isDatabaseService 
-            ? (selectedDoctorData?.doctorId || selectedDoctorFromDb?.id || databaseDoctors[0]?.id) 
-            : undefined
+          doctorId: finalDoctorId
         });
         
         setPendingBookingId(bookingId);

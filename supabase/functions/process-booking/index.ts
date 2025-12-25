@@ -66,8 +66,15 @@ serve(async (req) => {
 
     // Use provided doctorId or look it up by name and clinic
     let doctorId: string | null = bookingData.doctorId || null;
+    console.log('🔍 Doctor ID from request:', doctorId);
+    console.log('🔍 Doctor name from request:', bookingData.doctorName);
+    
     if (!doctorId && bookingData.doctorName && clinicId) {
-      const { data: doctorData } = await supabaseClient
+      console.log('🔍 Looking up doctor by name and clinic:', { doctorName: bookingData.doctorName, clinicId });
+      
+      // Try exact match first
+      let doctorData = null;
+      const { data: exactMatch, error: exactError } = await supabaseClient
         .from('doctors')
         .select('id')
         .eq('name', bookingData.doctorName)
@@ -75,10 +82,36 @@ serve(async (req) => {
         .eq('status', 'active')
         .maybeSingle();
       
+      console.log('🔍 Doctor exact match result:', { exactMatch, exactError });
+      
+      if (exactMatch) {
+        doctorData = exactMatch;
+      } else {
+        // Try case-insensitive match
+        const { data: caseInsensitiveMatch, error: caseError } = await supabaseClient
+          .from('doctors')
+          .select('id')
+          .ilike('name', bookingData.doctorName)
+          .eq('clinic_id', clinicId)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        console.log('🔍 Doctor case-insensitive match result:', { caseInsensitiveMatch, caseError });
+        
+        if (caseInsensitiveMatch) {
+          doctorData = caseInsensitiveMatch;
+        }
+      }
+      
       if (doctorData) {
         doctorId = doctorData.id;
+        console.log('✅ Found doctor ID:', doctorId);
+      } else {
+        console.warn('⚠️ Doctor not found by name and clinic (tried exact and case-insensitive match)');
       }
     }
+    
+    console.log('✅ Final doctor_id to use:', doctorId);
 
     // Insert initial booking with 'pending' status
     const bookingInsertData = {
@@ -110,7 +143,7 @@ serve(async (req) => {
       throw insertError
     }
 
-    console.log(`✅ Booking ${booking.id} created with pending status, clinic_id: ${booking.clinic_id || 'NULL'}`)
+    console.log(`✅ Booking ${booking.id} created with pending status, clinic_id: ${booking.clinic_id || 'NULL'}, doctor_id: ${booking.doctor_id || 'NULL'}`)
 
     // No background tasks needed - frontend will handle the flow
     console.log(`Booking ${booking.id} created and ready for frontend handling`)

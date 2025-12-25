@@ -390,6 +390,20 @@ const AdminAppointments = () => {
     const matchesSpecialty = !filterSpecialty || filterSpecialty === 'all' || appointment.service === filterSpecialty;
     
     return matchesStatus && matchesSearch && matchesClinic && matchesDate && matchesDoctor && matchesSpecialty;
+  }).sort((a, b) => {
+    // Sort appointments: pending appointments first (by date), then others
+    const aIsPending = a.status === 'pending';
+    const bIsPending = b.status === 'pending';
+    
+    // If both are pending or both are not pending, sort by appointment date (latest first)
+    if (aIsPending === bIsPending) {
+      const aDate = new Date(a.appointment_date).getTime();
+      const bDate = new Date(b.appointment_date).getTime();
+      return bDate - aDate; // Latest date first
+    }
+    
+    // Pending appointments come first
+    return aIsPending ? -1 : 1;
   });
 
   const handleSelectAppointment = (appointmentId: string) => {

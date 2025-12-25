@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
+import DoctorSidebar from '@/components/doctor/DoctorSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Check, Clock, X, ArrowUpDown, RotateCcw, Calendar } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Search, Check, Clock, X, ArrowUpDown, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Appointment {
@@ -49,10 +48,9 @@ interface Clinic {
   logo_url: string | null;
 }
 
-const ClinicAdminAppointments = () => {
+const DoctorAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
@@ -75,20 +73,34 @@ const ClinicAdminAppointments = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('clinic_admin_id', user.id)
+        // First get doctor's clinic_id
+        const { data: doctorData, error: doctorError } = await (supabase as any)
+          .from('doctors')
+          .select('clinic_id')
+          .eq('user_id', user.id)
           .maybeSingle();
 
-        if (error) {
-          console.error('Error checking clinic:', error);
+        if (doctorError || !doctorData || !doctorData.clinic_id) {
+          console.error('Error fetching doctor clinic:', doctorError);
+          setCheckingClinic(false);
+          return;
+        }
+
+        // Then get clinic details
+        const { data: clinicData, error: clinicError } = await (supabase as any)
+          .from('clinics')
+          .select('id, name, status, logo_url')
+          .eq('id', doctorData.clinic_id)
+          .maybeSingle();
+
+        if (clinicError) {
+          console.error('Error checking clinic:', clinicError);
           setCheckingClinic(false);
           return;
         }
 
         if (!clinicData || clinicData.status === 'pending') {
-          navigate('/clinic-admin/onboarding', { replace: true });
+          setCheckingClinic(false);
           return;
         }
 
@@ -101,7 +113,7 @@ const ClinicAdminAppointments = () => {
     };
 
     checkClinicExists();
-  }, [user, navigate]);
+  }, [user]);
 
   useEffect(() => {
     if (clinic?.id) {
@@ -123,15 +135,16 @@ const ClinicAdminAppointments = () => {
       const weekStart = new Date(today);
       weekStart.setDate(weekStart.getDate() - today.getDay());
 
-      // Fetch bookings for this clinic - try by clinic_id first
+      // Fetch bookings for this clinic - try by clinic_id first (same as clinic admin)
+      const clinicNameTrimmed = clinic?.name?.trim() || '';
       let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .eq('clinic_id', clinicId)
+        .or(`clinic.eq.${clinicNameTrimmed},clinic.ilike.${clinicNameTrimmed}`)
         .order('appointment_date', { ascending: false })
         .order('appointment_time', { ascending: false });
       
-      console.log('🔍 Querying bookings by clinic_id:', clinicId);
+      console.log('🔍 Querying bookings by clinic name:', clinicNameTrimmed);
 
       // Apply date filter
       if (dateFilter === 'today') {
@@ -150,9 +163,9 @@ const ClinicAdminAppointments = () => {
 
       const { data: bookingsData, error: bookingsError } = await bookingsQuery;
 
-      console.log('📋 Bookings by clinic_id:', {
+      console.log('📋 Bookings by clinic name:', {
         count: bookingsData?.length || 0,
-        bookings: bookingsData?.map(b => ({ id: b.id, clinic_id: b.clinic_id, clinic: b.clinic, status: b.status })),
+        bookings: bookingsData?.map((b: any) => ({ id: b.id, clinic: b.clinic, status: b.status })),
         error: bookingsError
       });
 
@@ -160,82 +173,9 @@ const ClinicAdminAppointments = () => {
         console.error('❌ Error fetching bookings by clinic_id:', bookingsError);
       }
 
-      // Fallback: try by clinic name if no results (for bookings with NULL clinic_id)
+      // Use bookings directly (same as clinic admin)
       let bookings = bookingsData || [];
-      if (bookings.length === 0 && clinic?.name) {
-        console.log('🔄 Trying fallback: query by clinic name:', clinic.name);
-        const { data: bookingsByName, error: errorByName } = await supabase
-          .from('bookings')
-          .select('*')
-          .or(`clinic.eq.${clinic.name},clinic.ilike.${clinic.name}`)
-          .order('appointment_date', { ascending: false })
-          .order('appointment_time', { ascending: false });
-        
-        console.log('📋 Bookings by clinic name:', {
-          count: bookingsByName?.length || 0,
-          bookings: bookingsByName?.map(b => ({ id: b.id, clinic_id: b.clinic_id, clinic: b.clinic, status: b.status })),
-          error: errorByName
-        });
-        
-        if (bookingsByName && bookingsByName.length > 0) {
-          // Update these bookings to have the correct clinic_id
-          const bookingIdsToUpdate = bookingsByName
-            .filter(b => !b.clinic_id)
-            .map(b => b.id);
-          
-          if (bookingIdsToUpdate.length > 0) {
-            console.log('🔧 Updating bookings with clinic_id:', bookingIdsToUpdate);
-            const { error: updateError } = await supabase
-              .from('bookings')
-              .update({ clinic_id: clinicId })
-              .in('id', bookingIdsToUpdate);
-            
-            if (updateError) {
-              console.error('❌ Error updating clinic_id:', updateError);
-            } else {
-              console.log('✅ Updated bookings with clinic_id');
-            }
-          }
-        }
-        
-        bookings = bookingsByName || [];
-      }
       
-      // Also query for bookings with NULL clinic_id that match clinic name
-      if (clinic?.name) {
-        const { data: bookingsWithNullClinicId } = await supabase
-          .from('bookings')
-          .select('*')
-          .is('clinic_id', null)
-          .or(`clinic.eq.${clinic.name},clinic.ilike.${clinic.name}`)
-          .order('appointment_date', { ascending: false })
-          .order('appointment_time', { ascending: false });
-        
-        if (bookingsWithNullClinicId && bookingsWithNullClinicId.length > 0) {
-          console.log('📋 Found bookings with NULL clinic_id:', bookingsWithNullClinicId.length);
-          
-          // Merge with existing bookings (avoid duplicates)
-          const existingIds = new Set(bookings.map(b => b.id));
-          const newBookings = bookingsWithNullClinicId.filter(b => !existingIds.has(b.id));
-          bookings = [...bookings, ...newBookings];
-          
-          // Update these bookings to have the correct clinic_id
-          if (newBookings.length > 0) {
-            const bookingIdsToUpdate = newBookings.map(b => b.id);
-            console.log('🔧 Updating NULL clinic_id bookings:', bookingIdsToUpdate);
-            const { error: updateError } = await supabase
-              .from('bookings')
-              .update({ clinic_id: clinicId })
-              .in('id', bookingIdsToUpdate);
-            
-            if (updateError) {
-              console.error('❌ Error updating NULL clinic_id:', updateError);
-            } else {
-              console.log('✅ Updated NULL clinic_id bookings');
-            }
-          }
-        }
-      }
       
       console.log('✅ Total bookings found:', bookings.length);
 
@@ -256,27 +196,18 @@ const ClinicAdminAppointments = () => {
         const profile = profileMap.get(booking.user_id);
         
         // Map database status to UI status
-        let mappedStatus: 'pending' | 'approved' | 'completed' | 'cancelled';
+        let mappedStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled';
         const dbStatus = booking.status || 'pending';
         
-        console.log('📋 Booking status mapping:', {
-          bookingId: booking.id,
-          dbStatus: dbStatus,
-          rawStatus: booking.status
-        });
-        
         if (dbStatus === 'confirmed') {
-          mappedStatus = 'approved';
+          mappedStatus = 'confirmed';
         } else if (dbStatus === 'pending') {
           mappedStatus = 'pending';
         } else if (dbStatus === 'cancelled') {
           mappedStatus = 'cancelled';
         } else if (dbStatus === 'rescheduled') {
-          // Rescheduled appointments show as pending for clinic admin (waiting for user approval)
           mappedStatus = 'pending';
         } else {
-          // Default to pending for unknown statuses (new bookings)
-          console.warn('⚠️ Unknown booking status, defaulting to pending:', dbStatus);
           mappedStatus = 'pending';
         }
         
@@ -290,7 +221,7 @@ const ClinicAdminAppointments = () => {
           appointment_time: booking.appointment_time,
           status: mappedStatus,
           created_at: booking.created_at,
-          doctor_id: booking.doctor_id,
+          doctor_id: (booking as any).doctor_id,
         };
       });
 
@@ -396,11 +327,11 @@ const ClinicAdminAppointments = () => {
 
       // Fetch doctor details if doctor_id exists
       let doctorData = null;
-      if (bookingData.doctor_id) {
-        const { data: docData } = await supabase
+      if ((bookingData as any).doctor_id) {
+        const { data: docData } = await (supabase as any)
           .from('doctors')
           .select('name, specialty, availability')
-          .eq('id', bookingData.doctor_id)
+          .eq('id', (bookingData as any).doctor_id)
           .maybeSingle();
         doctorData = docData;
       }
@@ -409,20 +340,20 @@ const ClinicAdminAppointments = () => {
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: profileData?.full_name || appointment.patientName || 'Unknown Patient',
-          gender: profileData?.gender || 'Not specified',
-          contact: profileData?.phone || 'Not provided',
-          email: profileData?.email || 'Not provided',
+          name: (profileData as any)?.full_name || appointment.patientName || 'Unknown Patient',
+          gender: (profileData as any)?.gender || 'Not specified',
+          contact: (profileData as any)?.phone || 'Not provided',
+          email: (profileData as any)?.email || 'Not provided',
         },
         doctor: {
-          name: doctorData?.name || bookingData.doctor_name || appointment.doctorName || 'Unknown Doctor',
-          specialty: doctorData?.specialty || bookingData.specialty || appointment.service || 'General',
-          service: bookingData.specialty || appointment.service || 'General Consultation',
+          name: doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || 'Unknown Doctor',
+          specialty: doctorData?.specialty || (bookingData as any).specialty || appointment.service || 'General',
+          service: (bookingData as any).specialty || appointment.service || 'General Consultation',
           availability: doctorData?.availability || '9:00 AM - 5:00 PM',
         },
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
-        status: appointment.status,
+        status: appointment.status as 'pending' | 'confirmed' | 'cancelled' | 'completed',
       };
 
       setSelectedAppointmentDetails(details);
@@ -587,7 +518,7 @@ const ClinicAdminAppointments = () => {
   // Filter appointments
   const filteredAppointments = appointmentsData.filter((appointment) => {
     const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'approved' && appointment.status === 'approved') ||
+      (statusFilter === 'approved' && appointment.status === 'confirmed') ||
       (statusFilter === 'pending' && appointment.status === 'pending') ||
       (statusFilter === 'cancelled' && appointment.status === 'cancelled');
     
@@ -597,25 +528,11 @@ const ClinicAdminAppointments = () => {
       appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesStatus && matchesSearch;
-  }).sort((a, b) => {
-    // Sort appointments: pending appointments first (by date), then others
-    const aIsPending = a.status === 'pending';
-    const bIsPending = b.status === 'pending';
-    
-    // If both are pending or both are not pending, sort by appointment date (latest first)
-    if (aIsPending === bIsPending) {
-      const aDate = new Date(a.appointment_date).getTime();
-      const bDate = new Date(b.appointment_date).getTime();
-      return bDate - aDate; // Latest date first
-    }
-    
-    // Pending appointments come first
-    return aIsPending ? -1 : 1;
   });
 
   if (checkingClinic) {
     return (
-      <ProtectedRoute allowedRoles={['clinic_admin']}>
+      <ProtectedRoute allowedRoles={['doctor']}>
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
@@ -627,9 +544,9 @@ const ClinicAdminAppointments = () => {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['clinic_admin']}>
+    <ProtectedRoute allowedRoles={['doctor']}>
       <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
-        <ClinicAdminSidebar isDarkMode={isDarkMode} onDarkModeToggle={toggleDarkMode} />
+        <DoctorSidebar isDarkMode={isDarkMode} onDarkModeToggle={toggleDarkMode} />
         
         <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
           <div className="p-8">
@@ -1112,7 +1029,13 @@ const ClinicAdminAppointments = () => {
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 
                         onClick={() => {
                           const dateInput = document.getElementById('new-appointment-date') as HTMLInputElement;
-                          dateInput?.showPicker?.() || dateInput?.click();
+                          if (dateInput) {
+                            try {
+                              (dateInput as any).showPicker?.();
+                            } catch {
+                              dateInput.click();
+                            }
+                          }
                         }}
                       />
                       <Input
@@ -1132,7 +1055,13 @@ const ClinicAdminAppointments = () => {
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 
                         onClick={() => {
                           const timeInput = document.getElementById('new-appointment-time') as HTMLInputElement;
-                          timeInput?.showPicker?.() || timeInput?.click();
+                          if (timeInput) {
+                            try {
+                              (timeInput as any).showPicker?.();
+                            } catch {
+                              timeInput.click();
+                            }
+                          }
                         }}
                       />
                       <Input
@@ -1175,4 +1104,4 @@ const ClinicAdminAppointments = () => {
   );
 };
 
-export default ClinicAdminAppointments;
+export default DoctorAppointments;

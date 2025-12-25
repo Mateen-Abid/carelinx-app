@@ -26,7 +26,7 @@ const Auth = () => {
   const [emailError, setEmailError] = useState('');
   const [signupError, setSignupError] = useState('');
   
-  const { signIn, signUp, user, userRole, resendConfirmation, resetPassword } = useAuth();
+  const { signIn, signUp, user, userRole, signOut, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +63,9 @@ const Auth = () => {
       console.log('💾 Invitation token saved to sessionStorage and localStorage:', inviteToken);
     }
     
-    if (user && userRole) {
+    // IMPORTANT: Don't redirect if invitation token is present (user needs to signup first)
+    // Only redirect if user is logged in AND no invitation token
+    if (user && userRole && !inviteToken) {
       // Redirect based on role from database (fully dynamic)
       if (userRole === 'super_admin') {
         console.log('🚀 Auth.tsx: Redirecting super admin to dashboard');
@@ -71,10 +73,23 @@ const Auth = () => {
       } else if (userRole === 'clinic_admin') {
         console.log('🚀 Auth.tsx: Redirecting clinic admin to dashboard');
         navigate('/clinic-admin/dashboard', { replace: true });
+      } else if (userRole === 'doctor') {
+        console.log('🚀 Auth.tsx: Redirecting doctor to appointments');
+        navigate('/doctor/appointments', { replace: true });
       } else {
         // Patient or public_user - redirect to homepage
         console.log('🚀 Auth.tsx: Redirecting to homepage');
         navigate('/', { replace: true });
+      }
+    } else if (user && inviteToken) {
+      // User is logged in but has invitation token - sign them out to allow new signup
+      // Check if logged in user's email matches invitation email
+      if (inviteEmail && user.email?.toLowerCase() !== decodeURIComponent(inviteEmail).toLowerCase()) {
+        console.log('ℹ️ User logged in with different email, signing out to allow invitation signup');
+        signOut();
+      } else if (inviteEmail && user.email?.toLowerCase() === decodeURIComponent(inviteEmail).toLowerCase()) {
+        // Same email - user might already be signed up, don't redirect, let them see the form
+        console.log('ℹ️ User logged in with same email as invitation, showing signup form');
       }
     }
   }, [user, userRole, navigate]);

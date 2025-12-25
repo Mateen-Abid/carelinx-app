@@ -15,10 +15,7 @@ const corsHeaders = {
 // =====================================================
 // CONFIGURATION - Easy to change for different clients
 // =====================================================
-// Environment variables are optional - defaults will be used if not set
-// When client gets domain, just update these in Supabase Dashboard
 const CLIENT_CONFIG = {
-  // Get from environment or use default (will be overridden by request if needed)
   // @ts-expect-error - Deno global is available in Edge Functions runtime
   APP_URL: Deno.env.get('APP_URL') || '',
   // @ts-expect-error - Deno global
@@ -36,10 +33,17 @@ serve(async (req) => {
     })
   }
 
+  console.log('📥 Received request:', {
+    method: req.method,
+    url: req.url,
+    hasAuthHeader: !!req.headers.get('Authorization')
+  })
+
   try {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('❌ Missing authorization header')
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,36 +64,69 @@ serve(async (req) => {
       }
     )
 
-    // Verify the requesting user is super_admin
+    // Verify the requesting user
     const token = authHeader.replace('Bearer ', '')
+    console.log('🔐 Verifying user token...')
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('❌ Auth error:', authError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Check if user is super_admin
-    const { data: userRole } = await supabaseAdmin
+    console.log('✅ User verified:', user.id, user.email)
+
+    // Check if user is clinic_admin
+    console.log('🔍 Checking user role...')
+    const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role_type')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single()
 
-    if (userRole?.role_type !== 'super_admin') {
+    console.log('📋 User role result:', { userRole, roleError })
+
+    if (roleError || userRole?.role_type !== 'clinic_admin') {
+      console.error('❌ User is not clinic_admin:', userRole?.role_type)
       return new Response(
-        JSON.stringify({ error: 'Only super admin can send invitations' }),
+        JSON.stringify({ error: 'Only clinic admin can send doctor invitations', user_role: userRole?.role_type }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Parse request body with error handling
-    let requestBody: { email?: string; name?: string; role_type?: string; app_url?: string }
+    // Get clinic for this clinic admin
+    console.log('🔍 Fetching clinic for user:', user.id)
+    const { data: clinic, error: clinicError } = await supabaseAdmin
+      .from('clinics')
+      .select('id, name')
+      .eq('clinic_admin_id', user.id)
+      .eq('status', 'active')
+      .single()
+
+    console.log('📋 Clinic result:', { clinic, clinicError })
+
+    if (clinicError || !clinic) {
+      console.error('❌ Clinic not found:', clinicError)
+      return new Response(
+        JSON.stringify({ error: 'Clinic not found or not active', details: clinicError?.message }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Parse request body
+    let requestBody: { email?: string; name?: string; doctor_id?: string; app_url?: string }
     try {
       requestBody = await req.json()
+      console.log('📥 Request body received:', {
+        email: requestBody.email,
+        name: requestBody.name,
+        doctor_id: requestBody.doctor_id,
+        app_url: requestBody.app_url
+      })
     } catch (parseError: unknown) {
       console.error('❌ Error parsing request body:', parseError)
       return new Response(
@@ -98,32 +135,67 @@ serve(async (req) => {
       )
     }
 
-    const { email, name, role_type, app_url } = requestBody
+    const { email, name, doctor_id, app_url } = requestBody
 
-    // Log received data for debugging
-    console.log('📥 Received request:', { email, name, role_type, app_url })
+    console.log('📥 Received doctor invitation request:', { 
+      email: email || 'MISSING', 
+      name: name || 'MISSING', 
+      doctor_id: doctor_id || 'MISSING',
+      app_url: app_url || 'MISSING',
+      clinic_id: clinic.id,
+      requestBody: requestBody
+    })
 
-    if (!email || !role_type) {
-      console.error('❌ Missing required fields:', { email: !!email, role_type: !!role_type })
+    if (!email || !name || !doctor_id) {
+      const errorResponse = { 
+        error: 'Missing required fields: email, name, doctor_id',
+        received: { 
+          email: !!email, 
+          name: !!name,
+          doctor_id: !!doctor_id,
+          email_value: email || null,
+          name_value: name || null,
+          doctor_id_value: doctor_id || null,
+          full_request: requestBody
+        }
+      }
+      console.error('❌ Validation failed:', errorResponse)
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required fields: email, role_type',
-          received: { email: !!email, role_type: !!role_type, name: !!name, app_url: !!app_url }
-        }),
+        JSON.stringify(errorResponse),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Verify that the doctor exists and belongs to this clinic
+    console.log('🔍 Verifying doctor exists in clinic...')
+    const { data: existingDoctor, error: doctorCheckError } = await supabaseAdmin
+      .from('doctors')
+      .select('id, name, email, clinic_id, user_id')
+      .eq('id', doctor_id)
+      .eq('clinic_id', clinic.id)
+      .single()
+
+    if (doctorCheckError || !existingDoctor) {
+      console.error('❌ Doctor not found or does not belong to this clinic:', doctorCheckError)
+      return new Response(
+        JSON.stringify({ error: 'Doctor not found or does not belong to your clinic' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check if doctor already has a user account
+    if (existingDoctor.user_id) {
+      console.error('❌ Doctor already has system access:', existingDoctor.user_id)
+      return new Response(
+        JSON.stringify({ error: 'This doctor already has system access. They can login with their account.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('✅ Doctor verified:', existingDoctor.id, existingDoctor.name)
 
     // Use app_url from request if provided, otherwise use environment variable or default
     const invitationBaseUrl = app_url || CLIENT_CONFIG.APP_URL || 'http://localhost:5173'
-
-    // Validate role_type
-    if (!['super_admin', 'clinic_admin'].includes(role_type)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid role_type. Must be super_admin or clinic_admin' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     // Check if user already exists
     try {
@@ -131,7 +203,6 @@ serve(async (req) => {
       
       if (listUsersError) {
         console.error('❌ Error listing users:', listUsersError)
-        // Continue anyway - might be a permission issue
       } else if (existingUsers?.users) {
         const existingUser = existingUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
         
@@ -145,45 +216,47 @@ serve(async (req) => {
       }
     } catch (userCheckError: unknown) {
       console.error('❌ Error checking existing users:', userCheckError)
-      // Continue - might be a temporary issue
     }
 
-    // Check if there's already a pending invitation for this email
+    // Check if there's already a pending invitation for this email in this clinic
     try {
       const { data: existingInvitation, error: inviteCheckError } = await supabaseAdmin
-        .from('super_admin_invitations')
+        .from('clinic_admin_invitations')
         .select('*')
         .eq('email', email.toLowerCase())
+        .eq('clinic_id', clinic.id)
         .eq('status', 'pending')
         .maybeSingle()
 
       if (inviteCheckError && inviteCheckError.code !== 'PGRST116') {
         console.error('❌ Error checking existing invitations:', inviteCheckError)
-        // Continue anyway
       } else if (existingInvitation) {
         console.error('❌ Pending invitation already exists:', email)
         return new Response(
-          JSON.stringify({ error: 'A pending invitation already exists for this email' }),
+          JSON.stringify({ error: 'A pending invitation already exists for this email in your clinic' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
     } catch (inviteCheckError: unknown) {
       console.error('❌ Error checking invitations:', inviteCheckError)
-      // Continue - might be a temporary issue
     }
+
+    // Use existing doctor (no need to create new one)
+    const doctor = existingDoctor
 
     // Generate unique invitation token
     const invitationToken = crypto.randomUUID()
 
     // Create invitation record
     const { data: invitation, error: inviteError } = await supabaseAdmin
-      .from('super_admin_invitations')
+      .from('clinic_admin_invitations')
       .insert({
         invited_by: user.id,
+        clinic_id: clinic.id,
         email: email.toLowerCase(),
-        name: name || null,
+        name: name,
         invitation_token: invitationToken,
-        role_type: role_type,
+        doctor_id: doctor.id,
         status: 'pending',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
       })
@@ -191,19 +264,18 @@ serve(async (req) => {
       .single()
 
     if (inviteError) {
-      console.error('Error creating invitation:', inviteError)
+      console.error('❌ Error creating invitation:', inviteError)
       return new Response(
         JSON.stringify({ error: `Failed to create invitation: ${inviteError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Build invitation URL using the base URL
+    // Build invitation URL
     const invitationUrl = `${invitationBaseUrl}/invite/${invitationToken}`
 
     // Prepare email content
-    const roleDisplayName = role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'
-    const emailSubject = `You've been invited to join ${CLIENT_CONFIG.APP_NAME} as ${roleDisplayName}`
+    const emailSubject = `You've been invited to join ${clinic.name} as a Doctor`
     
     const emailHtml = `
       <!DOCTYPE html>
@@ -211,16 +283,21 @@ serve(async (req) => {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Invitation to ${CLIENT_CONFIG.APP_NAME}</title>
+        <title>Doctor Invitation - ${CLIENT_CONFIG.APP_NAME}</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #0C2243; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
           <h1 style="color: #00FFA2; margin: 0;">${CLIENT_CONFIG.APP_NAME}</h1>
         </div>
         <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
-          <h2 style="color: #0C2243; margin-top: 0;">You've been invited!</h2>
+          <h2 style="color: #0C2243; margin-top: 0;">You've been invited as a Doctor!</h2>
           <p>Hello${name ? ` ${name}` : ''},</p>
-          <p>You've been invited to join <strong>${CLIENT_CONFIG.APP_NAME}</strong> as a <strong>${roleDisplayName}</strong>.</p>
+          <p>You've been invited to join <strong>${clinic.name}</strong> as a <strong>Doctor</strong>.</p>
+          <p>As a doctor, you'll have access to:</p>
+          <ul>
+            <li>View and manage your appointments</li>
+            <li>View and manage your patients</li>
+          </ul>
           <p>Click the button below to accept the invitation and create your account:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${invitationUrl}" style="background-color: #00FFA2; color: #0C2243; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
@@ -241,11 +318,15 @@ serve(async (req) => {
     `
 
     const emailText = `
-You've been invited to join ${CLIENT_CONFIG.APP_NAME} as ${roleDisplayName}!
+You've been invited to join ${clinic.name} as a Doctor!
 
 Hello${name ? ` ${name}` : ''},
 
-You've been invited to join ${CLIENT_CONFIG.APP_NAME} as a ${roleDisplayName}.
+You've been invited to join ${clinic.name} as a Doctor.
+
+As a doctor, you'll have access to:
+- View and manage your appointments
+- View and manage your patients
 
 Click this link to accept the invitation and create your account:
 ${invitationUrl}
@@ -292,19 +373,18 @@ Need help? Contact us at ${CLIENT_CONFIG.SUPPORT_EMAIL}
       console.log('📧 Invitation created. Email sending failed, but invitation link is available.')
     }
 
-    // Log invitation details
-    console.log('📧 Invitation created for:', email)
+    console.log('📧 Doctor invitation created for:', email)
     console.log('🔗 Invitation URL:', invitationUrl)
-    console.log('👤 Role:', role_type)
+    console.log('👨‍⚕️ Doctor ID:', doctor.id)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         invitation_id: invitation.id,
+        doctor_id: doctor.id,
         invitation_token: invitationToken,
         invitation_url: invitationUrl,
-        message: 'Invitation created successfully. Email sent to user.',
-        // For testing: include the URL so you can manually test
+        message: 'Doctor invitation created successfully. Email sent to user.',
         test_url: invitationUrl
       }),
       { 

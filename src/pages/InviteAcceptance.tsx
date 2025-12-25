@@ -25,21 +25,61 @@ const InviteAcceptance = () => {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
+      // First try to fetch from super_admin_invitations
+      let data: any = null;
+      let fetchError: any = null;
+      let invitationType: 'super_admin' | 'clinic_admin' = 'super_admin';
+
+      const { data: superAdminData, error: superAdminError } = await supabase
         .from('super_admin_invitations')
         .select('*')
         .eq('invitation_token', token)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) {
-        console.error('❌ Error fetching invitation:', fetchError);
-        setError('Invitation not found or invalid');
-        setLoading(false);
-        return;
+      if (superAdminData) {
+        data = superAdminData;
+        invitationType = 'super_admin';
+      } else if (superAdminError && superAdminError.code !== 'PGRST116') {
+        // If error is not "not found", try clinic_admin_invitations
+        console.log('🔍 Not found in super_admin_invitations, checking clinic_admin_invitations...');
+        
+        const { data: clinicAdminData, error: clinicAdminError } = await supabase
+          .from('clinic_admin_invitations')
+          .select('*')
+          .eq('invitation_token', token)
+          .maybeSingle();
+
+        if (clinicAdminData) {
+          data = clinicAdminData;
+          invitationType = 'clinic_admin';
+          // Add role_type for doctor invitations
+          data.role_type = 'doctor';
+        } else if (clinicAdminError) {
+          fetchError = clinicAdminError;
+        }
+      } else {
+        // Not found in super_admin_invitations, try clinic_admin_invitations
+        console.log('🔍 Not found in super_admin_invitations, checking clinic_admin_invitations...');
+        
+        const { data: clinicAdminData, error: clinicAdminError } = await supabase
+          .from('clinic_admin_invitations')
+          .select('*')
+          .eq('invitation_token', token)
+          .maybeSingle();
+
+        if (clinicAdminData) {
+          data = clinicAdminData;
+          invitationType = 'clinic_admin';
+          // Add role_type for doctor invitations
+          data.role_type = 'doctor';
+        } else if (clinicAdminError) {
+          fetchError = clinicAdminError;
+        }
       }
 
-      if (!data) {
-        setError('Invitation not found');
+      if (fetchError || !data) {
+        console.error('❌ Error fetching invitation:', fetchError);
+        setError('Invitation not found or invalid');
         setLoading(false);
         return;
       }
@@ -120,7 +160,11 @@ const InviteAcceptance = () => {
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-[#00FFA2]" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You've been invited!</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              You've been invited to join CareLinix as a {invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}.
+              You've been invited to join CareLinix as a {
+                invitation.role_type === 'super_admin' ? 'Super Admin' : 
+                invitation.role_type === 'doctor' ? 'Doctor' : 
+                'Clinic Admin'
+              }.
             </p>
           </div>
 
@@ -137,7 +181,9 @@ const InviteAcceptance = () => {
               <div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}
+                  {invitation.role_type === 'super_admin' ? 'Super Admin' : 
+                   invitation.role_type === 'doctor' ? 'Doctor' : 
+                   'Clinic Admin'}
                 </span>
               </div>
             </div>
