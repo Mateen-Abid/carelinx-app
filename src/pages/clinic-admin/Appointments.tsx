@@ -831,83 +831,83 @@ const ClinicAdminAppointments = () => {
 
         {/* Appointment Details Modal */}
         <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-          <DialogContent className="max-w-2xl mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
-            <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogContent className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
+            <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200 dark:border-gray-700">
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                 Appointment Details
               </DialogTitle>
             </DialogHeader>
 
             {loadingDetails ? (
               <div className="p-12 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading appointment details...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading appointment details...</p>
               </div>
             ) : selectedAppointmentDetails ? (
               <div className="px-6 py-6">
                 {/* PATIENT INFORMATION */}
                 <div className="mb-8">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                     PATIENT INFORMATION
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Name</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Gender</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.gender}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Gender</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Contact</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.contact}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Contact</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Email</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Email</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.email}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div className="mb-8">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                     DOCTOR'S / TREATMENT INFORMATION
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Name</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Specialty</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.specialty}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.specialty}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Availability</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.availability}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.availability}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                   <Button
                     onClick={handleCancelAppointment}
                     variant="outline"
-                    className="border-red-600 text-red-600 bg-white hover:bg-red-50 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    className="border-red-600 dark:border-red-500 text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
-                    <X className="w-4 h-4 text-red-600" />
+                    <X className="w-4 h-4 text-red-600 dark:text-red-400" />
                     Cancel Appointment
                   </Button>
                   <Button
                     onClick={handleRescheduleAppointment}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
                     <Clock className="w-4 h-4" />
                     Reschedule
@@ -927,9 +927,9 @@ const ClinicAdminAppointments = () => {
 
         {/* Approve Appointment Confirmation Modal */}
         <Dialog open={isApproveConfirmModalOpen} onOpenChange={setIsApproveConfirmModalOpen}>
-          <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                 Approve Appointment
               </DialogTitle>
             </DialogHeader>
@@ -940,7 +940,7 @@ const ClinicAdminAppointments = () => {
                 <div className="flex justify-center mb-6">
                   <div className="relative">
                     {/* Outer circle */}
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
                       {/* Inner circle with checkmark */}
                       <div className="w-16 h-16 bg-[#00FFA2] rounded-full flex items-center justify-center">
                         <Check className="w-10 h-10 text-white" strokeWidth={3} />
@@ -953,43 +953,43 @@ const ClinicAdminAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Patient</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Doctor</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Date & Time</p>
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900">Pending Approval</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Status</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Pending Approval</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Confirmation Message */}
                 <div className="mb-6">
-                  <p className="text-sm text-gray-600 text-center leading-relaxed">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed">
                     Are you sure you want to approve this appointment? This will confirm the booking and notify both parties.
                   </p>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <Button
                     onClick={() => setIsApproveConfirmModalOpen(false)}
                     variant="outline"
-                    className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
+                    className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
                     Cancel
                   </Button>
@@ -1007,9 +1007,9 @@ const ClinicAdminAppointments = () => {
 
         {/* Cancel Appointment Confirmation Modal */}
         <Dialog open={isCancelConfirmModalOpen} onOpenChange={setIsCancelConfirmModalOpen}>
-          <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                 Cancel Appointment
               </DialogTitle>
             </DialogHeader>
@@ -1020,7 +1020,7 @@ const ClinicAdminAppointments = () => {
                 <div className="flex justify-center mb-6">
                   <div className="relative">
                     {/* Outer circle */}
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+                    <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                       {/* Inner circle with X icon */}
                       <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
                         <X className="w-10 h-10 text-white" strokeWidth={3} />
@@ -1033,43 +1033,43 @@ const ClinicAdminAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Patient</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Doctor</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Date & Time</p>
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900">Pending Approval</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Status</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Pending Approval</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Warning Message */}
                 <div className="mb-6">
-                  <p className="text-sm text-red-600 text-center leading-relaxed">
+                  <p className="text-sm text-red-600 dark:text-red-400 text-center leading-relaxed">
                     Once cancelled, this appointment will be marked as "Cancelled".
                   </p>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <Button
                     onClick={() => setIsCancelConfirmModalOpen(false)}
                     variant="outline"
-                    className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
+                    className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
                     Discard
                   </Button>
@@ -1087,9 +1087,9 @@ const ClinicAdminAppointments = () => {
 
         {/* Reschedule Appointment Modal */}
         <Dialog open={isRescheduleModalOpen} onOpenChange={setIsRescheduleModalOpen}>
-          <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
-              <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                 Confirmation
               </DialogTitle>
             </DialogHeader>
@@ -1098,7 +1098,7 @@ const ClinicAdminAppointments = () => {
               <div className="px-6 py-6">
                 {/* Calendar Icon with Clock */}
                 <div className="flex justify-center mb-6">
-                  <div className="w-16 h-16 bg-[#0C2243] rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 bg-[#0C2243] dark:bg-[#0C2243] rounded-full flex items-center justify-center">
                     <div className="relative">
                       <Calendar className="w-8 h-8 text-white" />
                       <Clock className="w-4 h-4 text-white absolute -bottom-1 -right-1 bg-[#00FFA2] rounded-full p-0.5" />
@@ -1108,10 +1108,10 @@ const ClinicAdminAppointments = () => {
 
                 {/* Question */}
                 <div className="text-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                     Reschedule Appointment?
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     Are you sure you want to reschedule this appointment? Previous: {formatDateForReschedule(selectedAppointmentDetails.appointment_date)} - {formatTime(selectedAppointmentDetails.appointment_time)} with {selectedAppointmentDetails.doctor.name}
                   </p>
                 </div>
@@ -1119,10 +1119,10 @@ const ClinicAdminAppointments = () => {
                 {/* Date and Time Inputs */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">New date</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New date</label>
                     <div className="relative">
                       <Calendar 
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
                         onClick={() => {
                           const dateInput = document.getElementById('new-appointment-date') as HTMLInputElement;
                           dateInput?.showPicker?.() || dateInput?.click();
@@ -1133,16 +1133,16 @@ const ClinicAdminAppointments = () => {
                         type="date"
                         value={newAppointmentDate}
                         onChange={(e) => setNewAppointmentDate(e.target.value)}
-                        className="h-10 border-gray-300 focus:border-[#0C2243] focus:ring-[#0C2243] pl-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                        className="h-10 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#0C2243] dark:focus:border-[#00FFA2] focus:ring-[#0C2243] dark:focus:ring-[#00FFA2] pl-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">New time</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New time</label>
                     <div className="relative">
                       <Clock 
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
                         onClick={() => {
                           const timeInput = document.getElementById('new-appointment-time') as HTMLInputElement;
                           timeInput?.showPicker?.() || timeInput?.click();
@@ -1153,14 +1153,14 @@ const ClinicAdminAppointments = () => {
                         type="time"
                         value={newAppointmentTime}
                         onChange={(e) => setNewAppointmentTime(e.target.value)}
-                        className="h-10 border-gray-300 focus:border-[#0C2243] focus:ring-[#0C2243] pl-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                        className="h-10 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#0C2243] dark:focus:border-[#00FFA2] focus:ring-[#0C2243] dark:focus:ring-[#00FFA2] pl-10 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <Button
                     onClick={() => {
                       setIsRescheduleModalOpen(false);
@@ -1168,13 +1168,13 @@ const ClinicAdminAppointments = () => {
                       setNewAppointmentTime('');
                     }}
                     variant="outline"
-                    className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
+                    className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleConfirmReschedule}
-                    className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6 py-2.5 rounded-lg font-medium"
+                    className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] dark:bg-[#00FFA2] dark:hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 rounded-lg font-medium"
                   >
                     Confirm Reschedule
                   </Button>
