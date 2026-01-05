@@ -635,11 +635,21 @@ const AdminAppointments = () => {
               <div className="flex items-center gap-4">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Date :</label>
                 <div className="relative flex-1">
+                  <Calendar 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10 hover:text-gray-600 dark:hover:text-gray-400" 
+                    onClick={() => {
+                      const dateInput = document.getElementById('filter-date-input') as HTMLInputElement;
+                      if (dateInput) {
+                        dateInput.showPicker?.() || dateInput.click();
+                      }
+                    }}
+                  />
                   <Input
+                    id="filter-date-input"
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10 text-gray-900 dark:text-white"
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10 text-gray-900 dark:text-white pl-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4"
                   />
                 </div>
               </div>

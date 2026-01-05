@@ -83,6 +83,7 @@ const MyBookings = () => {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isRescheduleConfirmModalOpen, setIsRescheduleConfirmModalOpen] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] = useState<Appointment | null>(null);
+  const [failedLogos, setFailedLogos] = useState<Set<string>>(new Set());
   
   const upcomingAppointments = getUpcomingAppointments();
   const pendingAppointments = getPendingAppointments();
@@ -363,18 +364,22 @@ const MyBookings = () => {
                 <div key={appointment.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                   <div className="flex items-start gap-3">
                     {/* Clinic Logo */}
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {appointment.clinicLogo ? (
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-[#00FFA2]">
+                      {appointment.clinicLogo && !failedLogos.has(appointment.id) ? (
                         <img
                           src={appointment.clinicLogo}
                           alt={`${appointment.clinic} logo`}
                           className="w-full h-full object-cover rounded-full"
+                          onError={() => {
+                            // If image fails to load, add to failed set
+                            setFailedLogos(prev => new Set(prev).add(appointment.id));
+                          }}
                         />
                       ) : (
                         <div className="w-12 h-12 bg-[#00FFA2] rounded-full flex items-center justify-center">
-                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                            <div className="w-4 h-4 bg-[#00FFA2] rounded"></div>
-                          </div>
+                          <span className="text-[#0C2243] font-bold text-lg">
+                            {appointment.clinic?.charAt(0).toUpperCase() || 'C'}
+                          </span>
                         </div>
                       )}
                     </div>

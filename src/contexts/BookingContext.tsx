@@ -60,11 +60,50 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
       }
 
-      const formattedAppointments: Appointment[] = data.map(booking => {
-        // Find the clinic logo by matching clinic name
-        const clinicData = clinicsData.find(clinic => 
-          clinic.name.toLowerCase() === booking.clinic.toLowerCase()
-        );
+      // Fetch all clinics from database to get logos
+      const { data: clinicsDataFromDB, error: clinicsError } = await supabase
+        .from('clinics')
+        .select('id, name, logo_url')
+        .eq('status', 'active');
+
+      if (clinicsError) {
+        console.error('Error fetching clinics:', clinicsError);
+      }
+
+      // Create a map for quick clinic lookup by ID and name
+      const clinicMapById = new Map<string, { name: string; logo_url: string | null }>();
+      const clinicMapByName = new Map<string, { name: string; logo_url: string | null }>();
+      
+      clinicsDataFromDB?.forEach(clinic => {
+        if (clinic.id) {
+          clinicMapById.set(clinic.id, { name: clinic.name, logo_url: clinic.logo_url });
+        }
+        if (clinic.name) {
+          // Normalize clinic name for matching (trim and lowercase)
+          const normalizedName = clinic.name.trim().toLowerCase();
+          clinicMapByName.set(normalizedName, { name: clinic.name, logo_url: clinic.logo_url });
+        }
+      });
+
+      const formattedAppointments: Appointment[] = data.map((booking: any) => {
+        // Try to find clinic logo from database
+        // First try by clinic_id (most reliable)
+        let clinicLogo = '';
+        if (booking.clinic_id && clinicMapById.has(booking.clinic_id)) {
+          clinicLogo = clinicMapById.get(booking.clinic_id)?.logo_url || '';
+        } else if (booking.clinic) {
+          // Fallback: try by clinic name (normalized for matching)
+          const normalizedClinicName = booking.clinic.trim().toLowerCase();
+          if (clinicMapByName.has(normalizedClinicName)) {
+            clinicLogo = clinicMapByName.get(normalizedClinicName)?.logo_url || '';
+          } else {
+            // Last resort: try hardcoded clinicsData
+            const clinicData = clinicsData.find(clinic => 
+              clinic.name.toLowerCase() === normalizedClinicName
+            );
+            clinicLogo = clinicData?.logo || '';
+          }
+        }
         
         // Ensure status is properly set - default to 'pending' if missing
         const bookingStatus = booking.status || 'pending';
@@ -72,7 +111,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         console.log('📋 Public user booking status:', {
           bookingId: booking.id,
           status: bookingStatus,
-          rawStatus: booking.status
+          rawStatus: booking.status,
+          clinicLogo: clinicLogo ? 'Found' : 'Not found',
+          clinicName: booking.clinic,
+          clinicId: booking.clinic_id
         });
         
         return {
@@ -80,7 +122,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           doctorName: booking.doctor_name,
           specialty: booking.specialty,
           clinic: booking.clinic,
-          clinicLogo: clinicData?.logo || '',
+          clinicLogo: clinicLogo,
           date: booking.appointment_date,
           time: booking.appointment_time,
           status: bookingStatus as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled',

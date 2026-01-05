@@ -115,7 +115,15 @@ const ClinicAdminAppointments = () => {
       console.log('🔍 Fetching appointments for clinic ID:', clinicId);
       console.log('📋 Clinic name:', clinic?.name);
 
-      // Get date range for filtering
+      // Helper function to format date in YYYY-MM-DD format using local timezone
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      // Get date range for filtering (using local timezone)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -133,19 +141,24 @@ const ClinicAdminAppointments = () => {
       
       console.log('🔍 Querying bookings by clinic_id:', clinicId);
 
-      // Apply date filter
+      // Apply date filter (using local timezone to avoid UTC conversion issues)
       if (dateFilter === 'today') {
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = formatDateLocal(today);
+        console.log('📅 Filtering for today (local timezone):', todayStr);
         bookingsQuery = bookingsQuery.eq('appointment_date', todayStr);
       } else if (dateFilter === 'tomorrow') {
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = formatDateLocal(tomorrow);
+        console.log('📅 Filtering for tomorrow (local timezone):', tomorrowStr);
         bookingsQuery = bookingsQuery.eq('appointment_date', tomorrowStr);
       } else if (dateFilter === 'this-week') {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 7);
+        const weekStartStr = formatDateLocal(weekStart);
+        const weekEndStr = formatDateLocal(weekEnd);
+        console.log('📅 Filtering for this week (local timezone):', weekStartStr, 'to', weekEndStr);
         bookingsQuery = bookingsQuery
-          .gte('appointment_date', weekStart.toISOString().split('T')[0])
-          .lt('appointment_date', weekEnd.toISOString().split('T')[0]);
+          .gte('appointment_date', weekStartStr)
+          .lt('appointment_date', weekEndStr);
       }
 
       const { data: bookingsData, error: bookingsError } = await bookingsQuery;
