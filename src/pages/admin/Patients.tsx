@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Filter, X, Eye, Edit, Trash2, Calendar, ChevronDown, MoreVertical, Building2 } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Trash2, Calendar, ChevronDown, MoreVertical, Building2, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/excelExport';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import {
   Dialog,
   DialogContent,
@@ -331,7 +334,7 @@ const AdminPatients = () => {
   };
 
   // Filter patients based on search, clinic, date, and filter modal options
-  const filteredPatients = patientsData.filter((patient) => {
+  const filteredPatientsData = patientsData.filter((patient) => {
     // Search filter
     const matchesSearch =
       searchQuery === '' ||
@@ -393,6 +396,11 @@ const AdminPatients = () => {
     
     return matchesSearch && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
   });
+
+  // Use table sort hook for column sorting
+  const { sortedData: filteredPatients, handleSort, getSortDirection } = useTableSort<Patient>(
+    filteredPatientsData
+  );
 
   const handleSelectPatient = (patientId: string) => {
     setSelectedPatients((prev) =>
@@ -559,6 +567,22 @@ const AdminPatients = () => {
     }
   };
 
+  const handleExportToExcel = () => {
+    const exportData = filteredPatients.map((patient) => ({
+      'Patient Name': patient.name,
+      'Email': patient.email,
+      'Gender': patient.gender,
+      'Age': patient.age,
+      'Contact': patient.contact,
+      'Last Appointment': patient.lastAppointment,
+      'Status': patient.status.charAt(0).toUpperCase() + patient.status.slice(1),
+      'Doctors': patient.doctorNames?.join(', ') || 'N/A',
+    }));
+
+    exportToExcel(exportData, 'Patients');
+    toast.success('Patients data exported successfully!');
+  };
+
   return (
     <ProtectedRoute allowedRoles={['super_admin']}>
       <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
@@ -613,15 +637,25 @@ const AdminPatients = () => {
                     </Select>
                   </div>
 
-                  {/* Filter Button */}
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsFilterModalOpen(true)}
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
-                  </Button>
+                  {/* Export and Filter Buttons */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={handleExportToExcel}
+                      variant="outline"
+                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export to Excel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsFilterModalOpen(true)}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -660,11 +694,42 @@ const AdminPatients = () => {
                           className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                         />
                       </th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Patient Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Gender</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Age</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Contact</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Last Appointment</th>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('name')}
+                        onSort={() => handleSort('name')}
+                      >
+                        Patient Name
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('gender')}
+                        onSort={() => handleSort('gender')}
+                      >
+                        Gender
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('age')}
+                        onSort={() => handleSort('age')}
+                      >
+                        Age
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('contact')}
+                        onSort={() => handleSort('contact')}
+                      >
+                        Contact
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('lastAppointment')}
+                        onSort={() => handleSort('lastAppointment')}
+                      >
+                        Last Appointment
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('status')}
+                        onSort={() => handleSort('status')}
+                      >
+                        Status
+                      </TableSortHeader>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>
@@ -697,6 +762,9 @@ const AdminPatients = () => {
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">{patient.lastAppointment}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            {getStatusBadge(patient.status)}
                           </td>
                           <td className="py-4 px-6">
                             <DropdownMenu>

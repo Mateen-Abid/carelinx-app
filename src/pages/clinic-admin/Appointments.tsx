@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Search, Check, Clock, X, ArrowUpDown, RotateCcw, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 
 interface Appointment {
   id: string;
@@ -598,7 +600,7 @@ const ClinicAdminAppointments = () => {
   };
 
   // Filter appointments
-  const filteredAppointments = appointmentsData.filter((appointment) => {
+  const filteredAppointmentsData = appointmentsData.filter((appointment) => {
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'approved' && appointment.status === 'approved') ||
       (statusFilter === 'pending' && appointment.status === 'pending') ||
@@ -610,7 +612,10 @@ const ClinicAdminAppointments = () => {
       appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesStatus && matchesSearch;
-  }).sort((a, b) => {
+  });
+
+  // Apply default sorting: pending appointments first (by date), then others
+  const preSortedAppointments = [...filteredAppointmentsData].sort((a, b) => {
     // Sort appointments: pending appointments first (by date), then others
     const aIsPending = a.status === 'pending';
     const bIsPending = b.status === 'pending';
@@ -625,6 +630,11 @@ const ClinicAdminAppointments = () => {
     // Pending appointments come first
     return aIsPending ? -1 : 1;
   });
+
+  // Use table sort hook for column sorting
+  const { sortedData: filteredAppointments, handleSort, getSortDirection } = useTableSort<Appointment>(
+    preSortedAppointments
+  );
 
   if (checkingClinic) {
     return (
@@ -754,24 +764,36 @@ const ClinicAdminAppointments = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <TableSortHeader
+                          sortDirection={getSortDirection('patientName')}
+                          onSort={() => handleSort('patientName')}
+                        >
                           Patient Name
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('doctorName')}
+                          onSort={() => handleSort('doctorName')}
+                        >
                           Doctor's Name
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('service')}
+                          onSort={() => handleSort('service')}
+                        >
                           Service
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          <div className="flex items-center gap-2">
-                            Date & Time
-                            <ArrowUpDown className="w-4 h-4 text-gray-400" />
-                          </div>
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('appointment_date')}
+                          onSort={() => handleSort('appointment_date')}
+                        >
+                          Date & Time
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('status')}
+                          onSort={() => handleSort('status')}
+                        >
                           Status
-                        </th>
+                        </TableSortHeader>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           Action
                         </th>

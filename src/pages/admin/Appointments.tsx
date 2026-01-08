@@ -3,8 +3,11 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, X, Check, Clock, Calendar, ChevronDown, Ban, RotateCcw } from 'lucide-react';
+import { Search, Filter, X, Check, Clock, Calendar, ChevronDown, Ban, RotateCcw, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/excelExport';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useDarkMode } from '@/contexts/DarkModeContext';
@@ -43,6 +46,14 @@ interface Appointment {
   confirmed_at?: string;
   updated_at: string;
   note?: string;
+  doctor_id?: string | null;
+}
+
+interface DoctorDetails {
+  name: string;
+  specialty: string;
+  service?: string;
+  availability: string;
 }
 
 const AdminAppointments = () => {
@@ -57,6 +68,8 @@ const AdminAppointments = () => {
   const [clinics, setClinics] = useState<string[]>(['All Clinics']);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);
+  const [loadingDoctorDetails, setLoadingDoctorDetails] = useState(false);
   
   // Filter modal states
   const [filterDate, setFilterDate] = useState<string>('');
@@ -347,6 +360,7 @@ const AdminAppointments = () => {
           confirmed_at: booking.confirmed_at || undefined,
           updated_at: booking.updated_at,
           note: booking.note || booking.notes || booking.comment || '',
+          doctor_id: booking.doctor_id || null,
         };
       });
 
@@ -361,7 +375,7 @@ const AdminAppointments = () => {
   };
 
   // Filter appointments based on status, search, clinic, and filter modal options
-  const filteredAppointments = appointmentsData.filter((appointment) => {
+  const filteredAppointmentsData = appointmentsData.filter((appointment) => {
     // Status filter
     const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
     
@@ -390,7 +404,10 @@ const AdminAppointments = () => {
     const matchesSpecialty = !filterSpecialty || filterSpecialty === 'all' || appointment.service === filterSpecialty;
     
     return matchesStatus && matchesSearch && matchesClinic && matchesDate && matchesDoctor && matchesSpecialty;
-  }).sort((a, b) => {
+  });
+
+  // Apply default sorting: pending appointments first (by date), then others
+  const preSortedAppointments = [...filteredAppointmentsData].sort((a, b) => {
     // Sort appointments: pending appointments first (by date), then others
     const aIsPending = a.status === 'pending';
     const bIsPending = b.status === 'pending';
@@ -405,6 +422,11 @@ const AdminAppointments = () => {
     // Pending appointments come first
     return aIsPending ? -1 : 1;
   });
+
+  // Use table sort hook for column sorting
+  const { sortedData: filteredAppointments, handleSort, getSortDirection } = useTableSort<Appointment>(
+    preSortedAppointments
+  );
 
   const handleSelectAppointment = (appointmentId: string) => {
     setSelectedAppointments((prev) =>
@@ -461,6 +483,90 @@ const AdminAppointments = () => {
     );
   };
 
+  const handleExportToExcel = () => {
+    const exportData = filteredAppointments.map((appointment) => ({
+      'Patient Name': appointment.patientName,
+      'Patient Email': appointment.patientEmail || 'N/A',
+      'Patient Contact': appointment.patientContact || 'N/A',
+      'Doctor Name': appointment.doctorName,
+      'Service': appointment.service,
+      'Clinic': appointment.clinic,
+      'Requested Date/Time': new Date(appointment.created_at).toLocaleString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      'Appointment Date': appointment.date,
+      'Appointment Time': appointment.time,
+      'Status': appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1),
+      'Note': appointment.note || 'N/A',
+    }));
+
+    exportToExcel(exportData, 'Appointments');
+    toast.success('Appointments data exported successfully!');
+  };
+
+  const fetchDoctorDetails = async (appointment: Appointment) => {
+    if (!appointment.doctor_id) {
+      // If no doctor_id, use basic info from appointment
+      setDoctorDetails({
+        name: appointment.doctorName,
+        specialty: appointment.service,
+        service: appointment.service,
+        availability: 'N/A',
+      });
+      return;
+    }
+
+    try {
+      setLoadingDoctorDetails(true);
+      const { data: doctorData, error } = await supabase
+        .from('doctors')
+        .select('name, specialty, availability, services')
+        .eq('id', appointment.doctor_id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching doctor details:', error);
+        // Fallback to appointment data
+        setDoctorDetails({
+          name: appointment.doctorName,
+          specialty: appointment.service,
+          service: appointment.service,
+          availability: 'N/A',
+        });
+      } else if (doctorData) {
+        setDoctorDetails({
+          name: doctorData.name || appointment.doctorName,
+          specialty: doctorData.specialty || appointment.service,
+          service: doctorData.services || appointment.service,
+          availability: doctorData.availability || 'N/A',
+        });
+      } else {
+        // No doctor found, use appointment data
+        setDoctorDetails({
+          name: appointment.doctorName,
+          specialty: appointment.service,
+          service: appointment.service,
+          availability: 'N/A',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching doctor details:', error);
+      setDoctorDetails({
+        name: appointment.doctorName,
+        specialty: appointment.service,
+        service: appointment.service,
+        availability: 'N/A',
+      });
+    } finally {
+      setLoadingDoctorDetails(false);
+    }
+  };
+
 
   return (
     <ProtectedRoute allowedRoles={['super_admin']}>
@@ -486,6 +592,15 @@ const AdminAppointments = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                
+                <Button
+                  onClick={handleExportToExcel}
+                  variant="outline"
+                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </Button>
                 
                 <Button
                   variant="outline"
@@ -549,16 +664,48 @@ const AdminAppointments = () => {
                           className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                         />
                       </th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Patient Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Doctor's Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Service</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        <div className="flex items-center gap-1">
-                          Date & Time
-                          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                        </div>
-                      </th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('patientName')}
+                        onSort={() => handleSort('patientName')}
+                      >
+                        Patient Name
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('doctorName')}
+                        onSort={() => handleSort('doctorName')}
+                      >
+                        Doctor's Name
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('service')}
+                        onSort={() => handleSort('service')}
+                      >
+                        Service
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('clinic')}
+                        onSort={() => handleSort('clinic')}
+                      >
+                        Clinic
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('created_at')}
+                        onSort={() => handleSort('created_at')}
+                      >
+                        Requested Date/Time
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('appointment_date')}
+                        onSort={() => handleSort('appointment_date')}
+                      >
+                        Date & Time
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('status')}
+                        onSort={() => handleSort('status')}
+                      >
+                        Status
+                      </TableSortHeader>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>
@@ -587,6 +734,22 @@ const AdminAppointments = () => {
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.service}</span>
                         </td>
                         <td className="py-4 px-6">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.clinic}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {new Date(appointment.created_at).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}, {new Date(appointment.created_at).toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.date}, {appointment.time}</span>
                         </td>
                         <td className="py-4 px-6">
@@ -594,9 +757,11 @@ const AdminAppointments = () => {
                         </td>
                         <td className="py-4 px-6">
                           <Button
-                            onClick={() => {
+                            onClick={async () => {
                               setSelectedAppointment(appointment);
                               setShowDetailsModal(true);
+                              // Fetch doctor details
+                              await fetchDoctorDetails(appointment);
                             }}
                             variant="outline"
                             size="sm"
@@ -609,7 +774,7 @@ const AdminAppointments = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={9} className="py-8 text-center text-gray-500 dark:text-gray-400">
                         No appointments found
                       </td>
                     </tr>
@@ -746,27 +911,54 @@ const AdminAppointments = () => {
                   </div>
                 </div>
 
-                {/* Doctor Information */}
+                {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">Doctor Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-500 text-xs">Doctor Name</Label>
-                      <p className="mt-1 text-sm font-medium">{selectedAppointment.doctorName}</p>
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                    DOCTOR'S / TREATMENT INFORMATION
+                  </h3>
+                  {loadingDoctorDetails ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Loading doctor details...</p>
                     </div>
-                    <div>
-                      <Label className="text-gray-500 text-xs">Specialty</Label>
-                      <p className="mt-1 text-sm">{selectedAppointment.service}</p>
+                  ) : doctorDetails ? (
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.specialty}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.service || selectedAppointment.service}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.availability}</p>
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-gray-500 text-xs">Service</Label>
-                      <p className="mt-1 text-sm">{selectedAppointment.service}</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.doctorName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">N/A</p>
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-gray-500 text-xs">Availability</Label>
-                      <p className="mt-1 text-sm">9:00 AM - 5:00 PM</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Appointment Information */}

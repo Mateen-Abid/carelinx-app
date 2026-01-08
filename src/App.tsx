@@ -32,6 +32,7 @@ import ClinicAdminDoctors from "./pages/clinic-admin/Doctors";
 import ClinicAdminPatients from "./pages/clinic-admin/Patients";
 import ClinicAdminClinicProfile from "./pages/clinic-admin/ClinicProfile";
 import ClinicAdminSettings from "./pages/clinic-admin/Settings";
+import ClinicAdminInsights from "./pages/clinic-admin/Insights";
 import ClinicOnboarding from "./pages/clinic-admin/ClinicOnboarding";
 import DoctorAppointments from "./pages/doctor/Appointments";
 import DoctorPatients from "./pages/doctor/Patients";
@@ -201,6 +202,7 @@ const App = () => (
               <Route path="/clinic-admin/doctors" element={<ClinicAdminDoctors />} />
               <Route path="/clinic-admin/patients" element={<ClinicAdminPatients />} />
               <Route path="/clinic-admin/clinic-profile" element={<ClinicAdminClinicProfile />} />
+              <Route path="/clinic-admin/insights" element={<ClinicAdminInsights />} />
               <Route path="/clinic-admin/settings" element={<ClinicAdminSettings />} />
               
               {/* Doctor Routes */}

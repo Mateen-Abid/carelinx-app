@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, MoreVertical, ChevronDown, X, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import {
   Select,
   SelectContent,
@@ -769,7 +771,7 @@ const ClinicAdminDoctors = () => {
   const uniqueSpecialties = Array.from(new Set(doctors.map(d => d.specialty))).sort();
 
   // Filter doctors
-  const filteredDoctors = doctors.filter((doctor) => {
+  const filteredDoctorsData = doctors.filter((doctor) => {
     const matchesStatus = statusFilter === 'all' || doctor.status === statusFilter;
     const matchesSpecialty = selectedSpecialty === 'all' || doctor.specialty === selectedSpecialty;
     const matchesSearch = searchQuery === '' ||
@@ -779,8 +781,13 @@ const ClinicAdminDoctors = () => {
     return matchesStatus && matchesSpecialty && matchesSearch;
   });
 
+  // Use table sort hook for doctors
+  const { sortedData: filteredDoctors, handleSort: handleDoctorsSort, getSortDirection: getDoctorsSortDirection } = useTableSort<Doctor>(
+    filteredDoctorsData
+  );
+
   // Filter treatments
-  const filteredTreatments = treatments.filter((treatment) => {
+  const filteredTreatmentsData = treatments.filter((treatment) => {
     const matchesStatus = statusFilter === 'all' || treatment.status === statusFilter;
     const matchesSpecialty = selectedSpecialty === 'all' || treatment.specialty === selectedSpecialty;
     const matchesSearch = searchQuery === '' ||
@@ -790,6 +797,11 @@ const ClinicAdminDoctors = () => {
     
     return matchesStatus && matchesSpecialty && matchesSearch;
   });
+
+  // Use table sort hook for treatments
+  const { sortedData: filteredTreatments, handleSort: handleTreatmentsSort, getSortDirection: getTreatmentsSortDirection } = useTableSort<Treatment>(
+    filteredTreatmentsData
+  );
 
   const handleSelectAllTreatments = () => {
     if (selectedTreatments.length === filteredTreatments.length) {
@@ -1078,21 +1090,36 @@ const ClinicAdminDoctors = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        <TableSortHeader
+                          sortDirection={getDoctorsSortDirection('name')}
+                          onSort={() => handleDoctorsSort('name')}
+                        >
                           Doctor's / Treatment
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getDoctorsSortDirection('specialty')}
+                          onSort={() => handleDoctorsSort('specialty')}
+                        >
                           Specialty and service
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getDoctorsSortDirection('availability')}
+                          onSort={() => handleDoctorsSort('availability')}
+                        >
                           Availability
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getDoctorsSortDirection('contact')}
+                          onSort={() => handleDoctorsSort('contact')}
+                        >
                           Contact
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getDoctorsSortDirection('status')}
+                          onSort={() => handleDoctorsSort('status')}
+                        >
                           Status
-                        </th>
+                        </TableSortHeader>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
                           Action
                         </th>
@@ -1201,21 +1228,36 @@ const ClinicAdminDoctors = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        <TableSortHeader
+                          sortDirection={getTreatmentsSortDirection('name')}
+                          onSort={() => handleTreatmentsSort('name')}
+                        >
                           Treatment
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getTreatmentsSortDirection('specialty')}
+                          onSort={() => handleTreatmentsSort('specialty')}
+                        >
                           Specialty and service
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getTreatmentsSortDirection('description')}
+                          onSort={() => handleTreatmentsSort('description')}
+                        >
                           Description
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getTreatmentsSortDirection('price')}
+                          onSort={() => handleTreatmentsSort('price')}
+                        >
                           Price ($)
-                        </th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getTreatmentsSortDirection('status')}
+                          onSort={() => handleTreatmentsSort('status')}
+                        >
                           Status
-                        </th>
+                        </TableSortHeader>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
                           Action
                         </th>

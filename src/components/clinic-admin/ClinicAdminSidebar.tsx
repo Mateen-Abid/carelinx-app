@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, Stethoscope, Users, Settings, Moon, Sun, ChevronLeft, ClipboardList, Building } from 'lucide-react';
+import { Home, Calendar, Stethoscope, Users, Settings, Moon, Sun, ChevronLeft, ClipboardList, Building, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -22,6 +22,7 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
     { path: '/clinic-admin/doctors', label: 'Doctors & Treatment', icon: Stethoscope },
     { path: '/clinic-admin/patients', label: 'Patients', icon: Users },
     { path: '/clinic-admin/clinic-profile', label: 'Clinic Profile', icon: Building },
+    { path: '/clinic-admin/insights', label: 'Insights', icon: BarChart3 },
   ];
 
   const isActive = (path: string) => location.pathname === path;

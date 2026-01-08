@@ -3,7 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Check, X, Eye, Edit, Ban, MoreVertical, ChevronRight, AlertTriangle, OctagonAlert } from 'lucide-react';
+import { Search, Plus, Check, X, Eye, Edit, Ban, MoreVertical, ChevronRight, AlertTriangle, OctagonAlert, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -21,6 +21,10 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/excelExport';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 
 interface Clinic {
   id: string;
@@ -202,7 +206,7 @@ const AdminClinics = () => {
   };
 
   // Filter clinics based on status, date, and search
-  const filteredClinics = clinicsData.filter((clinic) => {
+  const filteredClinicsData = clinicsData.filter((clinic) => {
     const matchesStatus = statusFilter === 'all' || clinic.status === statusFilter;
     const matchesSearch =
       searchQuery === '' ||
@@ -235,6 +239,11 @@ const AdminClinics = () => {
     
     return matchesStatus && matchesSearch && matchesDate;
   });
+
+  // Use table sort hook for column sorting
+  const { sortedData: filteredClinics, handleSort, getSortDirection } = useTableSort<Clinic>(
+    filteredClinicsData
+  );
 
   const handleSelectClinic = (clinicId: string) => {
     setSelectedClinics((prev) =>
@@ -653,6 +662,24 @@ const AdminClinics = () => {
     }
   };
 
+  const handleExportToExcel = () => {
+    const exportData = filteredClinics.map((clinic) => ({
+      'Clinic Name': clinic.name,
+      'Email': clinic.email,
+      'Address': clinic.address,
+      'Contact Phone': clinic.contact_phone || 'N/A',
+      'Contact Email': clinic.contact_email || 'N/A',
+      'Website': clinic.website || 'N/A',
+      'Specialties': clinic.specialties?.join(', ') || 'None',
+      'Status': clinic.status.charAt(0).toUpperCase() + clinic.status.slice(1),
+      'Registration Date': formatDate(clinic.registration_date),
+      'Created At': formatDate(clinic.created_at),
+    }));
+
+    exportToExcel(exportData, 'Clinics');
+    toast.success('Clinics data exported successfully!');
+  };
+
 
 
   return (
@@ -666,6 +693,14 @@ const AdminClinics = () => {
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clinics</h1>
               <div className="flex items-center gap-3">
+                <Button 
+                  onClick={handleExportToExcel}
+                  variant="outline"
+                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </Button>
                 <Button 
                   onClick={() => setShowAddModal(true)}
                   className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium px-6"
@@ -713,10 +748,30 @@ const AdminClinics = () => {
                           className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                         />
                       </th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Clinics Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Locations</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Specialties</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('name')}
+                        onSort={() => handleSort('name')}
+                      >
+                        Clinics Name
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('address')}
+                        onSort={() => handleSort('address')}
+                      >
+                        Locations
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('specialties')}
+                        onSort={() => handleSort('specialties')}
+                      >
+                        Specialties
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('status')}
+                        onSort={() => handleSort('status')}
+                      >
+                        Status
+                      </TableSortHeader>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>

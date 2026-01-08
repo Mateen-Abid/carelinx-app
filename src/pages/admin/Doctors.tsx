@@ -3,7 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Filter, X, Info, Eye, Trash2, MoreVertical, Settings } from 'lucide-react';
+import { Filter, X, Info, Eye, Trash2, MoreVertical, Settings, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -21,6 +21,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/excelExport';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 
 interface Doctor {
   id: string;
@@ -50,10 +53,14 @@ const AdminDoctors = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'on-leave'>('all');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
+  const [selectedClinic, setSelectedClinic] = useState<string>('all');
+  const [selectedDoctorName, setSelectedDoctorName] = useState<string>('all');
   const [selectedDoctors, setSelectedDoctors] = useState<string[]>([]);
-  const [isSpecialtyModalOpen, setIsSpecialtyModalOpen] = useState(false);
+  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
   const [doctorsData, setDoctorsData] = useState<Doctor[]>([]);
   const [specialties, setSpecialties] = useState<string[]>(['All']);
+  const [clinics, setClinics] = useState<string[]>(['All']);
+  const [doctorNames, setDoctorNames] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
   
   // Modal states
@@ -133,11 +140,15 @@ const AdminDoctors = () => {
         clinicMap.set(clinic.id, clinic.name);
       });
 
-      // Extract unique specialties
+      // Extract unique specialties, clinics, and doctor names
       const specialtiesSet = new Set<string>(['All']);
-      doctorsData?.forEach(doctor => {
-        if (doctor.specialty) {
-          specialtiesSet.add(doctor.specialty);
+      const clinicsSet = new Set<string>(['All']);
+      const doctorNamesSet = new Set<string>(['All']);
+      
+      // Collect all clinics from clinicsData (all clinics, not just those with doctors)
+      clinicsData?.forEach(clinic => {
+        if (clinic.name) {
+          clinicsSet.add(clinic.name);
         }
       });
 
@@ -145,6 +156,14 @@ const AdminDoctors = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const doctors: Doctor[] = ((doctorsData || []) as any[]).map((doctor: any) => {
         const clinicName = clinicMap.get(doctor.clinic_id) || 'Unknown Clinic';
+        
+        // Collect unique specialties and doctor names
+        if (doctor.specialty) {
+          specialtiesSet.add(doctor.specialty);
+        }
+        if (doctor.name) {
+          doctorNamesSet.add(doctor.name);
+        }
         
         return {
           id: doctor.id,
@@ -170,6 +189,8 @@ const AdminDoctors = () => {
 
       setDoctorsData(doctors);
       setSpecialties(Array.from(specialtiesSet).sort());
+      setClinics(Array.from(clinicsSet).sort());
+      setDoctorNames(Array.from(doctorNamesSet).sort());
     } catch (error) {
       console.error('❌ Error fetching doctors:', error);
       setDoctorsData([]);
@@ -179,12 +200,19 @@ const AdminDoctors = () => {
   };
 
 
-  // Filter doctors based on status and specialty
-  const filteredDoctors = doctorsData.filter((doctor) => {
+  // Filter doctors based on status, specialty, clinic, and doctor name
+  const filteredDoctorsData = doctorsData.filter((doctor) => {
     const matchesStatus = statusFilter === 'all' || doctor.status === statusFilter;
     const matchesSpecialty = selectedSpecialty === 'all' || doctor.specialty === selectedSpecialty;
-    return matchesStatus && matchesSpecialty;
+    const matchesClinic = selectedClinic === 'all' || doctor.clinic_name === selectedClinic;
+    const matchesDoctorName = selectedDoctorName === 'all' || doctor.name === selectedDoctorName;
+    return matchesStatus && matchesSpecialty && matchesClinic && matchesDoctorName;
   });
+
+  // Use table sort hook for column sorting
+  const { sortedData: filteredDoctors, handleSort, getSortDirection } = useTableSort<Doctor>(
+    filteredDoctorsData
+  );
 
   const handleSelectDoctor = (doctorId: string) => {
     setSelectedDoctors((prev) =>
@@ -237,7 +265,6 @@ const AdminDoctors = () => {
 
     try {
       // Fetch appointments for this doctor
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: appointments, error } = await (supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('bookings' as any)
@@ -300,6 +327,23 @@ const AdminDoctors = () => {
     setIsStatusChangeModalOpen(true);
   };
 
+  const handleExportToExcel = () => {
+    const exportData = filteredDoctors.map((doctor) => ({
+      'Doctor Name': doctor.name,
+      'Clinic': doctor.clinic_name || 'Unknown Clinic',
+      'Specialty': doctor.specialty,
+      'Availability': doctor.availability,
+      'Email': doctor.email || 'N/A',
+      'Phone': doctor.phone || 'N/A',
+      'Contact': doctor.contact,
+      'Status': doctor.status === 'on-leave' ? 'On Leave' : doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1),
+      'Services': doctor.services || 'N/A',
+    }));
+
+    exportToExcel(exportData, 'Doctors');
+    toast.success('Doctors data exported successfully!');
+  };
+
   const handleConfirmStatusChange = async (newStatus: 'active' | 'inactive' | 'on-leave') => {
     if (!selectedDoctor) return;
 
@@ -344,14 +388,24 @@ const AdminDoctors = () => {
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Doctors</h1>
                   <p className="text-gray-600 dark:text-gray-400 mt-1">Doctor's List</p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsSpecialtyModalOpen(true)}
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Specialty
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleExportToExcel}
+                    variant="outline"
+                    className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export to Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsFiltersModalOpen(true)}
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filters
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -392,12 +446,42 @@ const AdminDoctors = () => {
                           className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                         />
                       </th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Doctor's Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Clinic</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Specialty</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Availability</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Contact</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('name')}
+                        onSort={() => handleSort('name')}
+                      >
+                        Doctor's Name
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('clinic_name')}
+                        onSort={() => handleSort('clinic_name')}
+                      >
+                        Clinic
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('specialty')}
+                        onSort={() => handleSort('specialty')}
+                      >
+                        Specialty
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('availability')}
+                        onSort={() => handleSort('availability')}
+                      >
+                        Availability
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('contact')}
+                        onSort={() => handleSort('contact')}
+                      >
+                        Contact
+                      </TableSortHeader>
+                      <TableSortHeader
+                        sortDirection={getSortDirection('status')}
+                        onSort={() => handleSort('status')}
+                      >
+                        Status
+                      </TableSortHeader>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>
@@ -485,29 +569,74 @@ const AdminDoctors = () => {
           </div>
         </main>
 
-        {/* Specialty Filter Modal */}
-        <Dialog open={isSpecialtyModalOpen} onOpenChange={setIsSpecialtyModalOpen}>
-          <DialogContent className="sm:max-w-2xl">
+        {/* Filters Modal */}
+        <Dialog open={isFiltersModalOpen} onOpenChange={setIsFiltersModalOpen}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Specialty</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Filters</DialogTitle>
             </DialogHeader>
-            <div className="mt-6">
-              {/* Specialty Buttons Grid */}
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {specialties.map((specialty) => (
-                  <button
-                    key={specialty}
-                    onClick={() => setSelectedSpecialty(specialty.toLowerCase() === 'all' ? 'all' : specialty)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      (selectedSpecialty === 'all' && specialty === 'All') ||
-                      (selectedSpecialty === specialty && specialty !== 'All')
-                        ? 'bg-[#00FFA2] text-[#0C2243]'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {specialty}
-                  </button>
-                ))}
+            <div className="mt-6 space-y-6">
+              {/* Clinic Filter */}
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white mb-3 block">Clinic</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {clinics.map((clinic) => (
+                    <button
+                      key={clinic}
+                      onClick={() => setSelectedClinic(clinic === 'All' ? 'all' : clinic)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                        (selectedClinic === 'all' && clinic === 'All') ||
+                        (selectedClinic === clinic && clinic !== 'All')
+                          ? 'bg-[#00FFA2] text-[#0C2243]'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {clinic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Specialty Filter */}
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white mb-3 block">Specialty</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {specialties.map((specialty) => (
+                    <button
+                      key={specialty}
+                      onClick={() => setSelectedSpecialty(specialty === 'All' ? 'all' : specialty)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                        (selectedSpecialty === 'all' && specialty === 'All') ||
+                        (selectedSpecialty === specialty && specialty !== 'All')
+                          ? 'bg-[#00FFA2] text-[#0C2243]'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {specialty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Doctor Name Filter */}
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white mb-3 block">Doctor Name</Label>
+                <div className="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                  {doctorNames.map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => setSelectedDoctorName(name === 'All' ? 'all' : name)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                        (selectedDoctorName === 'all' && name === 'All') ||
+                        (selectedDoctorName === name && name !== 'All')
+                          ? 'bg-[#00FFA2] text-[#0C2243]'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -515,15 +644,17 @@ const AdminDoctors = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
+                    setSelectedClinic('all');
                     setSelectedSpecialty('all');
-                    setIsSpecialtyModalOpen(false);
+                    setSelectedDoctorName('all');
+                    setIsFiltersModalOpen(false);
                   }}
                   className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-700"
                 >
                   Clear filters
                 </Button>
                 <Button
-                  onClick={() => setIsSpecialtyModalOpen(false)}
+                  onClick={() => setIsFiltersModalOpen(false)}
                   className="flex-1 bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
                 >
                   Apply filters

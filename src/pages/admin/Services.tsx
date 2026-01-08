@@ -30,6 +30,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 
 interface Specialty {
   id: string;
@@ -697,8 +699,13 @@ const AdminServices = () => {
   // Show all services (no filtering)
   const filteredServices = services;
 
-  // Group services by specialty for display
-  const groupedServices = filteredServices.reduce((acc, service) => {
+  // Use table sort hook for column sorting
+  const { sortedData: sortedServices, handleSort, getSortDirection } = useTableSort<Service>(
+    filteredServices
+  );
+
+  // Group services by specialty for display (after sorting)
+  const groupedServices = sortedServices.reduce((acc, service) => {
     const specialtyName = service.specialty_name || 'Unknown';
     if (!acc[specialtyName]) {
       acc[specialtyName] = [];
@@ -953,12 +960,19 @@ const AdminServices = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/4">
+                        <TableSortHeader
+                          sortDirection={getSortDirection('specialty_name')}
+                          onSort={() => handleSort('specialty_name')}
+                          className="w-1/4"
+                        >
                           Specialty
-                        </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('name')}
+                          onSort={() => handleSort('name')}
+                        >
                           Service Name
-                        </th>
+                        </TableSortHeader>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-24">
                           Actions
                         </th>

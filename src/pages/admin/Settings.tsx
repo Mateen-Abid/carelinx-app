@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Key, LogOut, Plus, Info, ArrowRight, X } from 'lucide-react';
+import { Edit, Key, LogOut, Plus, Info, ArrowRight, X, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import {
   Select,
@@ -24,6 +24,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/utils/excelExport';
+import { useTableSort } from '@/hooks/useTableSort';
+import { TableSortHeader } from '@/components/ui/TableSortHeader';
 
 interface TeamMember {
   id: string;
@@ -643,6 +646,29 @@ const AdminSettings = () => {
     }
   };
 
+  // Use table sort hook for column sorting
+  const { sortedData: sortedTeamMembers, handleSort, getSortDirection } = useTableSort<TeamMember>(
+    teamMembers
+  );
+
+  const handleExportToExcel = () => {
+    const exportData = sortedTeamMembers.map((member) => ({
+      'Name': member.name,
+      'Email': member.email || 'N/A',
+      'Role': member.role,
+      'Access Level': member.access_level ? 
+        (member.access_level === 'super_admin' ? 'Super Admin' : 
+         member.access_level === 'clinic_admin' ? 'Clinic Admin' : 
+         'Public User') : 'No Access',
+      'Permissions': member.permissions,
+      'Status': member.status,
+      'Created At': member.created_at ? new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
+    }));
+
+    exportToExcel(exportData, 'Team_Members');
+    toast.success('Team members data exported successfully!');
+  };
+
   return (
     <ProtectedRoute allowedRoles={['super_admin']}>
       <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
@@ -717,14 +743,24 @@ const AdminSettings = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Team members</h2>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddTeamMemberModal(true)}
-                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Team member
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={handleExportToExcel}
+                      variant="outline"
+                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export to Excel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAddTeamMemberModal(true)}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Team member
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Team Members Table */}
@@ -732,11 +768,36 @@ const AdminSettings = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                       <tr>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Role</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Access Level</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('name')}
+                          onSort={() => handleSort('name')}
+                        >
+                          Name
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('email')}
+                          onSort={() => handleSort('email')}
+                        >
+                          Email
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('role')}
+                          onSort={() => handleSort('role')}
+                        >
+                          Role
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('access_level')}
+                          onSort={() => handleSort('access_level')}
+                        >
+                          Access Level
+                        </TableSortHeader>
+                        <TableSortHeader
+                          sortDirection={getSortDirection('permissions')}
+                          onSort={() => handleSort('permissions')}
+                        >
+                          Permissions
+                        </TableSortHeader>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                       </tr>
                     </thead>
@@ -747,8 +808,8 @@ const AdminSettings = () => {
                             Loading...
                           </td>
                         </tr>
-                      ) : teamMembers.length > 0 ? (
-                        teamMembers.map((member) => (
+                      ) : sortedTeamMembers.length > 0 ? (
+                        sortedTeamMembers.map((member) => (
                           <tr
                             key={member.id}
                             className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
