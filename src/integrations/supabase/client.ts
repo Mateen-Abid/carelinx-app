@@ -11,8 +11,11 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+    // Disable all automatic auth behavior to prevent API key exposure
+    // All authentication goes through the backend API
+    persistSession: false, // Don't persist session - prevents auto auth calls
+    autoRefreshToken: false, // Token refresh handled by backend
+    detectSessionInUrl: false, // Auth handled by backend
+    storage: undefined, // Don't use localStorage for session storage
   }
 });

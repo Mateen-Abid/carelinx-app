@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Key, LogOut, Plus, Info, ArrowRight, X, Download } from 'lucide-react';
+import { Edit, Key, LogOut, Plus, Info, ArrowRight, X, Download, Copy } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import {
   Select,
@@ -22,7 +22,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -70,6 +70,9 @@ const AdminSettings = () => {
   const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showInvitationLinkModal, setShowInvitationLinkModal] = useState(false);
+  const [invitationLink, setInvitationLink] = useState<string>('');
+  const [invitedUserEmail, setInvitedUserEmail] = useState<string>('');
   
   // Add team member form state
   const [newTeamMember, setNewTeamMember] = useState<{
@@ -107,15 +110,21 @@ const AdminSettings = () => {
 
   // Fetch team members from database
   useEffect(() => {
-    try {
-      fetchTeamMembers();
-      fetchSettings();
-      fetchProfile();
-    } catch (error: any) {
-      console.error('❌ Error in Settings page useEffect:', error);
-      setHasError(true);
-      setErrorMessage(error?.message || 'An error occurred loading the settings page');
-    }
+    if (!user) return;
+    const fetchAllSettings = async () => {
+      try {
+        await Promise.all([
+          fetchTeamMembers(),
+          fetchSettings(),
+          fetchProfile(),
+        ]);
+      } catch (error: any) {
+        console.error('❌ Error in Settings page useEffect:', error);
+        setHasError(true);
+        setErrorMessage(error?.message || 'An error occurred loading the settings page');
+      }
+    };
+    fetchAllSettings();
   }, [user]);
   
   // Error boundary - show error message if something went wrong
@@ -150,80 +159,25 @@ const AdminSettings = () => {
   const fetchTeamMembers = async () => {
     try {
       setLoadingTeamMembers(true);
-      console.log('🔍 Fetching team members from super_admin_invitations...');
-      console.log('👤 Current user:', user?.id, user?.email);
+      console.log('🔍 Fetching team members from backend...');
       
-      // Fetch from super_admin_invitations table (dynamic - shows only what's in DB)
-      const { data, error } = await supabase
-        .from('super_admin_invitations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Error fetching invitations:', error);
-        console.error('❌ Error code:', error.code);
-        console.error('❌ Error message:', error.message);
-        
-        if (error.code === '42501') {
-          console.error('⚠️ RLS Policy Error: User may not have permission to view invitations');
-          toast.error('Permission denied. Please check RLS policies.');
-        } else if (error.code === '42P01') {
-          console.error('⚠️ Table does not exist');
-        } else {
-          toast.error(`Failed to load team members: ${error.message}`);
-        }
-        setTeamMembers([]);
-        return;
-      }
-
-      // Map invitations data to TeamMember format
-      const mappedMembers: TeamMember[] = (data || []).map((invitation: any) => {
-        // Determine role based on role_type
-        const roleName = invitation.role_type === 'super_admin' ? 'Super Admin' : 
-                        invitation.role_type === 'clinic_admin' ? 'Clinic Admin' : 
-                        'Admin';
-        
-        // Determine status based on invitation status
-        let memberStatus: 'active' | 'inactive' | 'on-leave' = 'active';
-        if (invitation.status === 'pending') {
-          memberStatus = 'active'; // Pending invitations are considered active
-        } else if (invitation.status === 'accepted') {
-          memberStatus = 'active';
-        } else if (invitation.status === 'expired' || invitation.status === 'cancelled') {
-          memberStatus = 'inactive';
-        }
-        
-        // Determine permissions based on access level
-        const permissions: 'Full Access' | 'Limited Access' = 
-          invitation.role_type === 'super_admin' ? 'Full Access' : 'Limited Access';
-        
-        return {
-          id: invitation.id,
-          name: invitation.name || invitation.email || 'N/A',
-          role: roleName,
-          description: `Invited as ${invitation.role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin'}`,
-          status: memberStatus,
-          permissions: permissions,
-          access_level: invitation.role_type as 'super_admin' | 'clinic_admin' | 'public_user' | null,
-          email: invitation.email,
-          user_id: invitation.accepted_by || null,
-          created_at: invitation.created_at,
-          updated_at: invitation.updated_at || invitation.accepted_at,
-        };
-      });
-
-      console.log('✅ Team members fetched from invitations:', mappedMembers.length);
-      console.log('📋 Mapped team members data:', mappedMembers);
+      const response = await api.adminSettings.getTeamMembers();
+      console.log('📥 Full response from backend:', response);
+      
+      const mappedMembers = response.teamMembers || response.team_members || [];
+      console.log('✅ Team members extracted:', mappedMembers?.length || 0);
+      console.log('📋 Team members data:', mappedMembers);
+      
       setTeamMembers(mappedMembers);
       
-      if (mappedMembers.length === 0) {
-        console.log('ℹ️ No invitations found in database');
+      if (!mappedMembers || mappedMembers.length === 0) {
+        console.log('ℹ️ No team members found');
       }
     } catch (error: any) {
-      console.error('❌ Exception fetching team members:', error);
-      if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
-        toast.error('Failed to load team members');
-      }
+      console.error('❌ Error fetching team members:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      toast.error(error.message || 'Failed to load team members');
       setTeamMembers([]);
     } finally {
       setLoadingTeamMembers(false);
@@ -234,26 +188,19 @@ const AdminSettings = () => {
     try {
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('admin_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      console.log('🔍 Fetching admin settings from backend...');
+      const { settings } = await api.adminSettings.getSettings();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Error fetching settings:', error);
-        return;
-      }
-
-      if (data) {
-        setAppointmentDuration(data.appointment_duration || '30 Minutes');
-        setTimezone(data.timezone || 'UTC - 5');
-        setDateFormat(data.date_format || 'DD/MM/YYYY');
-        setLanguage(data.language || 'English (US)');
-        setAppointmentAlerts(data.appointment_alerts ?? true);
-        setDoctorScheduleUpdates(data.doctor_schedule_updates ?? false);
-        setPatientReminders(data.patient_reminders ?? true);
-        setSystemUpdates(data.system_updates ?? false);
+      if (settings) {
+        setAppointmentDuration(settings.appointment_duration || '30 Minutes');
+        setTimezone(settings.timezone || 'UTC - 5');
+        setDateFormat(settings.date_format || 'DD/MM/YYYY');
+        setLanguage(settings.language || 'English (US)');
+        setAppointmentAlerts(settings.appointment_alerts ?? true);
+        setDoctorScheduleUpdates(settings.doctor_schedule_updates ?? false);
+        setPatientReminders(settings.patient_reminders ?? true);
+        setSystemUpdates(settings.system_updates ?? false);
+        console.log('✅ Settings fetched from backend');
       }
     } catch (error) {
       console.error('❌ Error fetching settings:', error);
@@ -264,61 +211,18 @@ const AdminSettings = () => {
     try {
       if (!user) return;
 
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, email, created_at, role')
-        .eq('user_id', user.id)
-        .single();
+      console.log('🔍 Fetching profile from backend...');
+      const { profile } = await api.adminSettings.getProfile();
 
-      if (profileError) {
-        console.error('❌ Error fetching profile:', profileError);
-        return;
-      }
-
-      if (profileData) {
+      if (profile) {
         setProfileData({
-          fullName: profileData.full_name || 'Dr. Adebayo',
-          email: profileData.email || user.email || 'admin@lushcare.com',
+          fullName: profile.fullName || 'Dr. Adebayo',
+          email: profile.email || user.email || 'admin@lushcare.com',
         });
 
-        // Format joined date
-        if (profileData.created_at) {
-          const joinedDateObj = new Date(profileData.created_at);
-          const formattedDate = joinedDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-          setJoinedDate(formattedDate);
-        }
-      }
-
-      // Fetch user role from user_roles table
-      const { data: userRoleData, error: userRoleError } = await supabase
-        .from('user_roles')
-        .select('role_type')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
-
-      if (!userRoleError && userRoleData?.role_type) {
-        // Map role_type to display name
-        const roleDisplayName = 
-          userRoleData.role_type === 'super_admin' ? 'Super Admin' :
-          userRoleData.role_type === 'clinic_admin' ? 'Clinic Administrator' :
-          userRoleData.role_type === 'public_user' ? 'Public User' :
-          'User';
-        setUserRole(roleDisplayName);
-      } else {
-        // Fallback: Check profiles.role (legacy)
-        if (profileData && 'role' in profileData && profileData.role) {
-          const roleDisplayName = 
-            profileData.role === 'super_admin' ? 'Super Admin' :
-            profileData.role === 'clinic_admin' ? 'Clinic Administrator' :
-            profileData.role === 'patient' ? 'Patient' :
-            'User';
-          setUserRole(roleDisplayName);
-        } else {
-          // Default to Super Admin if no role found (since this is super admin settings page)
-          setUserRole('Super Admin');
-        }
+        setJoinedDate(profile.joinedDate || '');
+        setUserRole(profile.role || 'Super Admin');
+        console.log('✅ Profile fetched from backend');
       }
     } catch (error) {
       console.error('❌ Error fetching profile:', error);
@@ -340,174 +244,79 @@ const AdminSettings = () => {
 
       let invitationData: any = null;
 
-      // Send invitation via edge function (access_level is now required)
+      // Send invitation via backend API (secure - no API keys exposed)
       if (newTeamMember.access_level && newTeamMember.email) {
         try {
-          // Get current session for authorization
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            toast.error('Session expired. Please login again.');
-            return;
-          }
-
           // Only allow super_admin or clinic_admin roles for invitations
           if (newTeamMember.access_level !== 'super_admin' && newTeamMember.access_level !== 'clinic_admin') {
             toast.error('Invitations can only be sent for Super Admin or Clinic Admin roles');
             return;
           }
 
-          // Get current app URL (for invitation link)
-          const appUrl = window.location.origin;
-
-          // Prepare request body
-          const requestBody = {
-            email: newTeamMember.email,
-            name: newTeamMember.name,
+          console.log('📤 Sending invitation via backend API (secure - no API keys exposed)...');
+          
+          // Call backend API - API keys are handled server-side
+          const response = await api.invitations.sendInvitation({
+            email: newTeamMember.email.trim(),
+            name: newTeamMember.name.trim(),
             role_type: newTeamMember.access_level,
-            app_url: appUrl,
-          };
-
-          // Log request body for debugging
-          console.log('📤 Sending invitation request:', requestBody);
-          console.log('📤 Access level:', newTeamMember.access_level);
-          console.log('📤 Email:', newTeamMember.email);
-
-          // Call edge function to send invitation
-          const { data: functionData, error: functionError } = await supabase.functions.invoke('send-invitation', {
-            body: requestBody,
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+            app_url: window.location.origin,
           });
 
-          if (functionError) {
-            console.error('❌ Error calling edge function:', functionError);
-            console.error('Full error details:', JSON.stringify(functionError, null, 2));
-            
-            // Check for different error types
-            const errorMessage = functionError.message || String(functionError);
-            
-            if (errorMessage.includes('Function not found') || 
-                errorMessage.includes('404') || 
-                errorMessage.includes('Failed to send a request')) {
-              toast.error('Edge function not deployed. Please deploy the function first. Check console for instructions.');
-              console.error('📝 DEPLOYMENT REQUIRED:');
-              console.error('1. Make sure you have Supabase CLI installed: npm install -g supabase');
-              console.error('2. Login to Supabase: supabase login');
-              console.error('3. Link your project: supabase link --project-ref YOUR_PROJECT_REF');
-              console.error('4. Deploy the function: supabase functions deploy send-invitation');
-            } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-              toast.error('Unauthorized. Please check your session and try again.');
-            } else if (errorMessage.includes('403')) {
-              toast.error('Access denied. Only super admin can send invitations.');
-            } else {
-              toast.error(`Failed to send invitation: ${errorMessage}`);
-            }
-            return;
-          }
-
-          if (functionData?.error) {
-            console.error('❌ Edge function error:', functionData.error);
-            toast.error(`Failed to send invitation: ${functionData.error}`);
-            return;
-          }
-
-          invitationData = functionData;
-          console.log('✅ Invitation sent successfully:', functionData);
+          invitationData = response;
           
-          // Show success message with invitation URL for testing
-          toast.success(`Invitation sent to ${newTeamMember.email}!`);
+          // Log full response for debugging
+          console.log('📦 Backend API Response:', JSON.stringify(response, null, 2));
           
-          // For testing: log the invitation URL
-          if (functionData?.test_url) {
-            console.log('🔗 Invitation URL (for testing):', functionData.test_url);
-            toast.info(`Invitation URL: ${functionData.test_url}`, { duration: 10000 });
+          // Extract invitation URL from response (try multiple possible field names)
+          const invitationUrl = response?.invitation_url || 
+                               response?.test_url || 
+                               response?.invitationUrl ||
+                               response?.data?.invitation_url;
+          
+          if (invitationUrl) {
+            console.log('');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🔗 INVITATION LINK GENERATED:');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log(invitationUrl);
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('📧 Email:', newTeamMember.email);
+            console.log('👤 Role:', newTeamMember.access_level);
+            console.log('💡 Copy the link above and share it with the user');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('');
+            
+            // Show invitation link in modal
+            setInvitationLink(invitationUrl);
+            setInvitedUserEmail(newTeamMember.email);
+            setShowInvitationLinkModal(true);
+            
+            toast.success(`Invitation sent to ${newTeamMember.email}!`);
+          } else {
+            console.error('⚠️ No invitation URL found in response!');
+            console.log('📦 Full response object:', response);
+            toast.warning(`Invitation created but URL not found. Check console for details.`);
           }
         } catch (error: any) {
           console.error('❌ Error sending invitation:', error);
-          toast.error('Failed to send invitation. Please try again.');
+          
+          // Handle different error types
+          const errorMessage = error.message || String(error);
+          
+          if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+            toast.error('Session expired. Please sign in again.');
+          } else if (errorMessage.includes('403') || errorMessage.includes('Only super admin')) {
+            toast.error('Access denied. Only super admin can send invitations.');
+          } else if (errorMessage.includes('already exists')) {
+            toast.error('A user or invitation with this email already exists.');
+          } else {
+            toast.error(`Failed to send invitation: ${errorMessage}`);
+          }
           return;
         }
       }
 
-      // Determine permissions based on role
-      const permissions = newTeamMember.role.toLowerCase().includes('admin') 
-        ? 'Full Access' 
-        : 'Limited Access';
-
-      // Always add team member to database (for tracking purposes)
-      // This ensures the team member appears in the list even if invitation fails
-      try {
-        const { data, error } = await supabase
-          .from('team_members')
-          .insert({
-            name: newTeamMember.name,
-            role: newTeamMember.role,
-            description: newTeamMember.description || null,
-            status: newTeamMember.status,
-            permissions: permissions,
-            access_level: newTeamMember.access_level as 'super_admin' | 'clinic_admin' | 'public_user',
-            email: newTeamMember.email,
-            user_id: invitationData?.user_id || null, // Use user_id from invitation if available
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ Error adding team member:', error);
-          console.error('❌ Error code:', error.code);
-          console.error('❌ Error message:', error.message);
-          console.error('❌ Error details:', JSON.stringify(error, null, 2));
-          console.error('📝 Attempted insert data:', {
-            name: newTeamMember.name,
-            role: newTeamMember.role,
-            description: newTeamMember.description || null,
-            status: newTeamMember.status,
-            permissions: permissions,
-            access_level: newTeamMember.access_level,
-            email: newTeamMember.email,
-            user_id: invitationData?.user_id || null,
-          });
-          
-          // Show detailed error message
-          if (error.code === '42501') {
-            toast.error('Permission denied. Please check RLS policies. Error: ' + error.message);
-            console.error('⚠️ RLS Policy Error: User may not have permission to insert team members');
-          } else if (error.code === '23503') {
-            toast.error('Foreign key constraint error. Please check user_id reference.');
-          } else if (error.code === '23514') {
-            toast.error('Check constraint violation. Please check field values.');
-          } else {
-            toast.error(`Failed to add team member: ${error.message}`);
-          }
-          
-          // Show appropriate error message
-          if (invitationData) {
-            toast.warning('Invitation sent but failed to add to team members list. The invitation is still valid.');
-            console.log('⚠️ Team member not added to database, but invitation was sent successfully');
-          } else {
-            return;
-          }
-        } else {
-          console.log('✅ Team member added successfully:', data);
-          console.log('📋 Added team member data:', JSON.stringify(data, null, 2));
-          if (invitationData) {
-            toast.success(`Invitation sent and team member added successfully!`);
-          } else {
-            toast.success('Team member added successfully!');
-          }
-        }
-      } catch (dbError: any) {
-        console.error('❌ Exception adding team member:', dbError);
-        console.error('❌ Exception details:', JSON.stringify(dbError, null, 2));
-        if (invitationData) {
-          toast.warning('Invitation sent but failed to add to team members list. The invitation is still valid.');
-        } else {
-          toast.error('Failed to add team member. Please try again.');
-          return;
-        }
-      }
-      
       // Reset form
       setNewTeamMember({
         name: '',
@@ -537,15 +346,8 @@ const AdminSettings = () => {
         return;
       }
 
-      // Check if settings exist
-      const { data: existingSettings } = await supabase
-        .from('admin_settings')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
+      console.log('💾 Saving admin settings via backend...');
       const settingsData = {
-        user_id: user.id,
         appointment_duration: appointmentDuration,
         timezone: timezone,
         date_format: dateFormat,
@@ -556,33 +358,13 @@ const AdminSettings = () => {
         system_updates: systemUpdates,
       };
 
-      let error;
-      if (existingSettings) {
-        // Update existing settings
-        const { error: updateError } = await supabase
-          .from('admin_settings')
-          .update(settingsData)
-          .eq('user_id', user.id);
-        error = updateError;
-      } else {
-        // Insert new settings
-        const { error: insertError } = await supabase
-          .from('admin_settings')
-          .insert(settingsData);
-        error = insertError;
-      }
-
-      if (error) {
-        console.error('❌ Error saving settings:', error);
-        toast.error('Failed to save settings');
-        return;
-      }
+      await api.adminSettings.saveSettings(settingsData);
 
       console.log('✅ Settings saved successfully');
       toast.success('Settings saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(error.message || 'Failed to save settings');
     }
   };
 
@@ -747,7 +529,7 @@ const AdminSettings = () => {
                     <Button
                       onClick={handleExportToExcel}
                       variant="outline"
-                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export to Excel
@@ -1123,6 +905,70 @@ const AdminSettings = () => {
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
                 Change Password
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Invitation Link Modal */}
+        <Dialog open={showInvitationLinkModal} onOpenChange={setShowInvitationLinkModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Invitation Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Share this link with the team member:
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={invitationLink}
+                    readOnly
+                    className="bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(invitationLink);
+                        toast.success('Link copied to clipboard!');
+                      } catch (err) {
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = invitationLink;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        toast.success('Link copied to clipboard!');
+                      }
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs text-blue-800 dark:text-blue-200">
+                  <strong>Note:</strong> An invitation email has been sent to <strong>{invitedUserEmail}</strong>. 
+                  You can also share this link directly with the team member if they didn't receive the email.
+                </p>
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button
+                onClick={() => {
+                  setShowInvitationLinkModal(false);
+                  setInvitationLink('');
+                  setInvitedUserEmail('');
+                }}
+                className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
+              >
+                Done
               </Button>
             </DialogFooter>
           </DialogContent>

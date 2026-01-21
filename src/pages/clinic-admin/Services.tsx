@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -55,17 +55,8 @@ const ClinicAdminServices = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url, specialties')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        // Check clinic via backend
+        const { clinic: clinicData } = await api.clinicAdmin.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           navigate('/clinic-admin/onboarding', { replace: true });
@@ -92,23 +83,19 @@ const ClinicAdminServices = () => {
   const fetchServices = async (clinicId: string) => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching services for clinic:', clinicId);
+      console.log('🔍 Fetching services for clinic via backend:', clinicId);
 
-      // Fetch doctors for this clinic
-      const { data: doctorsData, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .eq('status', 'active')
-        .order('specialty', { ascending: true })
-        .order('name', { ascending: true });
+      // Fetch doctors for this clinic via backend
+      const { doctors: doctorsData } = await api.doctors.getDoctors(clinicId);
 
-      if (doctorsError) {
-        console.error('❌ Error fetching doctors:', doctorsError);
+      if (!doctorsData) {
+        console.error('❌ No doctors data returned');
         setDoctors([]);
       } else {
-        console.log('✅ Doctors fetched:', doctorsData?.length || 0);
-        setDoctors(doctorsData || []);
+        // Filter active doctors only (backend should already filter, but double-check)
+        const activeDoctors = doctorsData.filter((d: any) => d.status === 'active');
+        console.log('✅ Doctors fetched from backend:', activeDoctors.length);
+        setDoctors(activeDoctors);
       }
 
       // Create service rows for each doctor individually
@@ -159,32 +146,38 @@ const ClinicAdminServices = () => {
   };
 
   // Get unique specialties for filter dropdown
-  const uniqueSpecialties = Array.from(new Set(services.map(s => s.specialty))).sort();
+  const uniqueSpecialties = useMemo(() => {
+    return Array.from(new Set(services.map(s => s.specialty))).sort();
+  }, [services]);
 
   // Filter services
-  const filteredServices = services.filter((service) => {
-    const matchesSpecialty = selectedSpecialty === 'all' || service.specialty === selectedSpecialty;
-    const matchesSearch = searchQuery === '' ||
-      service.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSpecialty && matchesSearch;
-  });
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      const matchesSpecialty = selectedSpecialty === 'all' || service.specialty === selectedSpecialty;
+      const matchesSearch = searchQuery === '' ||
+        service.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesSpecialty && matchesSearch;
+    });
+  }, [services, selectedSpecialty, searchQuery]);
 
   // Group by specialty for display - collect all unique services and doctors per specialty
-  const groupedBySpecialty = filteredServices.reduce((acc, service) => {
-    if (!acc[service.specialty]) {
-      acc[service.specialty] = {
-        services: new Set<string>(),
-        doctors: new Set<string>() // Store unique doctor names per specialty
-      };
-    }
-    acc[service.specialty].services.add(service.service);
-    // Add doctor name to the set (automatically handles duplicates)
-    acc[service.specialty].doctors.add(service.doctorName);
-    return acc;
-  }, {} as Record<string, {services: Set<string>, doctors: Set<string>}>);
+  const groupedBySpecialty = useMemo(() => {
+    return filteredServices.reduce((acc, service) => {
+      if (!acc[service.specialty]) {
+        acc[service.specialty] = {
+          services: new Set<string>(),
+          doctors: new Set<string>() // Store unique doctor names per specialty
+        };
+      }
+      acc[service.specialty].services.add(service.service);
+      // Add doctor name to the set (automatically handles duplicates)
+      acc[service.specialty].doctors.add(service.doctorName);
+      return acc;
+    }, {} as Record<string, {services: Set<string>, doctors: Set<string>}>);
+  }, [filteredServices]);
 
   if (checkingClinic) {
     return (

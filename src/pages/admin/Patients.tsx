@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, Filter, X, Eye, Edit, Trash2, Calendar, ChevronDown, MoreVertical, Building2, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -90,243 +90,23 @@ const AdminPatients = () => {
 
   useEffect(() => {
     fetchPatients();
-
-    // Set up real-time subscriptions
-    const profilesChannel = supabase
-      .channel('profiles-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-        },
-        () => {
-          console.log('🔄 Profile change detected');
-          fetchPatients();
-        }
-      )
-      .subscribe();
-
-    const bookingsChannel = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bookings',
-        },
-        () => {
-          console.log('🔄 Booking change detected');
-          fetchPatients();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(profilesChannel);
-      supabase.removeChannel(bookingsChannel);
-    };
   }, []);
-
-  const calculateAge = (dateOfBirth: string | null): number => {
-    if (!dateOfBirth) return 0;
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching patients from REAL clinics only (super admin view)...');
+      console.log('🔍 Fetching patients from backend...');
 
-      // First, fetch all real clinics
-      const { data: clinicsData, error: clinicsError } = await supabase
-        .from('clinics')
-        .select('id, name');
-
-      if (clinicsError) {
-        console.error('❌ Error fetching clinics:', clinicsError);
-        setPatientsData([]);
-        return;
-      }
-
-      console.log('✅ Clinics fetched:', clinicsData?.length || 0);
-      const clinicNames = ['All Clinics', ...(clinicsData?.map(c => c.name) || [])];
-      setClinics(clinicNames);
-
-      if (!clinicsData || clinicsData.length === 0) {
-        console.log('⚠️ No clinics found in database');
-        setPatientsData([]);
-        setLoading(false);
-        return;
-      }
-
-      // Create a set of real clinic IDs
-      const realClinicIds = new Set(clinicsData.map(c => c.id));
-      const realClinicNames = new Set(clinicsData.map(c => c.name.toLowerCase()));
-
-      console.log('📊 Real clinic IDs:', realClinicIds.size);
-      console.log('📊 Real clinic names:', realClinicNames.size);
-
-      // Fetch all bookings, but we'll filter to only those from real clinics
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('user_id, appointment_date, clinic_id, clinic, doctor_name, doctor_id')
-        .order('appointment_date', { ascending: false });
-
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings:', bookingsError);
-        setPatientsData([]);
-        return;
-      }
-
-      console.log('✅ All bookings fetched:', bookingsData?.length || 0);
-
-      // Filter bookings to only those from real clinics
-      const realClinicBookings = bookingsData?.filter(booking => {
-        // Check if booking has clinic_id that matches a real clinic
-        if (booking.clinic_id && realClinicIds.has(booking.clinic_id)) {
-          return true;
-        }
-        // Check if booking has clinic name that matches a real clinic
-        if (booking.clinic && realClinicNames.has(booking.clinic.toLowerCase())) {
-          return true;
-        }
-        return false;
-      }) || [];
-
-      console.log('✅ Bookings from real clinics:', realClinicBookings.length);
-      console.log('📊 Filtered out:', (bookingsData?.length || 0) - realClinicBookings.length, 'bookings from non-existent clinics');
-
-      // Get unique user IDs from real clinic bookings only
-      const userIds = [...new Set(realClinicBookings.map(b => b.user_id).filter(id => id !== null) || [])];
+      const response = await api.patients.getPatients();
       
-      if (userIds.length === 0) {
-        console.log('⚠️ No patients found with bookings from real clinics');
-        setPatientsData([]);
-        setLoading(false);
-        return;
-      }
+      setPatientsData(response.patients || []);
+      setClinics(response.clinics || ['All Clinics']);
+      setDoctors(response.doctors || ['all']);
 
-      console.log('👥 Unique patient user IDs from real clinics:', userIds.length);
-
-      // Fetch profiles for these users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
-        .in('user_id', userIds);
-
-      if (profilesError) {
-        console.error('❌ Error fetching profiles:', profilesError);
-        setPatientsData([]);
-        return;
-      }
-
-      console.log('✅ Profiles fetched:', profilesData?.length || 0);
-
-      // Create maps for lookups
-      const profileMap = new Map<string, any>();
-      profilesData?.forEach(profile => {
-        profileMap.set(profile.user_id, profile);
-      });
-
-      // Create a map of user_id to last appointment date (only from real clinics)
-      const lastAppointmentMap = new Map<string, string>();
-      // Create a map of user_id to doctor names (doctors this patient has appointments with)
-      const patientDoctorMap = new Map<string, Set<string>>();
-      
-      realClinicBookings.forEach(booking => {
-        const userId = booking.user_id;
-        if (userId) {
-          if (!lastAppointmentMap.has(userId)) {
-            lastAppointmentMap.set(userId, booking.appointment_date);
-          }
-          // Track doctor names for this patient
-          if (!patientDoctorMap.has(userId)) {
-            patientDoctorMap.set(userId, new Set<string>());
-          }
-          if (booking.doctor_name) {
-            patientDoctorMap.get(userId)!.add(booking.doctor_name);
-          }
-        }
-      });
-
-      // Determine active status (patients with appointments in last 30 days or upcoming)
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const activePatientIds = new Set<string>();
-      realClinicBookings.forEach(booking => {
-        if (booking.user_id && booking.appointment_date) {
-          const appointmentDate = new Date(booking.appointment_date);
-          if (appointmentDate >= thirtyDaysAgo || appointmentDate >= today) {
-            activePatientIds.add(booking.user_id);
-          }
-        }
-      });
-
-      // Transform profiles to patients
-      const patients: Patient[] = profilesData?.map((profile) => {
-        const lastAppointmentDate = lastAppointmentMap.get(profile.user_id);
-        const formattedDate = lastAppointmentDate
-          ? new Date(lastAppointmentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : 'No appointments';
-
-        const age = calculateAge(profile.date_of_birth);
-
-        const patientDoctors = patientDoctorMap.get(profile.user_id);
-        
-        return {
-          id: profile.user_id,
-          user_id: profile.user_id,
-          name: profile.full_name || profile.email || 'Unknown Patient',
-          gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Other',
-          age: age > 0 ? age : 0,
-          contact: profile.phone || profile.email || 'N/A',
-          email: profile.email || '',
-          lastAppointment: formattedDate,
-          status: activePatientIds.has(profile.user_id) ? 'active' as const : 'inactive' as const,
-          doctorNames: patientDoctors ? Array.from(patientDoctors) : [],
-        };
-      }) || [];
-
-      console.log('📊 Patients processed:', patients.length);
-      setPatientsData(patients);
-
-      // Extract unique doctors from bookings for filter
-      const uniqueDoctors = new Set<string>(['all']);
-      realClinicBookings.forEach(booking => {
-        if (booking.doctor_name) {
-          uniqueDoctors.add(booking.doctor_name);
-        }
-      });
-
-      // Also fetch all doctors from real clinics for filter
-      const { data: doctorsData } = await supabase
-        .from('doctors')
-        .select('name')
-        .in('clinic_id', Array.from(realClinicIds));
-
-      if (doctorsData) {
-        doctorsData.forEach(doctor => {
-          if (doctor.name) {
-            uniqueDoctors.add(doctor.name);
-          }
-        });
-      }
-
-      setDoctors(Array.from(uniqueDoctors).sort());
+      console.log('✅ Patients fetched:', response.patients?.length || 0);
     } catch (error) {
       console.error('❌ Error fetching patients:', error);
+      toast.error('Failed to fetch patients');
       setPatientsData([]);
     } finally {
       setLoading(false);
@@ -334,68 +114,78 @@ const AdminPatients = () => {
   };
 
   // Filter patients based on search, clinic, date, and filter modal options
-  const filteredPatientsData = patientsData.filter((patient) => {
-    // Search filter
-    const matchesSearch =
-      searchQuery === '' ||
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.contact.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter modal: Gender
-    const matchesFilterGender = filterGender === 'all' || patient.gender.toLowerCase() === filterGender.toLowerCase();
-    
-    // Filter modal: Age Range
-    let matchesFilterAge = true;
-    if (filterAgeRange !== 'all') {
-      const age = patient.age;
-      if (filterAgeRange === '0-18') {
-        matchesFilterAge = age >= 0 && age <= 18;
-      } else if (filterAgeRange === '19-30') {
-        matchesFilterAge = age >= 19 && age <= 30;
-      } else if (filterAgeRange === '31-45') {
-        matchesFilterAge = age >= 31 && age <= 45;
-      } else if (filterAgeRange === '46-60') {
-        matchesFilterAge = age >= 46 && age <= 60;
-      } else if (filterAgeRange === '60+') {
-        matchesFilterAge = age >= 60;
-      }
-    }
-    
-    // Filter modal: Date Range
-    let matchesFilterDate = true;
-    if (filterDateFrom || filterDateTo) {
-      const lastApptDate = patient.lastAppointment !== 'No appointments' 
-        ? new Date(patient.lastAppointment) 
-        : null;
+  const filteredPatientsData = useMemo(() => {
+    return patientsData.filter((patient) => {
+      // Search filter
+      const matchesSearch =
+        searchQuery === '' ||
+        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.contact.toLowerCase().includes(searchQuery.toLowerCase());
       
-      if (lastApptDate) {
-        if (filterDateFrom) {
-          const fromDate = new Date(filterDateFrom);
-          fromDate.setHours(0, 0, 0, 0);
-          if (lastApptDate < fromDate) {
-            matchesFilterDate = false;
-          }
+      // Filter modal: Gender
+      const matchesFilterGender = filterGender === 'all' || patient.gender.toLowerCase() === filterGender.toLowerCase();
+      
+      // Filter modal: Age Range
+      let matchesFilterAge = true;
+      if (filterAgeRange !== 'all') {
+        const age = patient.age;
+        if (filterAgeRange === '0-18') {
+          matchesFilterAge = age >= 0 && age <= 18;
+        } else if (filterAgeRange === '19-30') {
+          matchesFilterAge = age >= 19 && age <= 30;
+        } else if (filterAgeRange === '31-45') {
+          matchesFilterAge = age >= 31 && age <= 45;
+        } else if (filterAgeRange === '46-60') {
+          matchesFilterAge = age >= 46 && age <= 60;
+        } else if (filterAgeRange === '60+') {
+          matchesFilterAge = age >= 60;
         }
-        if (filterDateTo) {
-          const toDate = new Date(filterDateTo);
-          toDate.setHours(23, 59, 59, 999);
-          if (lastApptDate > toDate) {
-            matchesFilterDate = false;
-          }
-        }
-      } else {
-        // If patient has no appointments and date filter is set, exclude them
-        matchesFilterDate = false;
       }
-    }
-    
-    // Filter modal: Doctor
-    const matchesFilterDoctor = filterDoctor === 'all' || 
-      (patient.doctorNames && patient.doctorNames.some(name => name.toLowerCase() === filterDoctor.toLowerCase()));
-    
-    return matchesSearch && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
-  });
+      
+      // Filter modal: Date Range
+      let matchesFilterDate = true;
+      if (filterDateFrom || filterDateTo) {
+        const lastApptDate = patient.lastAppointment !== 'No appointments' 
+          ? new Date(patient.lastAppointment) 
+          : null;
+        
+        if (lastApptDate) {
+          if (filterDateFrom) {
+            const fromDate = new Date(filterDateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            if (lastApptDate < fromDate) {
+              matchesFilterDate = false;
+            }
+          }
+          if (filterDateTo) {
+            const toDate = new Date(filterDateTo);
+            toDate.setHours(23, 59, 59, 999);
+            if (lastApptDate > toDate) {
+              matchesFilterDate = false;
+            }
+          }
+        } else {
+          // If patient has no appointments and date filter is set, exclude them
+          matchesFilterDate = false;
+        }
+      }
+      
+      // Filter modal: Doctor
+      const matchesFilterDoctor = filterDoctor === 'all' || 
+        (patient.doctorNames && patient.doctorNames.some(name => name.toLowerCase() === filterDoctor.toLowerCase()));
+      
+      return matchesSearch && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
+    });
+  }, [
+    patientsData,
+    searchQuery,
+    filterGender,
+    filterAgeRange,
+    filterDateFrom,
+    filterDateTo,
+    filterDoctor,
+  ]);
 
   // Use table sort hook for column sorting
   const { sortedData: filteredPatients, handleSort, getSortDirection } = useTableSort<Patient>(
@@ -436,51 +226,35 @@ const AdminPatients = () => {
     setLoadingAppointments(true);
 
     try {
-      // Fetch patient's appointment history
-      const { data: appointmentsData, error } = await supabase
-        .from('bookings')
-        .select('*, clinics(name)')
-        .eq('user_id', patient.user_id)
-        .order('appointment_date', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error fetching appointments:', error);
-        toast.error('Failed to load appointment history');
-      } else {
-        setPatientAppointments(appointmentsData || []);
-      }
+      const response = await api.patients.getPatientAppointments(patient.user_id);
+      setPatientAppointments(response.appointments || []);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast.error('Failed to load appointment history');
+      setPatientAppointments([]);
     } finally {
       setLoadingAppointments(false);
     }
   };
 
-  const handleOpenEditPatient = (patient: Patient) => {
+  const handleOpenEditPatient = async (patient: Patient) => {
     setSelectedPatient(patient);
-    // Fetch full profile data
-    supabase
-      .from('profiles')
-      .select('full_name, email, gender, date_of_birth, phone')
-      .eq('user_id', patient.user_id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Error fetching patient data:', error);
-          toast.error('Failed to load patient data');
-        } else {
-          setEditFormData({
-            fullName: data?.full_name || '',
-            gender: (data?.gender as 'Male' | 'Female' | 'Other') || 'Male',
-            dateOfBirth: data?.date_of_birth || '',
-            email: data?.email || '',
-            phone: data?.phone || '',
-          });
-          setIsEditPatientModalOpen(true);
-        }
+    try {
+      const response = await api.patients.getPatientProfile(patient.user_id);
+      const data = response.profile;
+      
+      setEditFormData({
+        fullName: data?.full_name || '',
+        gender: (data?.gender as 'Male' | 'Female' | 'Other') || 'Male',
+        dateOfBirth: data?.date_of_birth || '',
+        email: data?.email || '',
+        phone: data?.phone || '',
       });
+      setIsEditPatientModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching patient data:', error);
+      toast.error('Failed to load patient data');
+    }
   };
 
   const handleSavePatientChanges = async () => {
@@ -488,25 +262,17 @@ const AdminPatients = () => {
 
     try {
       setSavingPatient(true);
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: editFormData.fullName,
-          gender: editFormData.gender,
-          date_of_birth: editFormData.dateOfBirth || null,
-          phone: editFormData.phone || null,
-        })
-        .eq('user_id', selectedPatient.user_id);
+      await api.patients.updatePatient(selectedPatient.user_id, {
+        fullName: editFormData.fullName,
+        gender: editFormData.gender,
+        dateOfBirth: editFormData.dateOfBirth || null,
+        phone: editFormData.phone || null,
+      });
 
-      if (error) {
-        console.error('Error updating patient:', error);
-        toast.error('Failed to update patient information');
-      } else {
-        toast.success('Patient information updated successfully');
-        setIsEditPatientModalOpen(false);
-        setSelectedPatient(null);
-        await fetchPatients();
-      }
+      toast.success('Patient information updated successfully');
+      setIsEditPatientModalOpen(false);
+      setSelectedPatient(null);
+      await fetchPatients();
     } catch (error) {
       console.error('Error updating patient:', error);
       toast.error('Failed to update patient information');
@@ -536,18 +302,7 @@ const AdminPatients = () => {
     try {
       setDeletingPatient(true);
       
-      // Delete all bookings for this patient from all clinics
-      const { error: bookingsError } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('user_id', patientToDelete.user_id);
-
-      if (bookingsError) {
-        console.error('❌ Error deleting bookings:', bookingsError);
-        toast.error('Failed to delete patient bookings. Please try again.');
-        setDeletingPatient(false);
-        return;
-      }
+      await api.patients.deletePatient(patientToDelete.user_id);
 
       console.log('✅ Patient bookings deleted successfully');
       toast.success('Patient deleted successfully');
@@ -642,7 +397,7 @@ const AdminPatients = () => {
                     <Button
                       onClick={handleExportToExcel}
                       variant="outline"
-                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export to Excel

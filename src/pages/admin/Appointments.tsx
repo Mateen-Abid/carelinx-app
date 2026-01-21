@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useDarkMode } from '@/contexts/DarkModeContext';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Removed - Using backend API
+import { api } from '@/services/api';
 import {
   Dialog,
   DialogContent,
@@ -87,95 +88,32 @@ const AdminAppointments = () => {
 
   useEffect(() => {
     fetchAppointments();
-
-    // Set up real-time subscription for bookings table
-    const bookingsChannel = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bookings',
-        },
-        (payload) => {
-          console.log('🔄 Booking change detected:', payload.eventType);
-          // Refresh appointments when bookings change
-          fetchAppointments();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(bookingsChannel);
-    };
+    // Real-time subscriptions removed - using backend API
   }, []);
 
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching ALL appointments from ALL clinics (super admin view)...');
+      console.log('🔍 Fetching ALL appointments from backend (super admin view)...');
       
-      // Fetch ALL bookings from ALL clinics - no filtering by clinic_id or clinic name
-      // Super admin can see appointments from every clinic in the database
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch ALL bookings from backend API
+      const { bookings: bookingsData, profiles: profilesData, clinics: clinicsData, doctors: doctorsData } = await api.bookings.getAllBookings();
 
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings:', bookingsError);
-        console.error('Error details:', JSON.stringify(bookingsError, null, 2));
-        setAppointmentsData([]);
-        return;
-      }
-
-      console.log('✅ ALL bookings fetched from database:', bookingsData?.length || 0, 'appointments from ALL clinics');
+      console.log('✅ ALL bookings fetched from backend:', bookingsData?.length || 0, 'appointments from ALL clinics');
       
       // Log clinic distribution for debugging
       if (bookingsData && bookingsData.length > 0) {
         const clinicCounts = new Map<string, number>();
-        bookingsData.forEach(booking => {
+        bookingsData.forEach((booking: any) => {
           const clinicName = booking.clinic || (booking.clinic_id ? `clinic_id:${booking.clinic_id}` : 'Unknown');
           clinicCounts.set(clinicName, (clinicCounts.get(clinicName) || 0) + 1);
         });
         console.log('📊 Appointments by clinic:', Object.fromEntries(clinicCounts));
       }
 
-      // Fetch all profiles to map user_id to patient details
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) {
-        console.error('❌ Error fetching profiles:', profilesError);
-      } else {
-        console.log('✅ Profiles fetched:', profilesData?.length || 0, 'profiles');
-      }
-
-      // Fetch only active clinics to map clinic_id to clinic name
-      const { data: clinicsData, error: clinicsError } = await supabase
-        .from('clinics')
-        .select('id, name, status')
-        .eq('status', 'active');
-
-      if (clinicsError) {
-        console.error('❌ Error fetching clinics:', clinicsError);
-      } else {
-        console.log('✅ Active clinics fetched:', clinicsData?.length || 0, 'active clinics');
-      }
-
-      // Fetch all doctors from ALL clinics to validate appointments
-      const { data: doctorsData, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('id, name, clinic_id');
-
-      if (doctorsError) {
-        console.error('❌ Error fetching doctors:', doctorsError);
-      } else {
-        console.log('✅ Doctors fetched:', doctorsData?.length || 0, 'doctors from ALL clinics');
-      }
+      console.log('✅ Profiles fetched:', profilesData?.length || 0, 'profiles');
+      console.log('✅ Active clinics fetched:', clinicsData?.length || 0, 'active clinics');
+      console.log('✅ Doctors fetched:', doctorsData?.length || 0, 'doctors from ALL clinics');
 
       // Create maps for lookups
       const profileMap = new Map<string, any>();
@@ -375,53 +313,65 @@ const AdminAppointments = () => {
   };
 
   // Filter appointments based on status, search, clinic, and filter modal options
-  const filteredAppointmentsData = appointmentsData.filter((appointment) => {
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    
-    // Search filter
-    const matchesSearch =
-      searchQuery === '' ||
-      appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.clinic.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Clinic filter
-    const matchesClinic = selectedClinic === 'All Clinics' || appointment.clinic === selectedClinic;
-    
-    // Date filter from filter modal
-    let matchesDate = true;
-    if (filterDate) {
-      const appointmentDateStr = new Date(appointment.appointment_date).toISOString().split('T')[0];
-      matchesDate = appointmentDateStr === filterDate;
-    }
-    
-    // Doctor filter from filter modal
-    const matchesDoctor = !filterDoctor || filterDoctor === 'all' || appointment.doctorName === filterDoctor;
-    
-    // Specialty filter from filter modal
-    const matchesSpecialty = !filterSpecialty || filterSpecialty === 'all' || appointment.service === filterSpecialty;
-    
-    return matchesStatus && matchesSearch && matchesClinic && matchesDate && matchesDoctor && matchesSpecialty;
-  });
+  const filteredAppointmentsData = useMemo(() => {
+    return appointmentsData.filter((appointment) => {
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+      
+      // Search filter
+      const matchesSearch =
+        searchQuery === '' ||
+        appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.clinic.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Clinic filter
+      const matchesClinic = selectedClinic === 'All Clinics' || appointment.clinic === selectedClinic;
+      
+      // Date filter from filter modal
+      let matchesDate = true;
+      if (filterDate) {
+        const appointmentDateStr = new Date(appointment.appointment_date).toISOString().split('T')[0];
+        matchesDate = appointmentDateStr === filterDate;
+      }
+      
+      // Doctor filter from filter modal
+      const matchesDoctor = !filterDoctor || filterDoctor === 'all' || appointment.doctorName === filterDoctor;
+      
+      // Specialty filter from filter modal
+      const matchesSpecialty = !filterSpecialty || filterSpecialty === 'all' || appointment.service === filterSpecialty;
+      
+      return matchesStatus && matchesSearch && matchesClinic && matchesDate && matchesDoctor && matchesSpecialty;
+    });
+  }, [
+    appointmentsData,
+    statusFilter,
+    searchQuery,
+    selectedClinic,
+    filterDate,
+    filterDoctor,
+    filterSpecialty,
+  ]);
 
   // Apply default sorting: pending appointments first (by date), then others
-  const preSortedAppointments = [...filteredAppointmentsData].sort((a, b) => {
-    // Sort appointments: pending appointments first (by date), then others
-    const aIsPending = a.status === 'pending';
-    const bIsPending = b.status === 'pending';
-    
-    // If both are pending or both are not pending, sort by appointment date (latest first)
-    if (aIsPending === bIsPending) {
-      const aDate = new Date(a.appointment_date).getTime();
-      const bDate = new Date(b.appointment_date).getTime();
-      return bDate - aDate; // Latest date first
-    }
-    
-    // Pending appointments come first
-    return aIsPending ? -1 : 1;
-  });
+  const preSortedAppointments = useMemo(() => {
+    return [...filteredAppointmentsData].sort((a, b) => {
+      // Sort appointments: pending appointments first (by date), then others
+      const aIsPending = a.status === 'pending';
+      const bIsPending = b.status === 'pending';
+      
+      // If both are pending or both are not pending, sort by appointment date (latest first)
+      if (aIsPending === bIsPending) {
+        const aDate = new Date(a.appointment_date).getTime();
+        const bDate = new Date(b.appointment_date).getTime();
+        return bDate - aDate; // Latest date first
+      }
+      
+      // Pending appointments come first
+      return aIsPending ? -1 : 1;
+    });
+  }, [filteredAppointmentsData]);
 
   // Use table sort hook for column sorting
   const { sortedData: filteredAppointments, handleSort, getSortDirection } = useTableSort<Appointment>(
@@ -523,22 +473,13 @@ const AdminAppointments = () => {
 
     try {
       setLoadingDoctorDetails(true);
-      const { data: doctorData, error } = await supabase
-        .from('doctors')
-        .select('name, specialty, availability, services')
-        .eq('id', appointment.doctor_id)
-        .maybeSingle();
+      console.log('🔍 Fetching doctor details from backend:', appointment.doctor_id);
+      
+      // Fetch all doctors and find the one matching the doctor_id
+      const { doctors: doctorsData } = await api.doctors.getDoctors();
+      const doctorData = doctorsData?.find((d: any) => d.id === appointment.doctor_id);
 
-      if (error) {
-        console.error('Error fetching doctor details:', error);
-        // Fallback to appointment data
-        setDoctorDetails({
-          name: appointment.doctorName,
-          specialty: appointment.service,
-          service: appointment.service,
-          availability: 'N/A',
-        });
-      } else if (doctorData) {
+      if (doctorData) {
         setDoctorDetails({
           name: doctorData.name || appointment.doctorName,
           specialty: doctorData.specialty || appointment.service,
@@ -555,7 +496,8 @@ const AdminAppointments = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching doctor details:', error);
+      console.error('❌ Error fetching doctor details:', error);
+      // Fallback to appointment data
       setDoctorDetails({
         name: appointment.doctorName,
         specialty: appointment.service,
@@ -596,7 +538,7 @@ const AdminAppointments = () => {
                 <Button
                   onClick={handleExportToExcel}
                   variant="outline"
-                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export to Excel
@@ -1096,30 +1038,22 @@ const AdminAppointments = () => {
                   if (!selectedAppointment) return;
 
                   try {
-                    console.log('🔄 Super Admin approving appointment:', selectedAppointment.id);
-                    const { error } = await supabase
-                      .from('bookings')
-                      .update({ 
-                        status: 'confirmed',
-                        confirmed_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', selectedAppointment.id);
+                    console.log('🔄 Super Admin approving appointment via backend:', selectedAppointment.id);
+                    await api.bookings.updateBooking(selectedAppointment.id, {
+                      status: 'confirmed',
+                      confirmed_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    });
 
-                    if (error) {
-                      console.error('❌ Error approving appointment:', error);
-                      toast.error('Error approving appointment: ' + error.message);
-                    } else {
-                      console.log('✅ Appointment approved successfully');
-                      toast.success('Appointment approved successfully. Patient will see it in upcoming appointments.');
-                      setIsApproveConfirmModalOpen(false);
-                      setShowDetailsModal(false);
-                      setSelectedAppointment(null);
-                      await fetchAppointments(); // Refresh the list
-                    }
-                  } catch (error) {
+                    console.log('✅ Appointment approved successfully');
+                    toast.success('Appointment approved successfully. Patient will see it in upcoming appointments.');
+                    setIsApproveConfirmModalOpen(false);
+                    setShowDetailsModal(false);
+                    setSelectedAppointment(null);
+                    await fetchAppointments(); // Refresh the list
+                  } catch (error: any) {
                     console.error('❌ Error approving appointment:', error);
-                    toast.error('Error approving appointment');
+                    toast.error(error.message || 'Error approving appointment');
                   }
                 }}
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -1157,29 +1091,21 @@ const AdminAppointments = () => {
                   if (!selectedAppointment) return;
 
                   try {
-                    console.log('🔄 Super Admin cancelling appointment:', selectedAppointment.id);
-                    const { error } = await supabase
-                      .from('bookings')
-                      .update({ 
-                        status: 'cancelled',
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', selectedAppointment.id);
+                    console.log('🔄 Super Admin cancelling appointment via backend:', selectedAppointment.id);
+                    await api.bookings.updateBooking(selectedAppointment.id, {
+                      status: 'cancelled',
+                      updated_at: new Date().toISOString()
+                    });
 
-                    if (error) {
-                      console.error('❌ Error cancelling appointment:', error);
-                      toast.error('Error cancelling appointment: ' + error.message);
-                    } else {
-                      console.log('✅ Appointment cancelled successfully');
-                      toast.success('Appointment cancelled successfully. Patient will see it as cancelled.');
-                      setIsCancelConfirmModalOpen(false);
-                      setShowDetailsModal(false);
-                      setSelectedAppointment(null);
-                      await fetchAppointments(); // Refresh the list
-                    }
-                  } catch (error) {
+                    console.log('✅ Appointment cancelled successfully');
+                    toast.success('Appointment cancelled successfully. Patient will see it as cancelled.');
+                    setIsCancelConfirmModalOpen(false);
+                    setShowDetailsModal(false);
+                    setSelectedAppointment(null);
+                    await fetchAppointments(); // Refresh the list
+                  } catch (error: any) {
                     console.error('❌ Error cancelling appointment:', error);
-                    toast.error('Error cancelling appointment');
+                    toast.error(error.message || 'Error cancelling appointment');
                   }
                 }}
                 className="bg-red-600 hover:bg-red-700 text-white"
@@ -1273,33 +1199,25 @@ const AdminAppointments = () => {
                   }
 
                   try {
-                    console.log('🔄 Super Admin rescheduling appointment:', selectedAppointment.id);
-                    const { error } = await supabase
-                      .from('bookings')
-                      .update({ 
-                        appointment_date: newAppointmentDate,
-                        appointment_time: newAppointmentTime,
-                        status: 'rescheduled',
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', selectedAppointment.id);
+                    console.log('🔄 Super Admin rescheduling appointment via backend:', selectedAppointment.id);
+                    await api.bookings.updateBooking(selectedAppointment.id, {
+                      appointment_date: newAppointmentDate,
+                      appointment_time: newAppointmentTime,
+                      status: 'rescheduled',
+                      updated_at: new Date().toISOString()
+                    });
 
-                    if (error) {
-                      console.error('❌ Error rescheduling appointment:', error);
-                      toast.error('Error rescheduling appointment: ' + error.message);
-                    } else {
-                      console.log('✅ Appointment rescheduled successfully');
-                      toast.success('Appointment rescheduled successfully. Patient will see it in pending appointments.');
-                      setIsRescheduleModalOpen(false);
-                      setShowDetailsModal(false);
-                      setNewAppointmentDate('');
-                      setNewAppointmentTime('');
-                      setSelectedAppointment(null);
-                      await fetchAppointments(); // Refresh the list
-                    }
-                  } catch (error) {
+                    console.log('✅ Appointment rescheduled successfully');
+                    toast.success('Appointment rescheduled successfully. Patient will see it in pending appointments.');
+                    setIsRescheduleModalOpen(false);
+                    setShowDetailsModal(false);
+                    setNewAppointmentDate('');
+                    setNewAppointmentTime('');
+                    setSelectedAppointment(null);
+                    await fetchAppointments(); // Refresh the list
+                  } catch (error: any) {
                     console.error('❌ Error rescheduling appointment:', error);
-                    toast.error('Error rescheduling appointment');
+                    toast.error(error.message || 'Error rescheduling appointment');
                   }
                 }}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"

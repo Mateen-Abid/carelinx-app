@@ -1,16 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Users, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useDarkMode } from '@/contexts/DarkModeContext';
-
-interface DoctorSidebarProps {
-  isDarkMode?: boolean;
-  onDarkModeToggle?: () => void;
-}
-
-const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isDarkMode = false, onDarkModeToggle }) => {
+const DoctorSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
@@ -94,23 +87,8 @@ const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isDarkMode = false, onDar
         </div>
       </nav>
 
-      {/* Bottom Section - Dark mode and Sign Out */}
+      {/* Bottom Section - Sign Out */}
       <div className="p-4 border-t border-white/10 space-y-1">
-        {/* Dark Mode Toggle */}
-        <button
-          onClick={onDarkModeToggle}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-3 px-3 py-2.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors`}
-          title={isCollapsed ? (isDarkMode ? 'Light mode' : 'Dark mode') : undefined}
-        >
-          {isDarkMode ? (
-            <Sun className="w-5 h-5 flex-shrink-0" />
-          ) : (
-            <Moon className="w-5 h-5 flex-shrink-0" />
-          )}
-          {!isCollapsed && <span className="font-medium">Dark mode</span>}
-        </button>
-
-        {/* Sign Out */}
         <button
           onClick={signOut}
           className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors`}

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ServicesFilter from '@/components/ServicesFilter';
@@ -11,7 +12,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
 import { BookingModal } from '@/components/BookingModal';
 import { clinicsData, getAllServices, getAllCategories } from '@/data/clinicsData';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 
 interface DatabaseClinic {
   id: string;
@@ -43,71 +44,256 @@ const Index = () => {
   const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [skipEmailConfirmedRedirect] = useState(() => {
+    const skip = sessionStorage.getItem('skip_email_confirmed_redirect') === 'true';
+    if (skip) {
+      sessionStorage.removeItem('skip_email_confirmed_redirect');
+    }
+    return skip;
+  });
+  const [emailConfirmMeta] = useState(() => {
+    const flag = sessionStorage.getItem('email_just_confirmed') === 'true';
+    const timeValue = sessionStorage.getItem('email_confirmed_time');
+    if (flag) {
+      sessionStorage.removeItem('email_just_confirmed');
+      sessionStorage.removeItem('email_confirmed_time');
+    }
+    return { flag, time: timeValue ? Number(timeValue) : null };
+  });
+  const shouldHandleEmailConfirm = emailConfirmMeta.flag;
+  const confirmAgeMs = emailConfirmMeta.time ? Date.now() - emailConfirmMeta.time : null;
+  const isRecentEmailConfirm = shouldHandleEmailConfirm && (confirmAgeMs === null || confirmAgeMs < 10 * 60 * 1000);
+  const { user, userRole } = useAuth(); // Get user and role from AuthContext to check if email was just confirmed
+
+  // Check for email confirmation tokens on mount and redirect immediately
+  // This runs BEFORE any rendering happens
+  useEffect(() => {
+    // Check if user just confirmed email (from AuthContext)
+    if (!skipEmailConfirmedRedirect && shouldHandleEmailConfirm && isRecentEmailConfirm && user && user.email_confirmed_at && window.location.pathname === '/') {
+      const confirmedTime = new Date(user.email_confirmed_at).getTime();
+      const now = Date.now();
+      const timeSinceConfirmation = now - confirmedTime;
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutes
+      
+      console.log('📧 Index page - User found with email_confirmed_at:', user.email_confirmed_at);
+      console.log('📧 Index page - Time since confirmation:', timeSinceConfirmation, 'ms');
+      
+      // If email was confirmed within last 5 minutes, redirect to auth page
+      if (timeSinceConfirmation < fiveMinutes) {
+        console.log('📧 Index page - User just confirmed email (within last 5 minutes), redirecting to /auth');
+        setIsRedirecting(true);
+        window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+        window.location.href = '/auth?mode=login&message=email_confirmed';
+        return;
+      }
+    }
+    
+    
+    // Check hash immediately
+    const checkAndRedirect = () => {
+      const hash = window.location.hash;
+      if (!hash) return false;
+      
+      try {
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const hashType = hashParams.get('type');
+        const hashAccessToken = hashParams.get('access_token');
+        const hashRefreshToken = hashParams.get('refresh_token');
+        const hashError = hashParams.get('error');
+        const hashErrorCode = hashParams.get('error_code');
+        
+        // Check for email confirmation errors (expired/invalid link)
+        if (hashError === 'access_denied' && (hashErrorCode === 'otp_expired' || hashErrorCode === 'email_not_confirmed')) {
+          console.log('📧 Index page - Email confirmation link expired/invalid, redirecting to auth page');
+          setIsRedirecting(true);
+          // Redirect to auth page with error message
+          window.history.replaceState(null, '', '/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.');
+          window.location.href = '/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.';
+          return true;
+        }
+        
+        // Check for email confirmation (signup or email type)
+        const isEmailConfirmation = (hashType === 'signup' || hashType === 'email') && hashAccessToken && hashRefreshToken;
+        
+        if (isEmailConfirmation) {
+          console.log('📧 Index page - Email confirmation detected, redirecting to /auth');
+          setIsRedirecting(true);
+          // Clear hash and redirect immediately to auth page
+          window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+          window.location.href = '/auth?mode=login&message=email_confirmed';
+          return true;
+        }
+      } catch (e) {
+        console.error('Error checking hash:', e);
+      }
+      return false;
+    };
+    
+    // Check immediately
+    if (checkAndRedirect()) {
+      return; // Exit early if redirecting
+    }
+  }, [navigate, user]); // Add user to dependencies
+  
+  // Also check on every render (defensive) - check user from AuthContext first
+  if (!skipEmailConfirmedRedirect && shouldHandleEmailConfirm && isRecentEmailConfirm && user && user.email_confirmed_at && window.location.pathname === '/' && !isRedirecting) {
+    const confirmedTime = new Date(user.email_confirmed_at).getTime();
+    const now = Date.now();
+    const timeSinceConfirmation = now - confirmedTime;
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    if (timeSinceConfirmation < fiveMinutes) {
+      console.log('📧 Index page - User just confirmed email (render check), redirecting to /auth');
+      window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+      window.location.href = '/auth?mode=login&message=email_confirmed';
+      return null; // Don't render
+    }
+  }
+  
+  
+  // CRITICAL: Check hash on render for errors and email confirmation
+  // This must run BEFORE any other render logic
+  const currentHash = window.location.hash;
+  if (currentHash && !isRedirecting) {
+    try {
+      const hashParams = new URLSearchParams(currentHash.substring(1));
+      const hashType = hashParams.get('type');
+      const hashAccessToken = hashParams.get('access_token');
+      const hashRefreshToken = hashParams.get('refresh_token');
+      const hashError = hashParams.get('error');
+      const hashErrorCode = hashParams.get('error_code');
+      
+      // Check for email confirmation errors (expired/invalid link)
+      if (hashError === 'access_denied' && (hashErrorCode === 'otp_expired' || hashErrorCode === 'email_not_confirmed')) {
+        console.log('📧 Index page - Email confirmation link expired/invalid in render, redirecting to auth page');
+        window.history.replaceState(null, '', '/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.');
+        window.location.href = '/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.';
+        return null; // Don't render
+      }
+      
+      const isEmailConfirmation = (hashType === 'signup' || hashType === 'email') && hashAccessToken && hashRefreshToken;
+      
+      if (isEmailConfirmation) {
+        console.log('📧 Index page - Email confirmation detected in render, redirecting to /auth');
+        window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+        window.location.href = '/auth?mode=login&message=email_confirmed';
+        return null; // Don't render
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
 
 
-  // Fetch clinics from database
+  // CRITICAL: Check if user just confirmed email BEFORE rendering anything
+  // This must happen in the render phase, not just useEffect
+  // Check this FIRST, before any other logic
+  // This is the PRIMARY check - if user has email_confirmed_at and is on root, redirect
+  if (!skipEmailConfirmedRedirect && shouldHandleEmailConfirm && isRecentEmailConfirm && user && user.email_confirmed_at && window.location.pathname === '/') {
+    const confirmedTime = new Date(user.email_confirmed_at).getTime();
+    const now = Date.now();
+    const timeSinceConfirmation = now - confirmedTime;
+    
+    console.log('🚨 Index page RENDER - Checking email confirmation');
+    console.log('🚨 Confirmed at:', user.email_confirmed_at);
+    console.log('🚨 Time since:', Math.round(timeSinceConfirmation / 1000), 'seconds');
+    console.log('🚨 User role:', userRole);
+    
+    // If user has no role or is 'patient', they likely just confirmed
+    // Redirect them immediately regardless of time
+    const hasNoRole = !userRole || userRole === 'patient';
+    
+    // Also check if email was confirmed recently (within 1 hour)
+    const confirmedRecently = timeSinceConfirmation < 60 * 60 * 1000;
+    
+    // Redirect if: user has no role/patient OR email confirmed within last hour
+    if (hasNoRole || confirmedRecently) {
+      console.log('🚨 Index page RENDER - BLOCKING RENDER: User just confirmed email');
+      console.log('🚨 Reason:', hasNoRole ? 'No role/patient role' : 'Confirmed within last hour');
+      console.log('🚨 Redirecting to /auth immediately');
+      
+      // Use window.location.replace for immediate redirect (can't go back)
+      window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+      window.location.replace('/auth?mode=login&message=email_confirmed');
+      
+      // Return null to prevent ANY rendering
+      return null;
+    }
+  }
+
+  // Don't render if we're redirecting
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#00FFA2] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // FINAL CHECK: Before rendering, check if user just confirmed email
+  // This is the last line of defense - if all other checks failed, this will catch it
+  if (!skipEmailConfirmedRedirect && shouldHandleEmailConfirm && isRecentEmailConfirm && user && user.email_confirmed_at && window.location.pathname === '/') {
+    const confirmedTime = new Date(user.email_confirmed_at).getTime();
+    const timeSinceConfirmation = Date.now() - confirmedTime;
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    if (timeSinceConfirmation < fiveMinutes) {
+      console.log('🚨 Index page - FINAL CHECK: User just confirmed email, blocking render and redirecting to /auth');
+      // Force redirect - this will prevent any rendering
+      window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+      window.location.replace('/auth?mode=login&message=email_confirmed');
+      // Return null to prevent any rendering
+      return null;
+    }
+  }
+
+  // Fetch clinics from database via backend
   useEffect(() => {
     const fetchClinics = async () => {
       try {
         setLoadingClinics(true);
-        const { data, error } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('clinics' as any)
-          .select('id, name, address, logo_url, specialties, description, status')
-          .eq('status', 'active')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('created_at', { ascending: false }) as any);
-
-        if (error) {
-          console.error('Error fetching clinics:', error);
-        } else {
-          console.log('✅ Fetched clinics from database:', data?.length || 0);
-          setDatabaseClinics(data || []);
+        console.log('📡 Fetching clinics from backend...');
+        
+        const { clinics: data } = await api.clinics.getClinics();
+        console.log('✅ Fetched clinics from backend:', data?.length || 0);
+        setDatabaseClinics(data || []);
+        
+        // Fetch all doctors via backend
+        if (data && data.length > 0) {
+          console.log('📡 Fetching doctors from backend...');
+          const { doctors: doctorsData } = await api.doctors.getDoctors();
           
-          // Fetch doctors for all active clinics
-          if (data && data.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const clinicIds = (data as any[]).map((c: any) => c.id);
-            const { data: doctorsData, error: doctorsError } = await (supabase
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .from('doctors' as any)
-              .select('id, name, specialty, email, phone, availability, clinic_id, status, services')
-              .in('clinic_id', clinicIds)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .eq('status', 'active') as any);
-            
-            if (doctorsError) {
-              console.error('Error fetching doctors:', doctorsError);
-            } else {
-              console.log('✅ Fetched doctors from database:', doctorsData?.length || 0);
-              // Group doctors by clinic_id
-              const doctorsByClinic: Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>> = {};
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (doctorsData as any[])?.forEach((doctor: any) => {
-                if (!doctorsByClinic[doctor.clinic_id]) {
-                  doctorsByClinic[doctor.clinic_id] = [];
-                }
-                doctorsByClinic[doctor.clinic_id].push({
-                  id: doctor.id,
-                  name: doctor.name,
-                  specialty: doctor.specialty,
-                  email: doctor.email,
-                  phone: doctor.phone,
-                  availability: doctor.availability,
-                  services: doctor.services
-                });
-                
-                // Debug: Log doctor services
-                if (doctor.services) {
-                  console.log(`👨‍⚕️ Doctor ${doctor.name} (${doctor.specialty}) has services:`, doctor.services);
-                } else {
-                  console.log(`⚠️ Doctor ${doctor.name} (${doctor.specialty}) has NO services`);
-                }
-              });
-              setClinicDoctors(doctorsByClinic);
-              console.log('📋 Doctors grouped by clinic:', Object.keys(doctorsByClinic).length, 'clinics');
+          console.log('✅ Fetched doctors from backend:', doctorsData?.length || 0);
+          // Group doctors by clinic_id
+          const doctorsByClinic: Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (doctorsData as any[])?.forEach((doctor: any) => {
+            if (!doctorsByClinic[doctor.clinic_id]) {
+              doctorsByClinic[doctor.clinic_id] = [];
             }
-          }
+            doctorsByClinic[doctor.clinic_id].push({
+              id: doctor.id,
+              name: doctor.name,
+              specialty: doctor.specialty,
+              email: doctor.email,
+              phone: doctor.phone,
+              availability: doctor.availability,
+              services: doctor.services
+            });
+            
+            // Debug: Log doctor services
+            if (doctor.services) {
+              console.log(`👨‍⚕️ Doctor ${doctor.name} (${doctor.specialty}) has services:`, doctor.services);
+            } else {
+              console.log(`⚠️ Doctor ${doctor.name} (${doctor.specialty}) has NO services`);
+            }
+          });
+          setClinicDoctors(doctorsByClinic);
+          console.log('📋 Doctors grouped by clinic:', Object.keys(doctorsByClinic).length, 'clinics');
         }
       } catch (error) {
         console.error('Error fetching clinics:', error);
@@ -118,48 +304,23 @@ const Index = () => {
 
     const fetchSuperAdminData = async () => {
       try {
-        // Fetch specialties from super_admin_specialties
-        const { data: specialtiesData, error: specialtiesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_specialties' as any)
-          .select('id, name')
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
+        // Fetch specialties from backend
+        console.log('📡 Fetching specialties from backend...');
+        const { specialties: specialtiesData } = await api.services.getSpecialties();
+        console.log('✅ Fetched specialties:', specialtiesData?.length || 0);
+        setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name })));
 
-        if (specialtiesError) {
-          console.error('Error fetching super admin specialties:', specialtiesError);
-        } else {
-          console.log('✅ Fetched super admin specialties:', specialtiesData?.length || 0);
-          setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name })));
-        }
-
-        // Fetch services from super_admin_services with specialty names
-        const { data: servicesData, error: servicesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_services' as any)
-          .select(`
-            id,
-            name,
-            specialty_id,
-            specialties:specialty_id(name)
-          `)
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
-
-        if (servicesError) {
-          console.error('Error fetching super admin services:', servicesError);
-        } else {
-          console.log('✅ Fetched super admin services:', servicesData?.length || 0);
-          const transformedServices = (servicesData || []).map((service: any) => ({
-            id: service.id,
-            name: service.name,
-            specialty_id: service.specialty_id,
-            specialty_name: service.specialties?.name || 'Unknown'
-          }));
-          setSuperAdminServices(transformedServices);
-        }
+        // Fetch treatments from backend
+        console.log('📡 Fetching treatments from backend...');
+        const { treatments: servicesData } = await api.services.getTreatments();
+        console.log('✅ Fetched treatments:', servicesData?.length || 0);
+        const transformedServices = (servicesData || []).map((service: any) => ({
+          id: service.id,
+          name: service.name,
+          specialty_id: service.specialty_id,
+          specialty_name: service.specialties?.name || 'Unknown'
+        }));
+        setSuperAdminServices(transformedServices);
       } catch (error) {
         console.error('Error fetching super admin data:', error);
       }

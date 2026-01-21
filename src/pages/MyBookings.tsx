@@ -13,7 +13,7 @@ import { AuthPromptModal } from '@/components/AuthPromptModal';
 import { toast } from 'sonner';
 import { clinicsData } from '@/data/clinicsData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
@@ -139,23 +139,19 @@ const MyBookings = () => {
 
   const handleApproveRescheduled = async (appointment: Appointment) => {
     try {
+      console.log('✅ Approving rescheduled appointment via backend:', appointment.id);
       // Approve the rescheduled appointment - change status to confirmed
-      const { error } = await supabase
-        .from('bookings')
-        .update({ 
-          status: 'confirmed', 
-          confirmed_at: new Date().toISOString() 
-        })
-        .eq('id', appointment.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(appointment.id, {
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      });
 
       toast.success('Appointment approved successfully');
       // Refresh appointments
       window.location.reload(); // Simple refresh to update the list
-    } catch (error) {
-      console.error('Error approving rescheduled appointment:', error);
-      toast.error('Failed to approve appointment. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error approving rescheduled appointment:', error);
+      toast.error(error.message || 'Failed to approve appointment. Please try again.');
     }
   };
 
@@ -223,24 +219,23 @@ const MyBookings = () => {
         serviceId = `doctor-${appointmentToReschedule.doctorId}`;
         console.log('🔄 Rescheduling database doctor appointment:', serviceId);
       } else {
-        // Try to find doctor by name and clinic from database
-        console.log('🔍 No doctorId found, trying to lookup doctor from database...');
+        // Try to find doctor by name and clinic from database via backend
+        console.log('🔍 No doctorId found, trying to lookup doctor from backend...');
         try {
-          const { data: clinicData } = await supabase
-            .from('clinics')
-            .select('id')
-            .ilike('name', `%${appointmentToReschedule.clinic}%`)
-            .eq('status', 'active')
-            .maybeSingle();
+          // Fetch all clinics and find matching one
+          const { clinics: clinicsData } = await api.clinics.getClinics();
+          const clinicData = clinicsData?.find((c: any) => 
+            c.name.toLowerCase().includes(appointmentToReschedule.clinic.toLowerCase()) ||
+            appointmentToReschedule.clinic.toLowerCase().includes(c.name.toLowerCase())
+          );
 
           if (clinicData?.id && appointmentToReschedule.doctorName) {
-            const { data: doctorData } = await supabase
-              .from('doctors')
-              .select('id')
-              .eq('clinic_id', clinicData.id)
-              .ilike('name', `%${appointmentToReschedule.doctorName}%`)
-              .eq('status', 'active')
-              .maybeSingle();
+            // Fetch doctors for this clinic
+            const { doctors: doctorsData } = await api.doctors.getDoctors(clinicData.id);
+            const doctorData = doctorsData?.find((d: any) => 
+              d.name.toLowerCase().includes(appointmentToReschedule.doctorName?.toLowerCase() || '') ||
+              appointmentToReschedule.doctorName?.toLowerCase().includes(d.name.toLowerCase() || '')
+            );
 
             if (doctorData?.id) {
               serviceId = `doctor-${doctorData.id}`;

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Select,
@@ -53,18 +53,8 @@ const ClinicAdminInsights = () => {
       if (!user) return;
 
       try {
-        // Check if clinic exists for this clinic admin
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url, specialties')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        // Check if clinic exists for this clinic admin via backend
+        const { clinic: clinicData } = await api.clinicAdmin.getClinic();
 
         // If no clinic exists, redirect to onboarding
         if (!clinicData) {
@@ -92,19 +82,21 @@ const ClinicAdminInsights = () => {
     checkClinicExists();
   }, [user, navigate]);
 
+  const hasLoadedSpecialty = useRef(false);
+
   // Fetch trends when clinic loads or period changes
   useEffect(() => {
-    if (clinic?.id) {
-      fetchMonthlyTrends(clinic.id);
+    if (!clinic?.id) return;
+    if (!hasLoadedSpecialty.current) {
+      hasLoadedSpecialty.current = true;
+      Promise.all([
+        fetchMonthlyTrends(clinic.id),
+        fetchSpecialtyDistribution(clinic.id),
+      ]);
+      return;
     }
+    fetchMonthlyTrends(clinic.id);
   }, [clinic?.id, trendPeriod]);
-
-  // Fetch specialty distribution when clinic loads
-  useEffect(() => {
-    if (clinic?.id) {
-      fetchSpecialtyDistribution(clinic.id);
-    }
-  }, [clinic?.id]);
 
   const fetchMonthlyTrends = async (clinicId: string) => {
     try {
@@ -122,33 +114,17 @@ const ClinicAdminInsights = () => {
         startDate.setDate(startDate.getDate() - 30);
       }
       
-      // Fetch bookings for this clinic
-      let bookingsData: any[] = [];
+      // Fetch bookings for this clinic via backend
+      const { bookings: allBookings } = await api.clinicAdmin.getInsightsBookings(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+      );
       
-      const { data: bookingsById, error: errorById } = await supabase
-        .from('bookings')
-        .select('appointment_date, status')
-        .eq('clinic_id', clinicId)
-        .gte('appointment_date', startDate.toISOString().split('T')[0])
-        .lte('appointment_date', today.toISOString().split('T')[0])
-        .order('appointment_date', { ascending: true });
-
-      if (!errorById && bookingsById) {
-        bookingsData = bookingsById;
-      } else if (clinic?.name) {
-        // Fallback: try by clinic name
-        const { data: bookingsByName, error: errorByName } = await supabase
-          .from('bookings')
-          .select('appointment_date, status')
-          .eq('clinic', clinic.name)
-          .gte('appointment_date', startDate.toISOString().split('T')[0])
-          .lte('appointment_date', today.toISOString().split('T')[0])
-          .order('appointment_date', { ascending: true });
-        
-        if (!errorByName && bookingsByName) {
-          bookingsData = bookingsByName;
-        }
-      }
+      // Filter to only get appointment_date and status
+      const bookingsData = allBookings.map((b: any) => ({
+        appointment_date: b.appointment_date,
+        status: b.status
+      }));
 
       // Group appointments by month
       const trendsMap = new Map<string, number>();
@@ -258,27 +234,14 @@ const ClinicAdminInsights = () => {
         }
       });
       
-      // Fetch bookings for this clinic
-      let bookingsData: any[] = [];
+      // Fetch bookings for this clinic via backend
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
       
-      const { data: bookingsById, error: errorById } = await supabase
-        .from('bookings')
-        .select('specialty, status')
-        .eq('clinic_id', clinicId);
-
-      if (!errorById && bookingsById) {
-        bookingsData = bookingsById;
-      } else if (clinic?.name) {
-        // Fallback: try by clinic name
-        const { data: bookingsByName, error: errorByName } = await supabase
-          .from('bookings')
-          .select('specialty, status')
-          .eq('clinic', clinic.name);
-        
-        if (!errorByName && bookingsByName) {
-          bookingsData = bookingsByName;
-        }
-      }
+      // Filter to only get specialty and status
+      const bookingsData = allBookings.map((b: any) => ({
+        specialty: b.specialty,
+        status: b.status
+      }));
 
       // Group appointments by specialty - only count clinic's specialties
       const specialtyMap = new Map<string, number>();

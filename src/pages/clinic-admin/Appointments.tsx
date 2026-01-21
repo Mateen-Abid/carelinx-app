@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -77,17 +77,8 @@ const ClinicAdminAppointments = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        // Check clinic via backend
+        const { clinic: clinicData } = await api.clinicAdmin.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           navigate('/clinic-admin/onboarding', { replace: true });
@@ -115,7 +106,11 @@ const ClinicAdminAppointments = () => {
     try {
       setLoading(true);
       console.log('🔍 Fetching appointments for clinic ID:', clinicId);
-      console.log('📋 Clinic name:', clinic?.name);
+
+      // Fetch bookings via backend (includes profiles)
+      const { bookings } = await api.clinicAdmin.getBookings(dateFilter || undefined);
+
+      console.log('✅ Total bookings found:', bookings?.length || 0);
 
       // Helper function to format date in YYYY-MM-DD format using local timezone
       const formatDateLocal = (date: Date): string => {
@@ -125,150 +120,26 @@ const ClinicAdminAppointments = () => {
         return `${year}-${month}-${day}`;
       };
 
-      // Get date range for filtering (using local timezone)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() - today.getDay());
-
-      // Fetch bookings for this clinic - try by clinic_id first
-      let bookingsQuery = supabase
-        .from('bookings')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('appointment_date', { ascending: false })
-        .order('appointment_time', { ascending: false });
-      
-      console.log('🔍 Querying bookings by clinic_id:', clinicId);
-
-      // Apply date filter (using local timezone to avoid UTC conversion issues)
-      if (dateFilter === 'today') {
-        const todayStr = formatDateLocal(today);
-        console.log('📅 Filtering for today (local timezone):', todayStr);
-        bookingsQuery = bookingsQuery.eq('appointment_date', todayStr);
-      } else if (dateFilter === 'tomorrow') {
-        const tomorrowStr = formatDateLocal(tomorrow);
-        console.log('📅 Filtering for tomorrow (local timezone):', tomorrowStr);
-        bookingsQuery = bookingsQuery.eq('appointment_date', tomorrowStr);
-      } else if (dateFilter === 'this-week') {
+      // Apply date filter locally if needed (backend already handles timeFilter, but we can filter further)
+      let filteredBookings = bookings || [];
+      if (dateFilter === 'this-week') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - today.getDay());
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 7);
         const weekStartStr = formatDateLocal(weekStart);
         const weekEndStr = formatDateLocal(weekEnd);
-        console.log('📅 Filtering for this week (local timezone):', weekStartStr, 'to', weekEndStr);
-        bookingsQuery = bookingsQuery
-          .gte('appointment_date', weekStartStr)
-          .lt('appointment_date', weekEndStr);
-      }
-
-      const { data: bookingsData, error: bookingsError } = await bookingsQuery;
-
-      console.log('📋 Bookings by clinic_id:', {
-        count: bookingsData?.length || 0,
-        bookings: bookingsData?.map(b => ({ id: b.id, clinic_id: b.clinic_id, clinic: b.clinic, status: b.status })),
-        error: bookingsError
-      });
-
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings by clinic_id:', bookingsError);
-      }
-
-      // Fallback: try by clinic name if no results (for bookings with NULL clinic_id)
-      let bookings = bookingsData || [];
-      if (bookings.length === 0 && clinic?.name) {
-        console.log('🔄 Trying fallback: query by clinic name:', clinic.name);
-        const { data: bookingsByName, error: errorByName } = await supabase
-          .from('bookings')
-          .select('*')
-          .or(`clinic.eq.${clinic.name},clinic.ilike.${clinic.name}`)
-          .order('appointment_date', { ascending: false })
-          .order('appointment_time', { ascending: false });
         
-        console.log('📋 Bookings by clinic name:', {
-          count: bookingsByName?.length || 0,
-          bookings: bookingsByName?.map(b => ({ id: b.id, clinic_id: b.clinic_id, clinic: b.clinic, status: b.status })),
-          error: errorByName
+        filteredBookings = filteredBookings.filter((b: any) => {
+          return b.appointment_date >= weekStartStr && b.appointment_date < weekEndStr;
         });
-        
-        if (bookingsByName && bookingsByName.length > 0) {
-          // Update these bookings to have the correct clinic_id
-          const bookingIdsToUpdate = bookingsByName
-            .filter(b => !b.clinic_id)
-            .map(b => b.id);
-          
-          if (bookingIdsToUpdate.length > 0) {
-            console.log('🔧 Updating bookings with clinic_id:', bookingIdsToUpdate);
-            const { error: updateError } = await supabase
-              .from('bookings')
-              .update({ clinic_id: clinicId })
-              .in('id', bookingIdsToUpdate);
-            
-            if (updateError) {
-              console.error('❌ Error updating clinic_id:', updateError);
-            } else {
-              console.log('✅ Updated bookings with clinic_id');
-            }
-          }
-        }
-        
-        bookings = bookingsByName || [];
       }
-      
-      // Also query for bookings with NULL clinic_id that match clinic name
-      if (clinic?.name) {
-        const { data: bookingsWithNullClinicId } = await supabase
-          .from('bookings')
-          .select('*')
-          .is('clinic_id', null)
-          .or(`clinic.eq.${clinic.name},clinic.ilike.${clinic.name}`)
-          .order('appointment_date', { ascending: false })
-          .order('appointment_time', { ascending: false });
-        
-        if (bookingsWithNullClinicId && bookingsWithNullClinicId.length > 0) {
-          console.log('📋 Found bookings with NULL clinic_id:', bookingsWithNullClinicId.length);
-          
-          // Merge with existing bookings (avoid duplicates)
-          const existingIds = new Set(bookings.map(b => b.id));
-          const newBookings = bookingsWithNullClinicId.filter(b => !existingIds.has(b.id));
-          bookings = [...bookings, ...newBookings];
-          
-          // Update these bookings to have the correct clinic_id
-          if (newBookings.length > 0) {
-            const bookingIdsToUpdate = newBookings.map(b => b.id);
-            console.log('🔧 Updating NULL clinic_id bookings:', bookingIdsToUpdate);
-            const { error: updateError } = await supabase
-              .from('bookings')
-              .update({ clinic_id: clinicId })
-              .in('id', bookingIdsToUpdate);
-            
-            if (updateError) {
-              console.error('❌ Error updating NULL clinic_id:', updateError);
-            } else {
-              console.log('✅ Updated NULL clinic_id bookings');
-            }
-          }
-        }
-      }
-      
-      console.log('✅ Total bookings found:', bookings.length);
-
-      // Fetch profiles to get patient names
-      const userIds = [...new Set(bookings.map((b: any) => b.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', userIds);
-
-      const profileMap = new Map();
-      profilesData?.forEach((profile: any) => {
-        profileMap.set(profile.user_id, profile);
-      });
 
       // Transform bookings to appointments
-      const appointments: Appointment[] = bookings.map((booking: any) => {
-        const profile = profileMap.get(booking.user_id);
+      const appointments: Appointment[] = filteredBookings.map((booking: any) => {
+        const profile = booking.profile;
         
         // Map database status to UI status
         let mappedStatus: 'pending' | 'approved' | 'completed' | 'cancelled';
@@ -388,36 +259,25 @@ const ClinicAdminAppointments = () => {
       setLoadingDetails(true);
       setIsDetailsModalOpen(true);
 
-      // Fetch full appointment details
-      const { data: bookingData, error: bookingError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', appointment.id)
-        .single();
+      // Fetch full appointment details via backend
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
+      const bookingData = allBookings.find((b: any) => b.id === appointment.id);
 
-      if (bookingError) {
-        console.error('Error fetching booking:', bookingError);
+      if (!bookingData) {
+        console.error('Booking not found');
         toast.error('Failed to load appointment details');
         setIsDetailsModalOpen(false);
         return;
       }
 
-      // Fetch patient profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone, gender')
-        .eq('user_id', appointment.user_id)
-        .maybeSingle();
+      // Patient profile is already attached from backend
+      const profileData = bookingData.profile;
 
       // Fetch doctor details if doctor_id exists
       let doctorData = null;
-      if (bookingData.doctor_id) {
-        const { data: docData } = await supabase
-          .from('doctors')
-          .select('name, specialty, availability')
-          .eq('id', bookingData.doctor_id)
-          .maybeSingle();
-        doctorData = docData;
+      if (bookingData.doctor_id && clinic?.id) {
+        const { doctors } = await api.doctors.getDoctors(clinic.id);
+        doctorData = doctors.find((d: any) => d.id === bookingData.doctor_id);
       }
 
       // Build appointment details
@@ -458,12 +318,10 @@ const ClinicAdminAppointments = () => {
     if (!selectedAppointmentDetails) return;
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      });
 
       toast.success('Appointment approved successfully');
       setIsApproveConfirmModalOpen(false);
@@ -489,12 +347,9 @@ const ClinicAdminAppointments = () => {
     if (!selectedAppointmentDetails) return;
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        status: 'cancelled'
+      });
 
       toast.success('Appointment cancelled successfully');
       setIsCancelConfirmModalOpen(false);
@@ -553,18 +408,13 @@ const ClinicAdminAppointments = () => {
         return;
       }
 
-      // Update appointment in database - set status to 'rescheduled' so public user knows they need to approve
-      const { error } = await supabase
-        .from('bookings')
-        .update({ 
-          appointment_date: formattedDate,
-          appointment_time: newAppointmentTime,
-          status: 'rescheduled', // Set status to rescheduled so public user sees it in pending
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      // Update appointment via backend - set status to 'rescheduled' so public user knows they need to approve
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        appointment_date: formattedDate,
+        appointment_time: newAppointmentTime,
+        status: 'rescheduled', // Set status to rescheduled so public user sees it in pending
+        updated_at: new Date().toISOString()
+      });
 
       toast.success('Appointment rescheduled successfully');
       setIsRescheduleModalOpen(false);
@@ -600,36 +450,40 @@ const ClinicAdminAppointments = () => {
   };
 
   // Filter appointments
-  const filteredAppointmentsData = appointmentsData.filter((appointment) => {
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'approved' && appointment.status === 'approved') ||
-      (statusFilter === 'pending' && appointment.status === 'pending') ||
-      (statusFilter === 'cancelled' && appointment.status === 'cancelled');
-    
-    const matchesSearch = searchQuery === '' ||
-      appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesStatus && matchesSearch;
-  });
+  const filteredAppointmentsData = useMemo(() => {
+    return appointmentsData.filter((appointment) => {
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'approved' && appointment.status === 'approved') ||
+        (statusFilter === 'pending' && appointment.status === 'pending') ||
+        (statusFilter === 'cancelled' && appointment.status === 'cancelled');
+      
+      const matchesSearch = searchQuery === '' ||
+        appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesStatus && matchesSearch;
+    });
+  }, [appointmentsData, statusFilter, searchQuery]);
 
   // Apply default sorting: pending appointments first (by date), then others
-  const preSortedAppointments = [...filteredAppointmentsData].sort((a, b) => {
-    // Sort appointments: pending appointments first (by date), then others
-    const aIsPending = a.status === 'pending';
-    const bIsPending = b.status === 'pending';
-    
-    // If both are pending or both are not pending, sort by appointment date (latest first)
-    if (aIsPending === bIsPending) {
-      const aDate = new Date(a.appointment_date).getTime();
-      const bDate = new Date(b.appointment_date).getTime();
-      return bDate - aDate; // Latest date first
-    }
-    
-    // Pending appointments come first
-    return aIsPending ? -1 : 1;
-  });
+  const preSortedAppointments = useMemo(() => {
+    return [...filteredAppointmentsData].sort((a, b) => {
+      // Sort appointments: pending appointments first (by date), then others
+      const aIsPending = a.status === 'pending';
+      const bIsPending = b.status === 'pending';
+      
+      // If both are pending or both are not pending, sort by appointment date (latest first)
+      if (aIsPending === bIsPending) {
+        const aDate = new Date(a.appointment_date).getTime();
+        const bDate = new Date(b.appointment_date).getTime();
+        return bDate - aDate; // Latest date first
+      }
+      
+      // Pending appointments come first
+      return aIsPending ? -1 : 1;
+    });
+  }, [filteredAppointmentsData]);
 
   // Use table sort hook for column sorting
   const { sortedData: filteredAppointments, handleSort, getSortDirection } = useTableSort<Appointment>(

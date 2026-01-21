@@ -5,7 +5,7 @@ import SearchInput from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, User } from 'lucide-react';
 import { clinicsData, Clinic } from '@/data/clinicsData';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import Image5 from '../assets/image 5.svg';
 
 // Custom Tooth Icon Component
@@ -91,45 +91,35 @@ const ClinicDetails = () => {
       }
 
       if (isUUID) {
-        // Fetch from database
+        // Fetch from database via backend
         try {
           setLoading(true);
-          const { data: clinicData, error: clinicError } = await supabase
-            .from('clinics')
-            .select('id, name, address, logo_url, specialties, description, status')
-            .eq('id', clinicId)
-            .eq('status', 'active')
-            .maybeSingle();
+          console.log('📡 Fetching clinic from backend...');
+          
+          const { clinic: clinicData } = await api.clinics.getClinic(clinicId);
 
-          if (clinicError) {
-            console.error('Error fetching clinic:', clinicError);
-          } else if (clinicData) {
-            console.log('✅ Fetched clinic from database:', clinicData);
+          if (clinicData) {
+            console.log('✅ Fetched clinic from backend:', clinicData);
             setDatabaseClinic(clinicData);
 
-            // Fetch doctors for this clinic (including services column)
-            const { data: doctorsData, error: doctorsError } = await supabase
-              .from('doctors')
-              .select('id, name, specialty, email, phone, availability, status, services')
-              .eq('clinic_id', clinicData.id)
-              .eq('status', 'active');
+            // Fetch doctors for this clinic via backend
+            console.log('📡 Fetching doctors from backend...');
+            const { doctors: doctorsData } = await api.doctors.getDoctors(clinicData.id);
 
-            if (doctorsError) {
-              console.error('Error fetching doctors:', doctorsError);
-            } else {
-              console.log('✅ Fetched doctors:', doctorsData);
+            if (doctorsData) {
+              console.log('✅ Fetched doctors from backend:', doctorsData);
               setClinicDoctors(doctorsData || []);
 
               // Process services from doctors table (same logic as clinic admin)
               const serviceRows: Array<{specialty: string, service: string, doctorName: string, doctorId: string}> = [];
               
-              doctorsData?.forEach((doctor) => {
+              doctorsData?.forEach((doctor: any) => {
                 // Only process doctors that have services in the database
                 if (doctor.services && doctor.services.trim().length > 0) {
                   // Parse comma-separated services string
-                  const doctorServices = doctor.services.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                  const doctorServices = doctor.services.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
                   
-                  doctorServices.forEach(service => {
+                  doctorServices.forEach((service: string) => {
                     serviceRows.push({
                       specialty: doctor.specialty,
                       service: service,
@@ -145,7 +135,7 @@ const ClinicDetails = () => {
             }
           }
         } catch (error) {
-          console.error('Error in fetchClinic:', error);
+          console.error('❌ Error in fetchClinic:', error);
         } finally {
           setLoading(false);
         }

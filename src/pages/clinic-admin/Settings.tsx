@@ -22,7 +22,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { toast } from 'sonner';
 
 interface TeamMember {
@@ -111,16 +111,11 @@ const ClinicAdminSettings = () => {
         return;
       }
 
-      // Get clinic ID first
-      const { data: clinicData, error: clinicError } = await (supabase
-        .from('clinics' as any)
-        .select('id')
-        .eq('clinic_admin_id', user.id)
-        .eq('status', 'active')
-        .single() as any);
-
-      if (clinicError || !clinicData) {
-        console.error('❌ Error fetching clinic:', clinicError);
+      // Get clinic and team members via backend
+      const { clinic: clinicData } = await api.clinicAdmin.getClinic();
+      
+      if (!clinicData) {
+        console.error('❌ Clinic not found');
         setTeamMembers([]);
         setLoadingTeamMembers(false);
         return;
@@ -128,33 +123,20 @@ const ClinicAdminSettings = () => {
 
       setClinicId(clinicData.id);
 
-      // Fetch clinic doctors for dropdown
-      await fetchClinicDoctors(clinicData.id);
+      // Fetch clinic doctors and team members in parallel
+      const [_, teamMembersResponse] = await Promise.all([
+        fetchClinicDoctors(clinicData.id),
+        api.clinicAdmin.getTeamMembers(),
+      ]);
 
-      // Fetch invitations (doctors) for this clinic
-      const { data, error } = await (supabase
-        .from('clinic_admin_invitations' as any)
-        .select('*')
-        .eq('clinic_id', clinicData.id)
-        .order('created_at', { ascending: false }) as any);
-
-      if (error) {
-        console.error('❌ Error fetching doctor invitations:', error);
-        if (error.code !== '42P01') {
-          toast.error('Failed to load doctors');
-        }
-        setTeamMembers([]);
-        return;
-      }
-
-      // Map invitations to TeamMember format
-      const mappedMembers: TeamMember[] = (data || []).map((invitation: any) => ({
-        id: invitation.id,
-        name: invitation.name || invitation.email || 'N/A',
-        email: invitation.email,
-        status: invitation.status,
-        created_at: invitation.created_at,
-        doctor_id: invitation.doctor_id,
+      // Map to TeamMember format
+      const mappedMembers: TeamMember[] = (teamMembersResponse?.teamMembers || []).map((member: any) => ({
+        id: member.id,
+        name: member.name || member.email || 'N/A',
+        email: member.email,
+        status: member.status,
+        created_at: member.created_at,
+        doctor_id: member.doctor_id,
       }));
 
       console.log('✅ Doctors fetched:', mappedMembers.length);
@@ -175,20 +157,15 @@ const ClinicAdminSettings = () => {
       setLoadingDoctors(true);
       console.log('🔍 Fetching clinic doctors for dropdown...');
       
-      const { data: doctorsData, error: doctorsError } = await (supabase
-        .from('doctors' as any)
-        .select('id, name, email')
-        .eq('clinic_id', clinicIdParam)
-        .order('name', { ascending: true }) as any);
-
-      if (doctorsError) {
-        console.error('❌ Error fetching clinic doctors:', doctorsError);
-        setClinicDoctors([]);
-        return;
-      }
+      // Fetch doctors via backend API (filtered by clinic_id)
+      const { doctors: doctorsData } = await api.doctors.getDoctors(clinicIdParam);
 
       console.log('✅ Clinic doctors fetched:', doctorsData?.length || 0);
-      setClinicDoctors(doctorsData || []);
+      setClinicDoctors((doctorsData || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        email: d.email || '',
+      })));
     } catch (error) {
       console.error('❌ Error fetching clinic doctors:', error);
       setClinicDoctors([]);
@@ -212,14 +189,20 @@ const ClinicAdminSettings = () => {
 
   // Fetch profile data and team members
   useEffect(() => {
-    try {
-      fetchProfile();
-      fetchTeamMembers();
-    } catch (error: any) {
-      console.error('❌ Error in Settings page useEffect:', error);
-      setHasError(true);
-      setErrorMessage(error?.message || 'An error occurred loading the settings page');
-    }
+    if (!user) return;
+    const fetchSettingsData = async () => {
+      try {
+        await Promise.all([
+          fetchProfile(),
+          fetchTeamMembers(),
+        ]);
+      } catch (error: any) {
+        console.error('❌ Error in Settings page useEffect:', error);
+        setHasError(true);
+        setErrorMessage(error?.message || 'An error occurred loading the settings page');
+      }
+    };
+    fetchSettingsData();
   }, [user]);
   
   // Error boundary - show error message if something went wrong
@@ -255,88 +238,78 @@ const ClinicAdminSettings = () => {
     try {
       if (!user) return;
 
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, email, created_at, role')
-        .eq('user_id', user.id)
-        .single();
+      const [profileResult, settingsResult] = await Promise.allSettled([
+        api.clinicAdmin.getProfile(),
+        api.adminSettings.getSettings(),
+      ]);
 
-      if (profileError) {
-        console.error('❌ Error fetching profile:', profileError);
-        return;
-      }
+      if (profileResult.status === 'fulfilled') {
+        const profileData = profileResult.value.profile;
+        if (profileData) {
+          const profile = profileData as any;
+          setProfileData({
+            fullName: profile.full_name || 'Dr. Adebayo',
+            email: profile.email || user.email || 'admin@lushcare.com',
+          });
 
-      if (profileData) {
-        const profile = profileData as any;
-        setProfileData({
-          fullName: profile.full_name || 'Dr. Adebayo',
-          email: profile.email || user.email || 'admin@lushcare.com',
-        });
-
-        // Format joined date
-        if (profile.created_at) {
-          const joinedDateObj = new Date(profile.created_at);
-          const formattedDate = joinedDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-          setJoinedDate(formattedDate);
+          // Format joined date
+          if (profile.created_at) {
+            const joinedDateObj = new Date(profile.created_at);
+            const formattedDate = joinedDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            setJoinedDate(formattedDate);
+          }
         }
       }
 
-      // Fetch admin settings (including general settings)
-      const { data: settingsData, error: settingsError } = await (supabase
-        .from('admin_settings' as any)
-        .select('*')
-        .eq('user_id', user.id)
-        .single() as any);
+      if (settingsResult.status === 'fulfilled') {
+        const settingsData = settingsResult.value.settings;
+        if (settingsData) {
+          // Load general settings
+          if (settingsData.default_appointment_duration) {
+            setDefaultAppointmentDuration(settingsData.default_appointment_duration);
+          }
+          if (settingsData.timezone) {
+            setTimezone(settingsData.timezone);
+          }
+          if (settingsData.date_format) {
+            setDateFormat(settingsData.date_format);
+          }
+          if (settingsData.language) {
+            setLanguage(settingsData.language);
+          }
+          
+          // Load notification settings
+          if (settingsData.appointment_alerts !== undefined) {
+            setAppointmentAlerts(settingsData.appointment_alerts);
+          }
+          if (settingsData.doctor_schedule_updates !== undefined) {
+            setDoctorScheduleUpdates(settingsData.doctor_schedule_updates);
+          }
+          if (settingsData.patient_reminders !== undefined) {
+            setPatientReminders(settingsData.patient_reminders);
+          }
+          if (settingsData.system_updates !== undefined) {
+            setSystemUpdates(settingsData.system_updates);
+          }
+        }
+      } else {
+        console.log('No admin settings found (will be created on save)');
+      }
 
-      if (!settingsError && settingsData) {
-        // Load general settings
-        if (settingsData.default_appointment_duration) {
-          setDefaultAppointmentDuration(settingsData.default_appointment_duration);
-        }
-        if (settingsData.timezone) {
-          setTimezone(settingsData.timezone);
-        }
-        if (settingsData.date_format) {
-          setDateFormat(settingsData.date_format);
-        }
-        if (settingsData.language) {
-          setLanguage(settingsData.language);
-        }
+      // Fetch user role via backend
+      try {
+        const { role: roleType } = await api.user.getUserRole();
         
-        // Load notification settings
-        if (settingsData.appointment_alerts !== undefined) {
-          setAppointmentAlerts(settingsData.appointment_alerts);
-        }
-        if (settingsData.doctor_schedule_updates !== undefined) {
-          setDoctorScheduleUpdates(settingsData.doctor_schedule_updates);
-        }
-        if (settingsData.patient_reminders !== undefined) {
-          setPatientReminders(settingsData.patient_reminders);
-        }
-        if (settingsData.system_updates !== undefined) {
-          setSystemUpdates(settingsData.system_updates);
-        }
-      }
-
-      // Fetch user role from user_roles table
-      const { data: userRoleData, error: userRoleError } = await (supabase
-        .from('user_roles' as any)
-        .select('role_type')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single() as any);
-
-      if (!userRoleError && userRoleData?.role_type) {
         // Map role_type to display name
         const roleDisplayName = 
-          userRoleData.role_type === 'super_admin' ? 'Super Admin' :
-          userRoleData.role_type === 'clinic_admin' ? 'Clinic Administrator' :
-          userRoleData.role_type === 'public_user' ? 'Public User' :
+          roleType === 'super_admin' ? 'Super Admin' :
+          roleType === 'clinic_admin' ? 'Clinic Administrator' :
+          roleType === 'public_user' ? 'Public User' :
+          roleType === 'patient' ? 'Patient' :
           'User';
         setUserRole(roleDisplayName);
-      } else {
-        // Fallback: Check profiles.role (legacy)
+      } catch (roleError) {
+        // Fallback: Check profile data
         if (profileData && 'role' in profileData && profileData.role) {
           const roleDisplayName = 
             profileData.role === 'super_admin' ? 'Super Admin' :
@@ -379,122 +352,17 @@ const ClinicAdminSettings = () => {
         return;
       }
 
-      // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Session expired. Please login again.');
-        return;
-      }
-
-      // Get current app URL (for invitation link)
-      const appUrl = window.location.origin;
-
-      // Prepare request body with trimmed values
-      const requestBody = {
+      const result = await api.clinicAdmin.sendDoctorInvitation({
         email: newTeamMember.email.trim(),
         name: newTeamMember.name.trim(),
-        doctor_id: newTeamMember.doctor_id, // Pass existing doctor_id
-        app_url: appUrl,
-      };
-
-      console.log('📤 Sending doctor invitation request:', {
-        email: requestBody.email,
-        name: requestBody.name,
-        app_url: requestBody.app_url,
-        clinicId: clinicId,
-        hasResendKey: !!requestBody.resend_api_key
+        doctor_id: newTeamMember.doctor_id,
       });
 
-      // Call edge function to send doctor invitation
-      let functionData: any = null;
-      let functionError: any = null;
-      
-      try {
-        const result = await supabase.functions.invoke('send-doctor-invitation', {
-          body: requestBody,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-        functionData = result.data;
-        functionError = result.error;
-      } catch (err: any) {
-        console.error('❌ Exception calling edge function:', err);
-        functionError = err;
-      }
-
-      if (functionError) {
-        console.error('❌ Error calling edge function:', functionError);
-        console.error('❌ Full error object:', JSON.stringify(functionError, null, 2));
-        console.error('❌ Error name:', functionError.name);
-        console.error('❌ Error message:', functionError.message);
-        console.error('❌ Error context:', functionError.context);
-        
-        // Try to get error message from response
-        let errorMessage = functionError.message || String(functionError);
-        let errorDetails = '';
-        
-        // Check if there's a response with error details
-        if (functionError.context) {
-          console.error('❌ Error context exists:', functionError.context);
-          if (functionError.context.body) {
-            try {
-              const errorBody = typeof functionError.context.body === 'string' 
-                ? JSON.parse(functionError.context.body) 
-                : functionError.context.body;
-              errorMessage = errorBody.error || errorMessage;
-              errorDetails = errorBody.received ? JSON.stringify(errorBody.received) : '';
-              console.error('❌ Parsed error body:', errorBody);
-            } catch (e) {
-              console.error('Could not parse error body:', e);
-            }
-          }
-        }
-        
-        // Try to get error from data if available
-        if (functionData && functionData.error) {
-          errorMessage = functionData.error;
-          console.error('❌ Error from function data:', functionData.error);
-        }
-        
-        console.error('❌ Final error message:', errorMessage);
-        if (errorDetails) {
-          console.error('❌ Error details:', errorDetails);
-        }
-        
-        // Show user-friendly error message
-        if (errorMessage.includes('Function not found') || 
-            errorMessage.includes('404') || 
-            errorMessage.includes('Failed to send a request')) {
-          toast.error('Edge function not deployed. Please deploy the function first.');
-          console.error('📝 DEPLOYMENT REQUIRED:');
-          console.error('Deploy the function: supabase functions deploy send-doctor-invitation');
-        } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-          toast.error('Unauthorized. Please check your session and try again.');
-        } else if (errorMessage.includes('403')) {
-          toast.error('Access denied. Only clinic admin can send doctor invitations.');
-        } else if (errorMessage.includes('400') || errorMessage.includes('Missing required fields') || errorMessage.includes('Validation')) {
-          toast.error(`Validation error: ${errorMessage}`);
-        } else if (errorMessage.includes('Clinic not found')) {
-          toast.error('Clinic not found or not active. Please check your clinic status.');
-        } else {
-          toast.error(`Failed to send invitation: ${errorMessage || 'Unknown error. Check console and Supabase logs.'}`);
-          console.error('📝 Please check Supabase Dashboard → Edge Functions → send-doctor-invitation → Logs for detailed error');
-        }
-        return;
-      }
-
-      if (functionData?.error) {
-        console.error('❌ Edge function error:', functionData.error);
-        toast.error(`Failed to send invitation: ${functionData.error}`);
-        return;
-      }
-
-      console.log('✅ Doctor invitation sent successfully:', functionData);
+      console.log('✅ Doctor invitation sent successfully:', result);
       toast.success(`Invitation sent to ${newTeamMember.email}!`);
       
       // Show invitation link in modal
-      const invitationUrl = functionData?.invitation_url || functionData?.test_url;
+      const invitationUrl = result?.invitation_url || result?.test_url;
       if (invitationUrl) {
         setInvitationLink(invitationUrl);
         setInvitedDoctorEmail(newTeamMember.email);

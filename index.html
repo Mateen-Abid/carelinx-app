@@ -19,6 +19,71 @@
 
   <body>
     <div id="root"></div>
+    <!-- Check for email confirmation tokens BEFORE React loads - CRITICAL: Must run first -->
+    <script>
+      // Run IMMEDIATELY, synchronously, before anything else
+      (function() {
+        try {
+          // Check hash parameters immediately - check ALL paths, not just root
+          var hash = window.location.hash;
+          var pathname = window.location.pathname;
+          var fullUrl = window.location.href;
+          
+          console.log('🚨 HTML Script - Checking URL:', fullUrl);
+          console.log('🚨 HTML Script - Pathname:', pathname, 'Hash:', hash);
+          
+          // Check if URL contains email confirmation indicators
+          if (hash) {
+            var hashParams = new URLSearchParams(hash.substring(1));
+            var hashType = hashParams.get('type');
+            var hashAccessToken = hashParams.get('access_token');
+            var hashRefreshToken = hashParams.get('refresh_token');
+            var hashError = hashParams.get('error');
+            var hashErrorCode = hashParams.get('error_code');
+            
+            console.log('🚨 HTML Script - Hash params:', {
+              type: hashType,
+              hasAccessToken: !!hashAccessToken,
+              hasRefreshToken: !!hashRefreshToken,
+              error: hashError,
+              errorCode: hashErrorCode,
+              fullHash: hash
+            });
+            
+            // Check for email confirmation errors (expired/invalid link) - CHECK THIS FIRST
+            if (hashError === 'access_denied' && (hashErrorCode === 'otp_expired' || hashErrorCode === 'email_not_confirmed')) {
+              console.log('🚨 HTML Script - ERROR DETECTED: Email confirmation link expired/invalid');
+              console.log('🚨 HTML Script - Redirecting to auth page IMMEDIATELY');
+              // Redirect to auth page with error message - use replace to prevent back button
+              window.location.replace('/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.');
+              // Also try href as backup
+              window.location.href = '/auth?mode=login&error=email_link_expired&message=The+email+confirmation+link+has+expired.+Please+request+a+new+confirmation+email.';
+              return;
+            }
+            
+            // Check for email confirmation (signup or email type)
+            var isEmailConfirmation = (hashType === 'signup' || hashType === 'email') && hashAccessToken && hashRefreshToken;
+            
+            if (isEmailConfirmation) {
+              console.log('🚨 HTML Script - Email confirmation detected, redirecting IMMEDIATELY to /auth');
+              try {
+                sessionStorage.setItem('email_just_confirmed', 'true');
+                sessionStorage.setItem('email_confirmed_time', String(Date.now()));
+              } catch (e) {
+                console.warn('Failed to set email confirmation session flag:', e);
+              }
+              // Clear hash and redirect to auth page
+              window.history.replaceState(null, '', '/auth?mode=login&message=email_confirmed');
+              window.location.replace('/auth?mode=login&message=email_confirmed');
+              return;
+            }
+          }
+          
+        } catch (e) {
+          console.error('Error checking hash params:', e);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

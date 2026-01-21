@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,68 +78,17 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-
-    // Set up real-time subscription for clinics table
-    const clinicsChannel = supabase
-      .channel('clinics-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clinics',
-        },
-        (payload) => {
-          console.log('🔄 Clinic change detected:', payload.eventType);
-          // Refresh dashboard data when clinics change
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(clinicsChannel);
-    };
-  }, [selectedTimeFilter, selectedStatusFilter]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching dashboard data...');
+      console.log('🔍 Fetching dashboard data from backend...');
       
-      // Check authentication first
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        console.error('❌ Authentication error:', authError);
-        return;
-      }
-      console.log('✅ User authenticated:', user.id, user.email);
-      
-      // Fetch all clinics from clinics table
-      const { data: clinicsData, error: clinicsError } = await supabase
-        .from('clinics')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch dashboard stats and clinics from backend
+      const { stats: dashboardStats, clinics: clinicsData } = await api.stats.getDashboard();
 
-      if (clinicsError) {
-        console.error('❌ Error fetching clinics:', clinicsError);
-        setStats({
-          totalClinics: 0,
-          activeClinics: 0,
-          pendingApproval: 0,
-          suspendedClinics: 0,
-          totalDoctors: 0,
-          totalPatients: 0,
-          totalAppointments: 0,
-        });
-        setRecentClinics([]);
-        setAllClinics([]);
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Clinics fetched:', clinicsData?.length || 0);
+      console.log('✅ Dashboard data fetched:', clinicsData?.length || 0, 'clinics');
 
       // Transform clinics data
       const clinics: Clinic[] = (clinicsData || []).map((clinic: any) => ({
@@ -163,80 +112,8 @@ const AdminDashboard = () => {
       }));
 
       setAllClinics(clinics);
+      setStats(dashboardStats);
 
-      // Calculate stats
-      const totalClinics = clinics.length;
-      const activeClinics = clinics.filter(c => c.status === 'active').length;
-      const pendingClinics = clinics.filter(c => c.status === 'pending').length;
-      const suspendedClinics = clinics.filter(c => c.status === 'suspended').length;
-
-      // Fetch additional statistics
-      const { count: totalPatients } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'patient');
-
-      const { count: totalAppointments } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true });
-
-      // Get total doctors from doctors table
-      const { count: totalDoctors } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true });
-
-      setStats({
-        totalClinics: totalClinics || 0,
-        activeClinics: activeClinics || 0,
-        pendingApproval: pendingClinics || 0,
-        suspendedClinics: suspendedClinics || 0,
-        totalDoctors: totalDoctors || 0,
-        totalPatients: totalPatients || 0,
-        totalAppointments: totalAppointments || 0,
-      });
-
-      // Filter clinics based on date filter and status filter
-      let filteredClinics = [...clinics];
-
-      // Apply status filter
-      if (selectedStatusFilter === 'all') {
-        // Show all clinics (no filter)
-        filteredClinics = filteredClinics;
-      } else if (selectedStatusFilter === 'active') {
-        filteredClinics = filteredClinics.filter(c => c.status === 'active');
-      } else if (selectedStatusFilter === 'pending') {
-        filteredClinics = filteredClinics.filter(c => c.status === 'pending');
-      } else if (selectedStatusFilter === 'suspended') {
-        filteredClinics = filteredClinics.filter(c => c.status === 'suspended');
-      }
-
-      // Apply date filter
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const thisWeekStart = new Date(today);
-      thisWeekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
-
-      filteredClinics = filteredClinics.filter(clinic => {
-        const clinicDate = new Date(clinic.created_at);
-        
-        if (selectedTimeFilter === 'today') {
-          return clinicDate >= today && clinicDate < tomorrow;
-        } else if (selectedTimeFilter === 'this-week') {
-          return clinicDate >= thisWeekStart;
-        } else {
-          // all-time
-          return true;
-        }
-      });
-
-      // Sort by creation date (most recent first) and limit to 10
-      filteredClinics.sort((a, b) => {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-
-      setRecentClinics(filteredClinics.slice(0, 10));
     } catch (error) {
       console.error('❌ Error fetching dashboard data:', error);
       setStats({
@@ -254,6 +131,51 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!allClinics.length) {
+      setRecentClinics([]);
+      return;
+    }
+
+    // Filter clinics based on date filter and status filter
+    let filteredClinics = [...allClinics];
+
+    // Apply status filter
+    if (selectedStatusFilter === 'active') {
+      filteredClinics = filteredClinics.filter(c => c.status === 'active');
+    } else if (selectedStatusFilter === 'pending') {
+      filteredClinics = filteredClinics.filter(c => c.status === 'pending');
+    } else if (selectedStatusFilter === 'suspended') {
+      filteredClinics = filteredClinics.filter(c => c.status === 'suspended');
+    }
+
+    // Apply date filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+
+    filteredClinics = filteredClinics.filter(clinic => {
+      const clinicDate = new Date(clinic.created_at);
+      if (selectedTimeFilter === 'today') {
+        return clinicDate >= today && clinicDate < tomorrow;
+      }
+      if (selectedTimeFilter === 'this-week') {
+        return clinicDate >= thisWeekStart;
+      }
+      return true; // all-time
+    });
+
+    // Sort by creation date (most recent first) and limit to 10
+    filteredClinics.sort((a, b) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    setRecentClinics(filteredClinics.slice(0, 10));
+  }, [allClinics, selectedTimeFilter, selectedStatusFilter]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -275,81 +197,13 @@ const AdminDashboard = () => {
   const fetchClinicStats = async (clinic: Clinic) => {
     try {
       setLoadingStats(true);
-      console.log('📊 Fetching stats for clinic:', clinic.id, clinic.name);
+      console.log('📊 Fetching stats for clinic from backend:', clinic.id, clinic.name);
 
-      const clinicId = clinic.id;
-      const clinicName = clinic.name;
+      const stats = await api.stats.getClinicStats(clinic.id);
 
-      // Fetch total doctors for this clinic
-      const { count: totalDoctors, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
+      setClinicStats(stats);
 
-      if (doctorsError) {
-        console.error('❌ Error fetching doctors count:', doctorsError);
-      }
-
-      // Fetch total appointments for this clinic
-      // First try by clinic_id
-      const { count: appointmentsByClinicId, error: appointmentsErrorById } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
-
-      // Also fetch by clinic name for NULL clinic_id bookings
-      let appointmentsByClinicName = 0;
-      if (clinicName) {
-        const { count: countByName, error: appointmentsErrorByName } = await supabase
-          .from('bookings')
-          .select('*', { count: 'exact', head: true })
-          .is('clinic_id', null)
-          .ilike('clinic', clinicName);
-
-        if (!appointmentsErrorByName && countByName) {
-          appointmentsByClinicName = countByName;
-        }
-      }
-
-      const totalAppointments = (appointmentsByClinicId || 0) + appointmentsByClinicName;
-
-      // Fetch total patients (unique users who have booked with this clinic)
-      // First get bookings by clinic_id
-      const { data: bookingsByClinicId, error: bookingsErrorById } = await supabase
-        .from('bookings')
-        .select('user_id')
-        .eq('clinic_id', clinicId);
-
-      // Also get bookings by clinic name for NULL clinic_id
-      let bookingsByClinicName: any[] = [];
-      if (clinicName) {
-        const { data: bookingsByName, error: bookingsErrorByName } = await supabase
-          .from('bookings')
-          .select('user_id')
-          .is('clinic_id', null)
-          .ilike('clinic', clinicName);
-
-        if (!bookingsErrorByName && bookingsByName) {
-          bookingsByClinicName = bookingsByName;
-        }
-      }
-
-      // Combine both sets and get unique user_ids
-      const allBookings = [...(bookingsByClinicId || []), ...bookingsByClinicName];
-      const uniqueUserIds = new Set(allBookings.map(b => b.user_id).filter(Boolean));
-      const totalPatients = uniqueUserIds.size;
-
-      setClinicStats({
-        totalDoctors: totalDoctors || 0,
-        totalPatients: totalPatients || 0,
-        totalAppointments: totalAppointments || 0,
-      });
-
-      console.log('✅ Clinic stats:', {
-        totalDoctors: totalDoctors || 0,
-        totalPatients: totalPatients || 0,
-        totalAppointments: totalAppointments || 0,
-      });
+      console.log('✅ Clinic stats:', stats);
     } catch (error) {
       console.error('❌ Error fetching clinic stats:', error);
       setClinicStats({
@@ -410,24 +264,14 @@ const AdminDashboard = () => {
 
     setSavingEdit(true);
     try {
-      const { error } = await supabase
-        .from('clinics')
-        .update({
-          name: editClinicForm.name,
-          description: editClinicForm.description || null,
-          specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
-          contact_email: editClinicForm.contact_email || null,
-          contact_phone: editClinicForm.contact_phone || null,
-          address: editClinicForm.address,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', selectedClinic.id);
-
-      if (error) {
-        console.error('Error updating clinic:', error);
-        alert('Error updating clinic: ' + error.message);
-        return;
-      }
+      const updatedClinic = await api.clinics.updateClinic(selectedClinic.id, {
+        name: editClinicForm.name,
+        description: editClinicForm.description || null,
+        specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
+        contact_email: editClinicForm.contact_email || null,
+        contact_phone: editClinicForm.contact_phone || null,
+        address: editClinicForm.address,
+      });
 
       // Update the selectedClinic state to reflect changes immediately
       setSelectedClinic({
@@ -444,9 +288,9 @@ const AdminDashboard = () => {
       // Refresh the dashboard data to show updated data
       await fetchDashboardData();
       alert('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating clinic:', error);
-      alert('Error updating clinic');
+      alert('Error updating clinic: ' + (error.message || 'Unknown error'));
     } finally {
       setSavingEdit(false);
     }

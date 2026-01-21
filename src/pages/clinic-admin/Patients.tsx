@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Search, MoreVertical, ArrowUpDown, ChevronDown, Eye, Pencil, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -89,17 +89,8 @@ const ClinicAdminPatients = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        // Check clinic via backend
+        const { clinic: clinicData } = await api.clinicAdmin.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           navigate('/clinic-admin/onboarding', { replace: true });
@@ -128,44 +119,13 @@ const ClinicAdminPatients = () => {
       setLoading(true);
       console.log('🔍 Fetching patients for clinic:', clinicId, clinic?.name);
 
-      // Fetch bookings for this clinic by clinic_id
-      const { data: bookingsByClinicId, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('user_id, appointment_date, created_at, clinic_id, clinic')
-        .eq('clinic_id', clinicId)
-        .order('appointment_date', { ascending: false });
+      // Fetch bookings via backend (includes profiles)
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
 
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings by clinic_id:', bookingsError);
-      }
-
-      console.log('✅ Bookings by clinic_id:', bookingsByClinicId?.length || 0);
-
-      // Also fetch bookings with NULL clinic_id that match clinic name
-      let bookingsWithNullClinicId: any[] = [];
-      if (clinic?.name) {
-        const { data: nullClinicBookings, error: nullError } = await supabase
-          .from('bookings')
-          .select('user_id, appointment_date, created_at, clinic_id, clinic')
-          .is('clinic_id', null)
-          .ilike('clinic', clinic.name)
-          .order('appointment_date', { ascending: false });
-
-        if (!nullError && nullClinicBookings) {
-          bookingsWithNullClinicId = nullClinicBookings;
-          console.log('✅ Bookings with NULL clinic_id:', bookingsWithNullClinicId.length);
-        }
-      }
-
-      // Combine both sets of bookings (avoid duplicates)
-      const existingUserIds = new Set((bookingsByClinicId || []).map(b => b.user_id));
-      const uniqueNullBookings = bookingsWithNullClinicId.filter(b => !existingUserIds.has(b.user_id));
-      const bookingsData = [...(bookingsByClinicId || []), ...uniqueNullBookings];
-
-      console.log('✅ Total bookings fetched:', bookingsData.length);
+      console.log('✅ Total bookings fetched:', allBookings?.length || 0);
 
       // Get unique user IDs from bookings (only patients who have booked with THIS clinic)
-      const userIds = [...new Set(bookingsData?.map(b => b.user_id).filter(id => id !== null) || [])];
+      const userIds = [...new Set(allBookings?.map((b: any) => b.user_id).filter((id: any) => id !== null) || [])];
       
       if (userIds.length === 0) {
         setPatients([]);
@@ -175,60 +135,65 @@ const ClinicAdminPatients = () => {
 
       console.log('👥 Unique user IDs from bookings:', userIds.length);
 
-      // Fetch profiles for these users (including gender and date_of_birth if they exist)
-      // This will only return profiles for users who have set up their profile
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email, created_at, gender, date_of_birth, phone')
-        .in('user_id', userIds);
-
-      if (profilesError) {
-        console.error('❌ Error fetching profiles:', profilesError);
-        // Don't return here - we can still show patients without profiles
-      }
-
-      console.log('✅ Profiles fetched:', profilesData?.length || 0);
-      if (profilesData && profilesData.length > 0) {
-        console.log('📋 Sample profile data:', profilesData[0]);
-      }
-
-      // Create a map of user_id to profile for quick lookup
+      // Create a map of user_id to profile for quick lookup (profiles are already attached)
       const profileMap = new Map();
-      profilesData?.forEach(profile => {
-        profileMap.set(profile.user_id, profile);
-        console.log('📝 Mapping profile for user_id:', profile.user_id, 'name:', profile.full_name);
+      allBookings?.forEach((booking: any) => {
+        if (booking.profile && !profileMap.has(booking.user_id)) {
+          profileMap.set(booking.user_id, booking.profile);
+        }
       });
       
       console.log('🗺️ Profile map size:', profileMap.size);
 
-      // Create a map of user_id to last appointment date
+      // Create a map of user_id to last appointment date (prefer past/today)
       const lastAppointmentMap = new Map<string, string>();
+      const lastAppointmentAnyMap = new Map<string, string>();
       // Create a map of user_id to first appointment date (for "New This Month")
       const firstAppointmentMap = new Map<string, string>();
       // Create a map of user_id to appointment count (for "Returning Patients")
       const appointmentCountMap = new Map<string, number>();
       
-      bookingsData?.forEach(booking => {
+      const normalizeDate = (dateValue: string | null | undefined): string => {
+        if (!dateValue) return '';
+        return dateValue.split('T')[0];
+      };
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      allBookings?.forEach((booking: any) => {
         const userId = booking.user_id;
-        
-        // Track last appointment
-        if (!lastAppointmentMap.has(userId) || 
-            booking.appointment_date > (lastAppointmentMap.get(userId) || '')) {
-          lastAppointmentMap.set(userId, booking.appointment_date);
+        const bookingDate = booking.appointment_date;
+        const bookingDateStr = normalizeDate(bookingDate);
+
+        // Track last appointment (any)
+        const currentAny = lastAppointmentAnyMap.get(userId);
+        if (!currentAny || bookingDateStr > normalizeDate(currentAny)) {
+          lastAppointmentAnyMap.set(userId, bookingDate);
+        }
+
+        // Track last appointment (past or today only)
+        const currentLast = lastAppointmentMap.get(userId);
+        if (bookingDateStr && bookingDateStr <= todayStr && (!currentLast || bookingDateStr > normalizeDate(currentLast))) {
+          lastAppointmentMap.set(userId, bookingDate);
         }
         
         // Track first appointment
-        if (!firstAppointmentMap.has(userId) || 
-            booking.appointment_date < (firstAppointmentMap.get(userId) || '9999-12-31')) {
-          firstAppointmentMap.set(userId, booking.appointment_date);
+        const currentFirst = firstAppointmentMap.get(userId);
+        if (bookingDateStr && (!currentFirst || bookingDateStr < normalizeDate(currentFirst))) {
+          firstAppointmentMap.set(userId, bookingDate);
         }
         
         // Count appointments per user
         appointmentCountMap.set(userId, (appointmentCountMap.get(userId) || 0) + 1);
       });
 
-      // Calculate age from date_of_birth if available, otherwise use default
-      const calculateAge = (dateOfBirth: string | null, createdAt: string | null): number => {
+      // Calculate age from profile fields if available, otherwise use default
+      const calculateAge = (profile: any): number => {
+        const ageValue = Number(profile?.age);
+        if (Number.isFinite(ageValue) && ageValue > 0 && ageValue < 120) {
+          return ageValue;
+        }
+
+        const dateOfBirth = profile?.date_of_birth || profile?.dob || profile?.birth_date;
         if (dateOfBirth) {
           const birthDate = new Date(dateOfBirth);
           const today = new Date();
@@ -256,10 +221,10 @@ const ClinicAdminPatients = () => {
       // For each unique user who has a booking, create a patient entry
       const patientsData: Patient[] = userIds.map(userId => {
         const profile = profileMap.get(userId);
-        const lastAppointment = lastAppointmentMap.get(userId) || '';
+        const lastAppointment = lastAppointmentMap.get(userId) || lastAppointmentAnyMap.get(userId) || '';
         const firstAppointment = firstAppointmentMap.get(userId) || '';
         const appointmentCount = appointmentCountMap.get(userId) || 0;
-        const age = profile ? calculateAge(profile.date_of_birth, profile.created_at) : 0;
+        const age = profile ? calculateAge(profile) : 0;
         
         // Debug logging
         if (!profile) {
@@ -305,50 +270,56 @@ const ClinicAdminPatients = () => {
   };
 
   // Calculate statistics
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const stats = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const stats = {
-    totalPatients: patients.length,
-    newThisMonth: patients.filter(p => {
-      // Check if first appointment was this month
-      if (!p.firstAppointment) return false;
-      const firstAppt = new Date(p.firstAppointment);
-      return firstAppt.getMonth() === currentMonth && 
-             firstAppt.getFullYear() === currentYear;
-    }).length,
-    activePatients: patients.filter(p => p.status === 'active').length,
-    returningPatients: patients.filter(p => {
-      // Count patients who have more than one appointment
-      return (p.appointmentCount || 0) > 1;
-    }).length,
-  };
+    return {
+      totalPatients: patients.length,
+      newThisMonth: patients.filter(p => {
+        // Check if first appointment was this month
+        if (!p.firstAppointment) return false;
+        const firstAppt = new Date(p.firstAppointment);
+        return firstAppt.getMonth() === currentMonth && 
+               firstAppt.getFullYear() === currentYear;
+      }).length,
+      activePatients: patients.filter(p => p.status === 'active').length,
+      returningPatients: patients.filter(p => {
+        // Count patients who have more than one appointment
+        return (p.appointmentCount || 0) > 1;
+      }).length,
+    };
+  }, [patients]);
 
   // Filter patients
-  const filteredPatients = patients.filter(patient => {
-    const matchesGender = !genderFilter || genderFilter === 'all' || patient.gender === genderFilter;
-    const matchesSearch = !searchQuery || 
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesGender && matchesSearch;
-  });
+  const filteredPatients = useMemo(() => {
+    return patients.filter(patient => {
+      const matchesGender = !genderFilter || genderFilter === 'all' || patient.gender === genderFilter;
+      const matchesSearch = !searchQuery || 
+        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesGender && matchesSearch;
+    });
+  }, [patients, genderFilter, searchQuery]);
 
   // Sort patients
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    if (!sortBy) return 0;
-    
-    if (sortBy === 'age') {
-      return sortDirection === 'asc' ? a.age - b.age : b.age - a.age;
-    } else if (sortBy === 'lastAppointment') {
-      const dateA = a.lastAppointment ? new Date(a.lastAppointment).getTime() : 0;
-      const dateB = b.lastAppointment ? new Date(b.lastAppointment).getTime() : 0;
-      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-    }
-    return 0;
-  });
+  const sortedPatients = useMemo(() => {
+    return [...filteredPatients].sort((a, b) => {
+      if (!sortBy) return 0;
+      
+      if (sortBy === 'age') {
+        return sortDirection === 'asc' ? a.age - b.age : b.age - a.age;
+      } else if (sortBy === 'lastAppointment') {
+        const dateA = a.lastAppointment ? new Date(a.lastAppointment).getTime() : 0;
+        const dateB = b.lastAppointment ? new Date(b.lastAppointment).getTime() : 0;
+        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      return 0;
+    });
+  }, [filteredPatients, sortBy, sortDirection]);
 
   const handleSort = (column: 'age' | 'lastAppointment') => {
     if (sortBy === column) {
@@ -419,38 +390,18 @@ const ClinicAdminPatients = () => {
     setLoadingAppointments(true);
 
     try {
-      // Fetch appointments by clinic_id
-      const { data: appointmentsByClinicId, error: error1 } = await supabase
-        .from('bookings')
-        .select('id, appointment_date, doctor_name, specialty, status')
-        .eq('user_id', patient.user_id)
-        .eq('clinic_id', clinic?.id)
-        .order('appointment_date', { ascending: false });
-
-      if (error1) {
-        console.error('Error fetching appointments by clinic_id:', error1);
-      }
-
-      // Also fetch appointments with NULL clinic_id that match clinic name
-      let appointmentsWithNullClinicId: any[] = [];
-      if (clinic?.name) {
-        const { data: nullClinicAppointments, error: error2 } = await supabase
-          .from('bookings')
-          .select('id, appointment_date, doctor_name, specialty, status')
-          .eq('user_id', patient.user_id)
-          .is('clinic_id', null)
-          .ilike('clinic', clinic.name)
-          .order('appointment_date', { ascending: false });
-
-        if (!error2 && nullClinicAppointments) {
-          appointmentsWithNullClinicId = nullClinicAppointments;
-        }
-      }
-
-      // Combine both sets (avoid duplicates)
-      const existingIds = new Set((appointmentsByClinicId || []).map(a => a.id));
-      const uniqueNullAppointments = appointmentsWithNullClinicId.filter(a => !existingIds.has(a.id));
-      const allAppointments = [...(appointmentsByClinicId || []), ...uniqueNullAppointments];
+      // Fetch appointments for this patient via backend
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
+      const patientBookings = allBookings.filter((b: any) => b.user_id === patient.user_id);
+      
+      // Transform to appointment format
+      const allAppointments = patientBookings.map((b: any) => ({
+        id: b.id,
+        appointment_date: b.appointment_date,
+        doctor_name: b.doctor_name,
+        specialty: b.specialty,
+        status: b.status,
+      }));
 
       setPatientAppointments(allAppointments);
     } catch (error) {
@@ -500,35 +451,21 @@ const ClinicAdminPatients = () => {
         updateData.date_of_birth = dateOfBirth;
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('user_id', selectedPatient.user_id);
-
-      if (error) {
-        console.error('Error updating patient:', error);
-        toast.error('Failed to update patient information. Please try again.');
-        setSavingPatient(false);
-        return;
-      }
+      // Update patient profile via backend
+      await api.clinicAdmin.updatePatientProfile(selectedPatient.user_id, updateData);
 
       toast.success('Patient information updated successfully');
-
-      // If email is different, we might need to update it (but email is usually managed by auth)
-      // For now, we'll just refresh the patient list
 
       // Close modal and refresh patient list
       setIsEditPatientModalOpen(false);
       
       // Refresh the patient list
-      await fetchPatients();
+      if (clinic?.id) {
+        await fetchPatients(clinic.id);
+      }
       
-      // Re-fetch the updated patient data
-      const { data: updatedProfile } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
-        .eq('user_id', selectedPatient.user_id)
-        .single();
+      // Re-fetch the updated patient data via backend
+      const { profile: updatedProfile } = await api.clinicAdmin.getPatientProfile(selectedPatient.user_id);
 
       if (updatedProfile) {
         // Re-open patient details modal with updated data
@@ -572,40 +509,8 @@ const ClinicAdminPatients = () => {
 
     setDeletingPatient(true);
     try {
-      // Delete all bookings for this patient with this clinic
-      // First, delete bookings by clinic_id
-      const { error: error1 } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('user_id', patientToDelete.user_id)
-        .eq('clinic_id', clinic.id);
-
-      if (error1) {
-        console.error('Error deleting bookings by clinic_id:', error1);
-      }
-
-      // Also delete bookings with NULL clinic_id that match clinic name
-      let error2 = null;
-      if (clinic.name) {
-        const result = await supabase
-          .from('bookings')
-          .delete()
-          .eq('user_id', patientToDelete.user_id)
-          .is('clinic_id', null)
-          .ilike('clinic', clinic.name);
-
-        error2 = result.error;
-        if (error2) {
-          console.error('Error deleting bookings by clinic name:', error2);
-        }
-      }
-
-      // Check if there were any errors
-      if (error1 || error2) {
-        toast.error('Failed to delete patient. Please try again.');
-        setDeletingPatient(false);
-        return;
-      }
+      // Delete patient via backend (deletes all bookings for this patient with this clinic)
+      await api.clinicAdmin.deletePatient(patientToDelete.user_id);
 
       toast.success('Patient deleted successfully');
       setIsDeleteConfirmModalOpen(false);

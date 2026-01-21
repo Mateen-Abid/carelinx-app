@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -105,41 +106,36 @@ const ClinicOnboarding = () => {
           return;
         }
 
-        // Check if clinic already exists and is active
+        // Check if clinic already exists and is active via backend
         console.log('🔍 ClinicOnboarding: Checking for existing clinic...');
-        const { data: clinic, error } = await supabase
-          .from('clinics')
-          .select('id, name, status')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
+        try {
+          const { clinic } = await api.clinicAdmin.getClinic();
 
-        if (!isMounted) return;
+          if (!isMounted) return;
 
-        console.log('📋 ClinicOnboarding: Clinic check result:', { clinic, error });
+          console.log('📋 ClinicOnboarding: Clinic check result:', { clinic });
 
-        if (error) {
+          // If clinic exists and is active, redirect to dashboard
+          if (clinic && clinic.status === 'active') {
+            console.log('✅ ClinicOnboarding: Clinic already active, redirecting to dashboard');
+            navigate('/clinic-admin/dashboard', { replace: true });
+            return;
+          }
+
+          // If clinic exists but pending, load it
+          if (clinic && clinic.status === 'pending') {
+            setClinicId(clinic.id);
+          }
+
+          // Allow access if no clinic or status is pending
+          console.log('✅ ClinicOnboarding: Access granted - no clinic or pending status');
+          if (isMounted) setCheckingAccess(false);
+        } catch (error: any) {
           console.error('❌ ClinicOnboarding: Error checking clinic:', error);
           // Still allow access - might be RLS issue, but user should be able to create clinic
           if (isMounted) setCheckingAccess(false);
-          return;
         }
-
-        // If clinic exists and is active, redirect to dashboard
-        if (clinic && clinic.status === 'active') {
-          console.log('✅ ClinicOnboarding: Clinic already active, redirecting to dashboard');
-          navigate('/clinic-admin/dashboard', { replace: true });
-          return;
-        }
-
-        // If clinic exists but pending, load it
-        if (clinic && clinic.status === 'pending') {
-          setClinicId(clinic.id);
-        }
-
-        // Allow access if no clinic or status is pending
-        console.log('✅ ClinicOnboarding: Access granted - no clinic or pending status');
-        if (isMounted) setCheckingAccess(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ ClinicOnboarding: Error in checkAccess:', error);
         // On error, still allow access (better UX)
         if (isMounted) setCheckingAccess(false);
@@ -408,38 +404,25 @@ const ClinicOnboarding = () => {
           }
         }
 
-        // Create or update clinic in database
+        // Create or update clinic in database via backend
         if (clinicId) {
           // Update existing clinic
-          const { error } = await supabase
-            .from('clinics')
-            .update({
-              name: clinicInfo.name,
-              description: clinicInfo.description,
-              specialties: clinicInfo.specialties,
-              logo_url: logoUrl || undefined,
-            })
-            .eq('id', clinicId);
-
-          if (error) throw error;
+          await api.clinicAdmin.updateClinic({
+            name: clinicInfo.name,
+            description: clinicInfo.description,
+            specialties: clinicInfo.specialties,
+            logo_url: logoUrl || undefined,
+          });
         } else {
           // Create new clinic
-          const { data: clinic, error } = await supabase
-            .from('clinics')
-            .insert({
-              name: clinicInfo.name,
-              email: user?.email || '',
-              address: '', // Will be filled in Step 2
-              description: clinicInfo.description,
-              specialties: clinicInfo.specialties,
-              logo_url: logoUrl,
-              clinic_admin_id: user?.id,
-              status: 'pending',
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
+          const { clinic } = await api.clinicAdmin.createClinic({
+            name: clinicInfo.name,
+            email: user?.email || '',
+            address: '', // Will be filled in Step 2
+            description: clinicInfo.description,
+            specialties: clinicInfo.specialties,
+            logo_url: logoUrl,
+          });
           setClinicId(clinic.id);
         }
 
@@ -477,18 +460,13 @@ const ClinicOnboarding = () => {
 
       setLoading(true);
       try {
-        const { error } = await supabase
-          .from('clinics')
-          .update({
-            email: contactDetails.email,
-            contact_phone: contactDetails.phone,
-            contact_email: contactDetails.email,
-            address: contactDetails.address,
-            country: contactDetails.country,
-          })
-          .eq('id', clinicId);
-
-        if (error) throw error;
+        await api.clinicAdmin.updateClinic({
+          email: contactDetails.email,
+          contact_phone: contactDetails.phone,
+          contact_email: contactDetails.email,
+          address: contactDetails.address,
+          country: contactDetails.country,
+        });
 
         toast.success('Contact details saved!');
         setCurrentStep('operating-hours');
@@ -516,15 +494,8 @@ const ClinicOnboarding = () => {
 
       setLoading(true);
       try {
-        // Delete existing operating hours
-        await supabase
-          .from('clinic_operating_hours')
-          .delete()
-          .eq('clinic_id', clinicId);
-
-        // Insert new operating hours (convert display time to database time)
+        // Convert display time to database time and prepare hours
         const hoursToInsert = daysOfWeek.map(day => ({
-          clinic_id: clinicId,
           day_of_week: day.value,
           opening_time: operatingHours[day.value].isClosed 
             ? null 
@@ -535,19 +506,11 @@ const ClinicOnboarding = () => {
           is_closed: operatingHours[day.value].isClosed,
         }));
 
-        const { error: hoursError } = await supabase
-          .from('clinic_operating_hours')
-          .insert(hoursToInsert);
-
-        if (hoursError) throw hoursError;
+        // Update operating hours via backend
+        await api.clinicAdmin.updateOperatingHours(hoursToInsert);
 
         // Activate clinic
-        const { error: updateError } = await supabase
-          .from('clinics')
-          .update({ status: 'active' })
-          .eq('id', clinicId);
-
-        if (updateError) throw updateError;
+        await api.clinicAdmin.updateClinic({ status: 'active' });
 
         toast.success('Clinic onboarding completed successfully!');
         

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
@@ -25,60 +25,10 @@ const InviteAcceptance = () => {
         return;
       }
 
-      // First try to fetch from super_admin_invitations
-      let data: any = null;
-      let fetchError: any = null;
-      let invitationType: 'super_admin' | 'clinic_admin' = 'super_admin';
+      console.log('🔍 Fetching invitation from backend:', token);
+      const { invitation: data } = await api.invitations.getInvitation(token);
 
-      const { data: superAdminData, error: superAdminError } = await supabase
-        .from('super_admin_invitations')
-        .select('*')
-        .eq('invitation_token', token)
-        .maybeSingle();
-
-      if (superAdminData) {
-        data = superAdminData;
-        invitationType = 'super_admin';
-      } else if (superAdminError && superAdminError.code !== 'PGRST116') {
-        // If error is not "not found", try clinic_admin_invitations
-        console.log('🔍 Not found in super_admin_invitations, checking clinic_admin_invitations...');
-        
-        const { data: clinicAdminData, error: clinicAdminError } = await supabase
-          .from('clinic_admin_invitations')
-          .select('*')
-          .eq('invitation_token', token)
-          .maybeSingle();
-
-        if (clinicAdminData) {
-          data = clinicAdminData;
-          invitationType = 'clinic_admin';
-          // Add role_type for doctor invitations
-          data.role_type = 'doctor';
-        } else if (clinicAdminError) {
-          fetchError = clinicAdminError;
-        }
-      } else {
-        // Not found in super_admin_invitations, try clinic_admin_invitations
-        console.log('🔍 Not found in super_admin_invitations, checking clinic_admin_invitations...');
-        
-        const { data: clinicAdminData, error: clinicAdminError } = await supabase
-          .from('clinic_admin_invitations')
-          .select('*')
-          .eq('invitation_token', token)
-          .maybeSingle();
-
-        if (clinicAdminData) {
-          data = clinicAdminData;
-          invitationType = 'clinic_admin';
-          // Add role_type for doctor invitations
-          data.role_type = 'doctor';
-        } else if (clinicAdminError) {
-          fetchError = clinicAdminError;
-        }
-      }
-
-      if (fetchError || !data) {
-        console.error('❌ Error fetching invitation:', fetchError);
+      if (!data) {
         setError('Invitation not found or invalid');
         setLoading(false);
         return;
@@ -105,11 +55,12 @@ const InviteAcceptance = () => {
         return;
       }
 
+      console.log('✅ Invitation fetched from backend');
       setInvitation(data);
       setLoading(false);
     } catch (err: any) {
-      console.error('❌ Error:', err);
-      setError('Failed to load invitation');
+      console.error('❌ Error fetching invitation:', err);
+      setError(err.message || 'Failed to load invitation');
       setLoading(false);
     }
   };

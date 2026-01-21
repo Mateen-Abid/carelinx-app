@@ -10,7 +10,7 @@ import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 
 import { getClinicByServiceId, getServiceById, clinicsData } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
@@ -205,27 +205,29 @@ const ServiceDetails = () => {
           // Check if it's a UUID (database clinic) or a name (hardcoded clinic)
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicId);
           if (!isUUID) {
-            // If it's a clinic name (hardcoded clinic), try to find it in database by name
-            const { data: clinicByName } = await supabase
-              .from('clinics')
-              .select('id')
-              .eq('name', clinicId)
-              .eq('status', 'active')
-              .maybeSingle();
-            if (clinicByName) {
-              clinicId = clinicByName.id;
+            // If it's a clinic name (hardcoded clinic), fetch all clinics and find by name
+            try {
+              const { clinics } = await api.clinics.getClinics();
+              const clinicByName = clinics?.find((c: any) => c.name === clinicId && c.status === 'active');
+              if (clinicByName) {
+                clinicId = clinicByName.id;
+              }
+            } catch (error) {
+              console.error('Error finding clinic by name:', error);
             }
           }
         }
         
         // Fallback: fetch from doctor if clinicId not found
         if (!clinicId && doctorId) {
-          const { data: firstDoctor } = await supabase
-            .from('doctors')
-            .select('clinic_id')
-            .eq('id', doctorId)
-            .maybeSingle();
-          clinicId = firstDoctor?.clinic_id || null;
+          try {
+            // Fetch all doctors and find the one with matching ID
+            const { doctors } = await api.doctors.getDoctors();
+            const firstDoctor = doctors?.find((d: any) => d.id === doctorId);
+            clinicId = firstDoctor?.clinic_id || null;
+          } catch (error) {
+            console.error('Error finding doctor:', error);
+          }
         }
 
         if (!clinicId) {
@@ -234,19 +236,9 @@ const ServiceDetails = () => {
           return;
         }
 
-        // Fetch clinic
-        const { data: clinicData, error: clinicError } = await supabase
-          .from('clinics')
-          .select('id, name, address, logo_url, specialties, description, status')
-          .eq('id', clinicId)
-          .eq('status', 'active')
-          .maybeSingle();
-
-        if (clinicError) {
-          console.error('Error fetching clinic:', clinicError);
-          setLoading(false);
-          return;
-        }
+        // Fetch clinic from backend
+        console.log('📡 Fetching clinic from backend...');
+        const { clinic: clinicData } = await api.clinics.getClinic(clinicId);
 
         if (!clinicData) {
           console.log('❌ Clinic not found');
@@ -254,18 +246,15 @@ const ServiceDetails = () => {
           return;
         }
 
-        console.log('✅ Fetched clinic:', clinicData);
+        console.log('✅ Fetched clinic from backend:', clinicData);
         setDatabaseClinic(clinicData);
 
-        // Fetch ALL doctors from this clinic
-        const { data: allDoctors, error: doctorsError } = await supabase
-          .from('doctors')
-          .select('id, name, specialty, email, phone, availability, services, status')
-          .eq('clinic_id', clinicId)
-          .eq('status', 'active');
+        // Fetch ALL doctors from this clinic via backend
+        console.log('📡 Fetching doctors from backend...');
+        const { doctors: allDoctors } = await api.doctors.getDoctors(clinicId);
 
-        if (doctorsError) {
-          console.error('Error fetching doctors:', doctorsError);
+        if (!allDoctors) {
+          console.error('Error fetching doctors');
           setLoading(false);
           return;
         }
@@ -273,11 +262,7 @@ const ServiceDetails = () => {
         // First, get the specialty from the original doctor (to filter by specialty)
         let requiredSpecialty: string | null = null;
         if (doctorId) {
-          const { data: originalDoctor } = await supabase
-            .from('doctors')
-            .select('specialty')
-            .eq('id', doctorId)
-            .maybeSingle();
+          const originalDoctor = allDoctors.find((d: any) => d.id === doctorId);
           requiredSpecialty = originalDoctor?.specialty || null;
         }
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import DoctorSidebar from '@/components/doctor/DoctorSidebar';
-import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,7 +51,6 @@ interface Clinic {
 }
 
 const DoctorPatients = () => {
-  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -619,8 +617,8 @@ const DoctorPatients = () => {
 
   return (
     <ProtectedRoute allowedRoles={['doctor']}>
-      <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
-        <DoctorSidebar isDarkMode={isDarkMode} onDarkModeToggle={toggleDarkMode} />
+      <div className="min-h-screen flex">
+        <DoctorSidebar />
         
         <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
           <div className="p-8">

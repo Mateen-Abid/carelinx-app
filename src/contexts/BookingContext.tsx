@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import FeedbackModal from '@/components/FeedbackModal';
 import { clinicsData } from '@/data/clinicsData';
+import { api } from '@/services/api';
+import { useAuth } from './AuthContext';
 
 export interface Appointment {
   id: string;
@@ -43,32 +44,26 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     doctorName: ''
   });
 
-  // Fetch appointments from database
+  const { user } = useAuth();
+
+  // Fetch appointments from backend API
   const fetchAppointments = async () => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return;
+      if (!user) return;
 
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('user_id', user.user.id)
-        .order('created_at', { ascending: false });
+      console.log('📡 Fetching bookings from backend...');
+      const { bookings: data } = await api.bookings.getBookings();
 
-      if (error) {
-        console.error('Error fetching appointments:', error);
+      if (!data) {
+        console.log('ℹ️ No bookings found');
         return;
       }
 
-      // Fetch all clinics from database to get logos
-      const { data: clinicsDataFromDB, error: clinicsError } = await supabase
-        .from('clinics')
-        .select('id, name, logo_url')
-        .eq('status', 'active');
+      console.log('✅ Fetched bookings from backend:', data.length);
 
-      if (clinicsError) {
-        console.error('Error fetching clinics:', clinicsError);
-      }
+      // Fetch all clinics from backend to get logos
+      console.log('📡 Fetching clinics for logos...');
+      const { clinics: clinicsDataFromDB } = await api.clinics.getClinics();
 
       // Create a map for quick clinic lookup by ID and name
       const clinicMapById = new Map<string, { name: string; logo_url: string | null }>();
@@ -137,123 +132,37 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Set up real-time subscription and check for existing pending bookings
+  // Fetch bookings on mount
   useEffect(() => {
-    const initializeBookings = async () => {
-      await fetchAppointments();
-      
-      // Check for existing pending bookings and show feedback modal immediately
-      const { data: user } = await supabase.auth.getUser();
-      if (user.user) {
-        const { data: pendingBookings } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('user_id', user.user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1); // Get the most recent pending booking
-        
-        if (pendingBookings && pendingBookings.length > 0) {
-          const pendingBooking = pendingBookings[0];
-          console.log('Found pending booking, keeping status as pending');
-          
-          // Keep status as pending - don't auto-convert to confirmed
-          // The status will change to 'confirmed' when clinic admin approves it
-          // Show feedback modal immediately
-          setFeedbackModal({
-            isOpen: true,
-            bookingId: pendingBooking.id,
-            clinicName: pendingBooking.clinic,
-            doctorName: pendingBooking.doctor_name
-          });
-        }
-      }
-    };
-
-    initializeBookings();
-
-    const channel = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'bookings'
-        },
-        (payload) => {
-          console.log('Booking update received:', payload);
-          
-          // When a new booking is created (pending), show feedback modal immediately
-          if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
-            console.log('New pending booking created, keeping status as pending');
-            
-            // Keep status as pending - don't auto-convert to confirmed
-            // The status will change to 'confirmed' when clinic admin approves it
-            
-            // Show feedback modal immediately
-            setFeedbackModal({
-              isOpen: true,
-              bookingId: payload.new.id,
-              clinicName: payload.new.clinic,
-              doctorName: payload.new.doctor_name
-            });
-          }
-          
-          // When a booking status is updated (e.g., from 'pending' to 'confirmed' by clinic admin)
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            console.log('Booking status updated:', payload.new.status);
-            
-            // Update the appointment in the local state immediately
-            setAppointments(prev => prev.map(apt => 
-              apt.id === payload.new.id 
-                ? { 
-                    ...apt, 
-                    status: (payload.new.status || apt.status) as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled'
-                  }
-                : apt
-            ));
-          }
-          
-          // Refetch appointments to update the UI in real-time
-          fetchAppointments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    fetchAppointments();
+  }, [user]);
 
   const addAppointment = async (appointmentData: Omit<Appointment, 'id' | 'bookedAt'>): Promise<string> => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
+      if (!user) throw new Error('User not authenticated');
 
       const bookingPayload = {
-        doctorName: appointmentData.doctorName,
+        doctor_name: appointmentData.doctorName,
         specialty: appointmentData.specialty || 'General',
         clinic: appointmentData.clinic,
-        date: appointmentData.date,
-        time: appointmentData.time,
-        userId: user.user.id,
-        doctorId: appointmentData.doctorId || null
+        appointment_date: appointmentData.date,
+        appointment_time: appointmentData.time,
+        doctor_id: appointmentData.doctorId || null
       };
       
-      console.log('📤 Sending booking request to edge function:', {
+      console.log('📤 Sending booking request to backend:', {
         ...bookingPayload,
-        userId: user.user.id.substring(0, 8) + '...' // Partially hide user_id for privacy
+        userId: user.id.substring(0, 8) + '...' // Partially hide user_id for privacy
       });
       
-      // Call the edge function to process the booking
-      const { data, error } = await supabase.functions.invoke('process-booking', {
-        body: bookingPayload
-      });
+      // Call the backend API to create the booking
+      const { booking } = await api.bookings.createBooking(bookingPayload);
 
-      if (error) throw error;
+      if (!booking || !booking.id) {
+        throw new Error('Failed to create booking');
+      }
       
-      console.log('Booking created:', data);
+      console.log('✅ Booking created via backend:', booking.id);
       
       // Don't show feedback modal immediately - let the booking confirmation modal show first
       // The feedback modal will be triggered after the user closes the confirmation modal
@@ -261,49 +170,41 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Refresh appointments to get the new booking
       await fetchAppointments();
       
-      return data.bookingId;
+      return booking.id;
     } catch (error) {
-      console.error('Error adding appointment:', error);
+      console.error('❌ Error adding appointment:', error);
       throw error;
     }
   };
 
   const confirmAppointment = async (appointmentId: string): Promise<void> => {
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
+      console.log('📤 Confirming appointment via backend:', appointmentId);
+      await api.bookings.updateBooking(appointmentId, { 
+        status: 'confirmed', 
+        confirmed_at: new Date().toISOString() 
+      });
+      console.log('✅ Appointment confirmed successfully');
       await fetchAppointments();
     } catch (error) {
-      console.error('Error confirming appointment:', error);
+      console.error('❌ Error confirming appointment:', error);
+      throw error;
     }
   };
 
   const cancelAppointment = async (appointmentId: string): Promise<void> => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', appointmentId)
-        .eq('user_id', user.user.id); // Ensure user can only cancel their own bookings
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      console.log('📤 Cancelling appointment via backend:', appointmentId);
+      await api.bookings.updateBooking(appointmentId, { status: 'cancelled' });
       
-      console.log('Appointment cancelled successfully');
+      console.log('✅ Appointment cancelled successfully');
       await fetchAppointments();
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
+      console.error('❌ Error cancelling appointment:', error);
       throw error; // Re-throw to let the UI handle the error
     }
   };

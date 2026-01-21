@@ -4,7 +4,7 @@ import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,6 +75,7 @@ const ClinicAdminClinicProfile = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(false);
+  const [clinicLoaded, setClinicLoaded] = useState(false);
   
   // Edit Profile Form State
   const [editProfileForm, setEditProfileForm] = useState({
@@ -97,19 +98,8 @@ const ClinicAdminClinicProfile = () => {
       try {
         setLoadingSpecialties(true);
         
-        const { data: specialtiesData, error: specialtiesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_specialties' as any)
-          .select('name')
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
-
-        if (specialtiesError) {
-          console.error('Error fetching specialties:', specialtiesError);
-        } else {
-          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
-        }
+        const { specialties } = await api.adminServices.getSpecialties();
+        setAvailableSpecialties((specialties || []).map((s: any) => s.name));
       } catch (error) {
         console.error('Error fetching super admin specialties:', error);
       } finally {
@@ -125,23 +115,17 @@ const ClinicAdminClinicProfile = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        const { clinic: clinicData, operatingHours: hoursData } = await api.clinicAdmin.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           navigate('/clinic-admin/onboarding', { replace: true });
           return;
         }
 
+        setClinic(clinicData);
+        setOperatingHours(hoursData || []);
+        setClinicLoaded(true);
+        setLoading(false);
         setCheckingClinic(false);
       } catch (error) {
         console.error('Error in checkClinicExists:', error);
@@ -153,36 +137,12 @@ const ClinicAdminClinicProfile = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user && !checkingClinic) {
+    if (user && !checkingClinic && !clinicLoaded) {
       fetchClinicData();
     }
-  }, [user, checkingClinic]);
+  }, [user, checkingClinic, clinicLoaded]);
 
-  // Real-time subscription for clinic operating hours
-  useEffect(() => {
-    if (!clinic?.id) return;
-
-    const hoursChannel = supabase
-      .channel('clinic-operating-hours-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clinic_operating_hours',
-          filter: `clinic_id=eq.${clinic.id}`,
-        },
-        (payload) => {
-          console.log('🔄 Operating hours change detected:', payload.eventType);
-          fetchClinicData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(hoursChannel);
-    };
-  }, [clinic?.id]);
+  // Note: Real-time subscriptions removed - data refreshed on save/load
 
   const fetchClinicData = async () => {
     if (!user) return;
@@ -190,33 +150,12 @@ const ClinicAdminClinicProfile = () => {
     try {
       setLoading(true);
 
-      // Fetch clinic data
-      const { data: clinicData, error: clinicError } = await supabase
-        .from('clinics')
-        .select('id, name, email, contact_phone, contact_email, address, logo_url, description, specialties, registration_date, status')
-        .eq('clinic_admin_id', user.id)
-        .maybeSingle();
-
-      if (clinicError) {
-        console.error('Error fetching clinic:', clinicError);
-        return;
-      }
+      // Fetch clinic data via backend
+      const { clinic: clinicData, operatingHours: hoursData } = await api.clinicAdmin.getClinic();
 
       if (clinicData) {
         setClinic(clinicData);
-
-        // Fetch operating hours
-        const { data: hoursData, error: hoursError } = await supabase
-          .from('clinic_operating_hours')
-          .select('day_of_week, opening_time, closing_time, is_closed')
-          .eq('clinic_id', clinicData.id)
-          .order('day_of_week', { ascending: true });
-
-        if (hoursError) {
-          console.error('Error fetching operating hours:', hoursError);
-        } else {
-          setOperatingHours(hoursData || []);
-        }
+        setOperatingHours(hoursData || []);
       }
     } catch (error) {
       console.error('Error fetching clinic data:', error);
@@ -345,37 +284,32 @@ const ClinicAdminClinicProfile = () => {
 
   const uploadLogoToStorage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-      const filePath = `clinic-logos/${fileName}`;
+      // Convert file to base64 for backend upload
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix (e.g., "data:image/png;base64,")
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(file);
 
-      const { data, error } = await supabase.storage
-        .from('clinic-assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      const base64File = await base64Promise;
 
-      if (error) {
-        console.error('Error uploading logo:', error);
-        if (error.message?.includes('Bucket not found')) {
-          toast.error('Storage bucket not found. Please create "clinic-assets" bucket in Supabase Storage.');
-        } else {
-          toast.error(`Failed to upload logo: ${error.message || 'Unknown error'}`);
-        }
-        return null;
-      }
+      // Upload via backend API
+      const { logo_url } = await api.clinicAdmin.uploadLogo({
+        file: base64File,
+        fileName: file.name,
+        fileType: file.type,
+      });
 
-      if (!data) return null;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('clinic-assets')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
+      return logo_url;
     } catch (error: any) {
       console.error('Error in uploadLogoToStorage:', error);
-      toast.error('Failed to upload logo');
+      toast.error(`Failed to upload logo: ${error.message || 'Unknown error'}`);
       return null;
     }
   };
@@ -396,20 +330,16 @@ const ClinicAdminClinicProfile = () => {
         }
       }
 
-      const { error } = await supabase
-        .from('clinics')
-        .update({
-          name: editProfileForm.name,
-          description: editProfileForm.description || null,
-          specialties: editProfileForm.specialties.length > 0 ? editProfileForm.specialties : null,
-          contact_email: editProfileForm.email,
-          contact_phone: editProfileForm.phone || null,
-          address: editProfileForm.address,
-          logo_url: logoUrl || undefined,
-        })
-        .eq('id', clinic.id);
-
-      if (error) throw error;
+      // Update clinic via backend
+      await api.clinicAdmin.updateClinic({
+        name: editProfileForm.name,
+        description: editProfileForm.description || null,
+        specialties: editProfileForm.specialties.length > 0 ? editProfileForm.specialties : null,
+        contact_email: editProfileForm.email,
+        contact_phone: editProfileForm.phone || null,
+        address: editProfileForm.address,
+        logo_url: logoUrl || undefined,
+      });
 
       toast.success('Clinic profile updated successfully');
       setIsEditProfileModalOpen(false);
@@ -456,20 +386,13 @@ const ClinicAdminClinicProfile = () => {
 
     setSavingHours(true);
     try {
-      // Delete existing operating hours
-      await supabase
-        .from('clinic_operating_hours')
-        .delete()
-        .eq('clinic_id', clinic.id);
-
-      // Insert new operating hours
+      // Prepare operating hours data
       const hoursToInsert = daysOfWeek.map(day => {
         const dayHours = editHoursForm[day.value] || { opening: '', closing: '', isClosed: true };
         // Use isClosed from form, or check if times are empty
         const isClosed = dayHours.isClosed || !dayHours.opening || !dayHours.closing;
         
         return {
-          clinic_id: clinic.id,
           day_of_week: day.value,
           opening_time: isClosed ? null : convertToDatabaseTime(dayHours.opening),
           closing_time: isClosed ? null : convertToDatabaseTime(dayHours.closing),
@@ -477,11 +400,8 @@ const ClinicAdminClinicProfile = () => {
         };
       });
 
-      const { error } = await supabase
-        .from('clinic_operating_hours')
-        .insert(hoursToInsert);
-
-      if (error) throw error;
+      // Update operating hours via backend
+      await api.clinicAdmin.updateOperatingHours({ hours: hoursToInsert });
 
       toast.success('Operating hours updated successfully');
       setIsEditHoursModalOpen(false);

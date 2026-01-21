@@ -3,7 +3,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Removed - Using backend API
+import { api } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, X, Check, MoreVertical } from 'lucide-react';
@@ -113,54 +114,35 @@ const AdminServices = () => {
 
   // Fetch specialties, services, and requests
   useEffect(() => {
-    fetchData();
-    fetchServiceRequests();
-    fetchSpecialtyRequests();
+    const fetchInitialData = async () => {
+      await Promise.all([
+        fetchData(),
+        fetchServiceRequests(),
+        fetchSpecialtyRequests(),
+      ]);
+    };
+    fetchInitialData();
   }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch specialties
-      const { data: specialtiesData, error: specialtiesError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .select('*')
-        .eq('is_active', true)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .order('name', { ascending: true }) as any);
-
-      if (specialtiesError) {
-        console.error('Error fetching specialties:', specialtiesError);
-        toast.error('Failed to fetch specialties');
-      } else {
-        setSpecialties(specialtiesData || []);
-      }
-
-      // Fetch services with specialty names
-      const { data: servicesData, error: servicesError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_services' as any)
-        .select(`
-          *,
-          specialty:super_admin_specialties(name)
-        `)
-        .eq('is_active', true)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .order('name', { ascending: true }) as any);
-
-      if (servicesError) {
-        console.error('Error fetching services:', servicesError);
-        toast.error('Failed to fetch services');
-      } else {
-        // Transform services to include specialty name
-        const transformedServices = (servicesData || []).map((service: any) => ({
-          ...service,
-          specialty_name: service.specialty?.name || 'Unknown'
-        }));
-        setServices(transformedServices);
-      }
+      // Fetch specialties and services from backend in parallel
+      const [
+        { specialties: specialtiesData },
+        { services: servicesData },
+      ] = await Promise.all([
+        api.adminServices.getSpecialties(),
+        api.adminServices.getServices(),
+      ]);
+      setSpecialties(specialtiesData || []);
+      // Transform services to include specialty name
+      const transformedServices = (servicesData || []).map((service: any) => ({
+        ...service,
+        specialty_name: service.specialty?.name || 'Unknown'
+      }));
+      setServices(transformedServices);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to fetch data');
@@ -177,80 +159,24 @@ const AdminServices = () => {
     }
 
     try {
-      // First check if specialty with this name already exists (case-insensitive)
-      const { data: existingSpecialty, error: checkError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .select('id, name, is_active')
-        .ilike('name', newSpecialty.name.trim())
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .maybeSingle() as any);
+      // Create specialty via backend (handles checking for existing and reactivation)
+      const result = await api.adminServices.createSpecialty({
+        name: newSpecialty.name.trim(),
+        description: newSpecialty.description.trim() || null,
+      });
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 is "not found" which is fine
-        console.error('Error checking existing specialty:', checkError);
+      if (result.reactivated) {
+        toast.success(`Specialty "${result.specialty.name}" has been reactivated`);
+      } else {
+        toast.success('Specialty added successfully');
       }
 
-      if (existingSpecialty) {
-        if (existingSpecialty.is_active) {
-          toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
-          return;
-        } else {
-          // If specialty exists but is inactive, reactivate it instead
-          const { error: updateError } = await (supabase
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .from('super_admin_specialties' as any)
-            .update({
-              is_active: true,
-              description: newSpecialty.description.trim() || null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingSpecialty.id) as any);
-
-          if (updateError) {
-            console.error('Error reactivating specialty:', updateError);
-            toast.error('Failed to reactivate specialty');
-            return;
-          }
-
-          toast.success('Specialty reactivated successfully');
-          setShowAddSpecialtyModal(false);
-          setNewSpecialty({ name: '', description: '' });
-          fetchData();
-          return;
-        }
-      }
-
-      // If specialty doesn't exist, insert new one
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .insert({
-          name: newSpecialty.name.trim(),
-          description: newSpecialty.description.trim() || null,
-          created_by: user?.id || null
-        }) as any);
-
-      if (error) {
-        console.error('Error adding specialty:', error);
-        
-        // Check for duplicate key error
-        if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
-          toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
-        } else {
-          toast.error(`Failed to add specialty: ${error.message || 'Unknown error'}`);
-        }
-        return;
-      }
-
-      toast.success('Specialty added successfully');
       setShowAddSpecialtyModal(false);
       setNewSpecialty({ name: '', description: '' });
       fetchData();
     } catch (error: any) {
       console.error('Error adding specialty:', error);
-      
-      if (error?.code === '23505' || error?.message?.includes('duplicate key') || error?.message?.includes('unique constraint')) {
+      if (error?.message?.includes('already exists')) {
         toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
       } else {
         toast.error(`Failed to add specialty: ${error?.message || 'Unknown error'}`);
@@ -266,20 +192,10 @@ const AdminServices = () => {
     }
 
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .update({
-          name: editingSpecialty.name.trim(),
-          description: editingSpecialty.description || null
-        })
-        .eq('id', editingSpecialty.id) as any);
-
-      if (error) {
-        console.error('Error updating specialty:', error);
-        toast.error('Failed to update specialty');
-        return;
-      }
+      await api.adminServices.updateSpecialty(editingSpecialty.id, {
+        name: editingSpecialty.name.trim(),
+        description: editingSpecialty.description || null
+      });
 
       toast.success('Specialty updated successfully');
       setShowEditSpecialtyModal(false);
@@ -298,26 +214,16 @@ const AdminServices = () => {
     console.log('🗑️ Deleting specialty:', deletingSpecialty.id, deletingSpecialty.name);
 
     try {
-      // Use database function to delete specialty and all its services
-      // This bypasses RLS issues by using SECURITY DEFINER
-      const { data, error } = await supabase.rpc('delete_specialty_and_services', {
-        specialty_uuid: deletingSpecialty.id
-      });
-
-      if (error) {
-        console.error('❌ Error deleting specialty:', error);
-        toast.error(`Failed to delete specialty: ${error.message || error.code || 'Unknown error'}`);
-        return;
-      }
-
-      console.log('✅ Specialty and services deleted successfully:', data);
-      toast.success(`Specialty and ${data?.deleted_services_count || 0} service(s) deleted successfully`);
+      console.log('🗑️ Deleting specialty via backend:', deletingSpecialty.id);
+      const { deleted_services_count } = await api.adminServices.deleteSpecialty(deletingSpecialty.id);
+      console.log('✅ Specialty and services deleted successfully');
+      toast.success(`Specialty and ${deleted_services_count || 0} service(s) deleted successfully`);
       setShowDeleteSpecialtyModal(false);
       setDeletingSpecialty(null);
       fetchData();
     } catch (error: any) {
-      console.error('❌ Exception deleting specialty:', error);
-      toast.error(`Failed to delete specialty: ${error?.message || error?.code || 'Unknown error'}`);
+      console.error('❌ Error deleting specialty:', error);
+      toast.error(`Failed to delete specialty: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -329,29 +235,27 @@ const AdminServices = () => {
     }
 
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_services' as any)
-        .insert({
-          specialty_id: newService.specialty_id,
-          name: newService.name.trim(),
-          description: newService.description.trim() || null,
-          created_by: user?.id || null
-        }) as any);
-
-      if (error) {
-        console.error('Error adding service:', error);
-        toast.error('Failed to add service');
-        return;
-      }
+      await api.adminServices.createService({
+        specialty_id: newService.specialty_id,
+        name: newService.name.trim(),
+        description: newService.description.trim() || null,
+      });
 
       toast.success('Service added successfully');
       setShowAddServiceModal(false);
       setNewService({ specialty_id: '', name: '', description: '' });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding service:', error);
-      toast.error('Failed to add service');
+      // Show user-friendly error message
+      const errorMessage = error.message || 'Failed to add service';
+      if (errorMessage.includes('already exists')) {
+        toast.error(errorMessage);
+      } else if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+        toast.error('This service already exists for the selected specialty');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -363,21 +267,11 @@ const AdminServices = () => {
     }
 
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_services' as any)
-        .update({
-          specialty_id: editingService.specialty_id,
-          name: editingService.name.trim(),
-          description: editingService.description || null
-        })
-        .eq('id', editingService.id) as any);
-
-      if (error) {
-        console.error('Error updating service:', error);
-        toast.error('Failed to update service');
-        return;
-      }
+      await api.adminServices.updateService(editingService.id, {
+        specialty_id: editingService.specialty_id,
+        name: editingService.name.trim(),
+        description: editingService.description || null
+      });
 
       toast.success('Service updated successfully');
       setShowEditServiceModal(false);
@@ -396,19 +290,9 @@ const AdminServices = () => {
     console.log('🗑️ Deleting service:', deletingService.id, deletingService.name);
 
     try {
-      // Use database function to delete service
-      // This bypasses RLS issues by using SECURITY DEFINER
-      const { data, error } = await supabase.rpc('delete_service', {
-        service_uuid: deletingService.id
-      });
-
-      if (error) {
-        console.error('❌ Error deleting service:', error);
-        toast.error(`Failed to delete service: ${error.message || error.code || 'Unknown error'}`);
-        return;
-      }
-
-      console.log('✅ Service deleted successfully:', data);
+      console.log('🗑️ Deleting service via backend:', deletingService.id);
+      await api.adminServices.deleteService(deletingService.id);
+      console.log('✅ Service deleted successfully');
       toast.success('Service deleted successfully');
       setShowDeleteServiceModal(false);
       setDeletingService(null);
@@ -424,36 +308,17 @@ const AdminServices = () => {
     try {
       setLoadingRequests(true);
       
-      // Fetch pending service requests with clinic and specialty names
-      const { data: requestsData, error: requestsError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('service_requests' as any)
-        .select(`
-          *,
-          clinics:clinic_id (name),
-          specialties:specialty_id (name)
-        `)
-        .eq('status', 'pending')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .order('requested_at', { ascending: false }) as any);
+      // Fetch pending service requests from backend
+      const { requests: requestsData } = await api.adminServices.getServiceRequests();
 
-      if (requestsError) {
-        console.error('Error fetching service requests:', requestsError);
-        // Don't show error if table doesn't exist yet
-        if (requestsError.code !== '42P01') {
-          toast.error('Failed to fetch service requests');
-        }
-        setServiceRequests([]);
-      } else {
-        // Map the data to include clinic and specialty names
-        const mappedRequests = (requestsData || []).map((req: any) => ({
-          ...req,
-          clinic_name: req.clinics?.name || 'Unknown Clinic',
-          specialty_name: req.specialties?.name || 'Unknown Specialty'
-        }));
-        setServiceRequests(mappedRequests);
-        console.log('✅ Service requests fetched:', mappedRequests.length);
-      }
+      // Map the data to include clinic and specialty names
+      const mappedRequests = (requestsData || []).map((req: any) => ({
+        ...req,
+        clinic_name: req.clinics?.name || 'Unknown Clinic',
+        specialty_name: req.specialties?.name || 'Unknown Specialty'
+      }));
+      setServiceRequests(mappedRequests);
+      console.log('✅ Service requests fetched:', mappedRequests.length);
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
@@ -469,35 +334,16 @@ const AdminServices = () => {
     try {
       setLoadingSpecialtyRequests(true);
       
-      // Fetch pending specialty requests with clinic names
-      const { data: requestsData, error: requestsError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('specialty_requests' as any)
-        .select(`
-          *,
-          clinics:clinic_id(name)
-        `)
-        .eq('status', 'pending')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .order('requested_at', { ascending: false }) as any);
+      // Fetch pending specialty requests from backend
+      const { requests: requestsData } = await api.adminServices.getSpecialtyRequests();
 
-      if (requestsError) {
-        console.error('Error fetching specialty requests:', requestsError);
-        if (requestsError.code === '42P01' || requestsError.message?.includes('does not exist')) {
-          console.log('Specialty requests table does not exist yet');
-          setSpecialtyRequests([]);
-        } else {
-          setSpecialtyRequests([]);
-        }
-      } else {
-        // Map the data to include clinic names
-        const mappedRequests = (requestsData || []).map((req: any) => ({
-          ...req,
-          clinic_name: req.clinics?.name || 'Unknown Clinic',
-        }));
-        setSpecialtyRequests(mappedRequests);
-        console.log('✅ Specialty requests fetched:', mappedRequests.length);
-      }
+      // Map the data to include clinic names
+      const mappedRequests = (requestsData || []).map((req: any) => ({
+        ...req,
+        clinic_name: req.clinics?.name || 'Unknown Clinic'
+      }));
+      setSpecialtyRequests(mappedRequests);
+      console.log('✅ Specialty requests fetched:', mappedRequests.length);
     } catch (error: any) {
       console.error('Error fetching specialty requests:', error);
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
@@ -517,42 +363,7 @@ const AdminServices = () => {
     }
 
     try {
-      // First, add the service to super_admin_services
-      const { data: serviceData, error: serviceError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_services' as any)
-        .insert({
-          specialty_id: request.specialty_id,
-          name: request.service_name,
-          description: request.description,
-          is_active: true,
-          created_by: user.id
-        })
-        .select()
-        .single() as any);
-
-      if (serviceError) {
-        console.error('Error adding service:', serviceError);
-        toast.error('Failed to add service');
-        return;
-      }
-
-      // Then, update the request status to approved
-      const { error: updateError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('service_requests' as any)
-        .update({
-          status: 'approved',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id
-        })
-        .eq('id', request.id) as any);
-
-      if (updateError) {
-        console.error('Error updating request:', updateError);
-        toast.error('Failed to approve request');
-        return;
-      }
+      await api.adminServices.approveServiceRequest(request.id);
 
       toast.success('Service request approved and added successfully!');
       fetchServiceRequests(); // Refresh requests list
@@ -575,22 +386,7 @@ const AdminServices = () => {
     }
 
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('service_requests' as any)
-        .update({
-          status: 'rejected',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-          rejection_reason: rejectionReason.trim()
-        })
-        .eq('id', selectedRequest.id) as any);
-
-      if (error) {
-        console.error('Error rejecting request:', error);
-        toast.error('Failed to reject request');
-        return;
-      }
+      await api.adminServices.rejectServiceRequest(selectedRequest.id, rejectionReason.trim());
 
       toast.success('Service request rejected');
       setShowRejectModal(false);
@@ -611,41 +407,7 @@ const AdminServices = () => {
     }
 
     try {
-      // First, add the specialty to super_admin_specialties
-      const { data: specialtyData, error: specialtyError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('super_admin_specialties' as any)
-        .insert({
-          name: request.specialty_name,
-          description: request.description,
-          is_active: true,
-          created_by: user.id
-        })
-        .select()
-        .single() as any);
-
-      if (specialtyError) {
-        console.error('Error adding specialty:', specialtyError);
-        toast.error('Failed to add specialty');
-        return;
-      }
-
-      // Then, update the request status to approved
-      const { error: updateError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('specialty_requests' as any)
-        .update({
-          status: 'approved',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id
-        })
-        .eq('id', request.id) as any);
-
-      if (updateError) {
-        console.error('Error updating request:', updateError);
-        toast.error('Failed to approve request');
-        return;
-      }
+      await api.adminServices.approveSpecialtyRequest(request.id);
 
       toast.success('Specialty request approved and added successfully!');
       fetchSpecialtyRequests(); // Refresh requests list
@@ -668,22 +430,7 @@ const AdminServices = () => {
     }
 
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('specialty_requests' as any)
-        .update({
-          status: 'rejected',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-          rejection_reason: rejectionReason.trim()
-        })
-        .eq('id', selectedSpecialtyRequest.id) as any);
-
-      if (error) {
-        console.error('Error rejecting specialty request:', error);
-        toast.error('Failed to reject request');
-        return;
-      }
+      await api.adminServices.rejectSpecialtyRequest(selectedSpecialtyRequest.id, rejectionReason.trim());
 
       toast.success('Specialty request rejected');
       setShowRejectSpecialtyModal(false);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import DoctorSidebar from '@/components/doctor/DoctorSidebar';
-import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,6 @@ interface Clinic {
 }
 
 const DoctorAppointments = () => {
-  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -545,8 +543,8 @@ const DoctorAppointments = () => {
 
   return (
     <ProtectedRoute allowedRoles={['doctor']}>
-      <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
-        <DoctorSidebar isDarkMode={isDarkMode} onDarkModeToggle={toggleDarkMode} />
+      <div className="min-h-screen flex">
+        <DoctorSidebar />
         
         <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
           <div className="p-8">

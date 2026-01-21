@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
@@ -55,17 +55,9 @@ const Profile = () => {
       if (!user) return;
       
       setLoadingProfile(true);
+      console.log('🔍 Fetching profile from backend...');
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, email, gender, date_of_birth, phone')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile');
-      }
+      const { profile: data } = await api.profiles.getProfile();
       
       // Initialize profile with user's email, or use fetched data if it exists
       let profileData: Profile = {
@@ -102,9 +94,10 @@ const Profile = () => {
         }
       }
       
+      console.log('✅ Profile fetched from backend');
       setProfile(profileData);
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching profile:', error);
       toast.error('Failed to load profile');
       // Initialize with just email if fetch fails
       if (user) {
@@ -182,7 +175,7 @@ const Profile = () => {
         }
       }
       
-      // Update profile in Supabase (including gender, date_of_birth, and phone if columns exist)
+      // Update profile via backend API (including gender, date_of_birth, and phone if columns exist)
       const updateData: any = {
         full_name: profile.full_name
       };
@@ -198,33 +191,28 @@ const Profile = () => {
         updateData.phone = profile.phone;
       }
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('user_id', user?.id);
+      console.log('💾 Updating profile via backend...');
+      await api.profiles.updateProfile(updateData);
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        toast.error('Failed to update profile');
-      } else {
-        // Still store government_id in localStorage (not in database)
-        if (profile.government_id) {
-          const localProfile = localStorage.getItem('userProfile');
-          const additionalFields = localProfile ? JSON.parse(localProfile) : {};
-          localStorage.setItem('userProfile', JSON.stringify({
-            ...additionalFields,
-            government_id: profile.government_id
-          }));
-        }
-        
-        setShowProfileUpdated(true);
-        toast.success('Profile updated successfully');
-        // Refresh profile data
-        fetchProfile();
+      console.log('✅ Profile updated successfully');
+      
+      // Still store government_id in localStorage (not in database)
+      if (profile.government_id) {
+        const localProfile = localStorage.getItem('userProfile');
+        const additionalFields = localProfile ? JSON.parse(localProfile) : {};
+        localStorage.setItem('userProfile', JSON.stringify({
+          ...additionalFields,
+          government_id: profile.government_id
+        }));
       }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to update profile');
+      
+      setShowProfileUpdated(true);
+      toast.success('Profile updated successfully');
+      // Refresh profile data
+      fetchProfile();
+    } catch (error: any) {
+      console.error('❌ Error updating profile:', error);
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }

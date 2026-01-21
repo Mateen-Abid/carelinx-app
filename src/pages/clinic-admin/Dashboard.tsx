@@ -5,7 +5,7 @@ import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { X, ArrowUp, Check, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -74,6 +74,7 @@ const ClinicAdminDashboard = () => {
   // Appointments
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Appointment[]>([]);
+  const [bookingsCache, setBookingsCache] = useState<any[]>([]);
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'tomorrow' | 'this-week'>('today');
   const [selectedPendingFilter, setSelectedPendingFilter] = useState<'today' | 'tomorrow' | 'this-week'>('today');
   
@@ -92,18 +93,8 @@ const ClinicAdminDashboard = () => {
       if (!user) return;
 
       try {
-        // Check if clinic exists for this clinic admin
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url, specialties')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        // Check if clinic exists for this clinic admin via backend
+        const { clinic: clinicData } = await api.clinicAdmin.getClinic();
 
         // If no clinic exists, redirect to onboarding
         if (!clinicData) {
@@ -124,7 +115,10 @@ const ClinicAdminDashboard = () => {
         setCheckingClinic(false);
       } catch (error) {
         console.error('Error in checkClinicExists:', error);
-        setCheckingClinic(false);
+        // If error checking clinic (e.g., clinic doesn't exist), redirect to onboarding
+        console.log('Error checking clinic, redirecting to onboarding');
+        navigate('/clinic-admin/onboarding', { replace: true });
+        return;
       }
     };
 
@@ -159,54 +153,8 @@ const ClinicAdminDashboard = () => {
   useEffect(() => {
     if (!clinic?.id) return;
 
-    console.log('🔔 Setting up real-time subscription for clinic:', clinic.id);
-
-    const bookingsChannel = supabase
-      .channel(`clinic-dashboard-bookings-${clinic.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bookings',
-          filter: `clinic_id=eq.${clinic.id}`,
-        },
-        (payload) => {
-          console.log('📊 Booking change detected:', payload.eventType);
-          // Refresh dashboard data when bookings change
-          fetchDashboardData(clinic.id);
-        }
-      )
-      .subscribe();
-
-    // Also listen for bookings with clinic name (backward compatibility)
-    if (clinic.name) {
-      const bookingsByNameChannel = supabase
-        .channel(`clinic-dashboard-bookings-name-${clinic.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'bookings',
-            filter: `clinic=eq.${clinic.name}`,
-          },
-          (payload) => {
-            console.log('📊 Booking change detected (by name):', payload.eventType);
-            fetchDashboardData(clinic.id);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(bookingsChannel);
-        supabase.removeChannel(bookingsByNameChannel);
-      };
-    }
-
-    return () => {
-      supabase.removeChannel(bookingsChannel);
-    };
+    console.log('🔔 Real-time subscriptions disabled - using backend API');
+    // Real-time subscriptions removed to hide Supabase credentials from frontend
   }, [clinic?.id, clinic?.name]);
 
   const fetchDashboardData = async (clinicId: string) => {
@@ -223,70 +171,9 @@ const ClinicAdminDashboard = () => {
       weekStart.setDate(weekStart.getDate() - today.getDay()); // Start of week (Sunday)
       weekStart.setHours(0, 0, 0, 0); // Ensure it's at midnight for proper comparison
 
-      // Fetch bookings for this clinic
-      // Note: We'll fetch bookings and profiles separately to avoid join issues
-      // First try by clinic_id, then by clinic name for backward compatibility
-      let bookingsData: any[] = [];
-      let bookingsError: any = null;
-
-      // Try fetching by clinic_id first (new system)
-      const { data: bookingsById, error: errorById } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('appointment_date', { ascending: true })
-        .order('appointment_time', { ascending: true });
-
-      if (!errorById && bookingsById) {
-        bookingsData = bookingsById;
-      } else {
-        // Fallback: try by clinic name (backward compatibility)
-        if (clinic?.name) {
-          const { data: bookingsByName, error: errorByName } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('clinic', clinic.name)
-            .order('appointment_date', { ascending: true })
-            .order('appointment_time', { ascending: true });
-          
-          if (!errorByName && bookingsByName) {
-            bookingsData = bookingsByName;
-          } else {
-            bookingsError = errorByName;
-          }
-        } else {
-          bookingsError = errorById;
-        }
-      }
-
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings:', bookingsError);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch profiles separately if we have bookings
-      let bookingsWithProfiles: any[] = [];
-      if (bookingsData && bookingsData.length > 0) {
-        const userIds = [...new Set(bookingsData.map((b: any) => b.user_id))];
-        
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', userIds);
-
-        // Create profile map
-        const profileMap = new Map();
-        profilesData?.forEach((profile: any) => {
-          profileMap.set(profile.user_id, profile);
-        });
-
-        // Attach profiles to bookings
-        bookingsWithProfiles = bookingsData.map((booking: any) => ({
-          ...booking,
-          profiles: profileMap.get(booking.user_id),
-        }));
-      }
+      // Fetch bookings for this clinic via backend (includes profiles)
+      const { bookings: bookingsWithProfiles } = await api.clinicAdmin.getBookings();
+      setBookingsCache(bookingsWithProfiles || []);
 
       console.log('✅ Bookings fetched:', bookingsWithProfiles?.length || 0);
 
@@ -385,7 +272,7 @@ const ClinicAdminDashboard = () => {
       const formatAppointments = (bookings: any[]): Appointment[] => {
         return bookings.map((booking: any) => ({
           id: booking.id,
-          patient_name: booking.profiles?.full_name || 'Unknown Patient',
+          patient_name: booking.profile?.full_name || 'Unknown Patient',
           doctor_name: booking.doctor_name,
           specialty: booking.specialty,
           appointment_date: booking.appointment_date,
@@ -498,46 +385,9 @@ const ClinicAdminDashboard = () => {
       weekStart.setDate(weekStart.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      // Fetch bookings
-      let bookingsData: any[] = [];
-      const { data: bookingsById, error: errorById } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('appointment_date', { ascending: true })
-        .order('appointment_time', { ascending: true });
-
-      if (!errorById && bookingsById) {
-        bookingsData = bookingsById;
-      } else if (clinic?.name) {
-        const { data: bookingsByName } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('clinic', clinic.name)
-          .order('appointment_date', { ascending: true })
-          .order('appointment_time', { ascending: true });
-        if (bookingsByName) bookingsData = bookingsByName;
-      }
-
-      // Fetch profiles
-      let bookingsWithProfiles: any[] = [];
-      if (bookingsData.length > 0) {
-        const userIds = [...new Set(bookingsData.map((b: any) => b.user_id))];
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', userIds);
-
-        const profileMap = new Map();
-        profilesData?.forEach((profile: any) => {
-          profileMap.set(profile.user_id, profile);
-        });
-
-        bookingsWithProfiles = bookingsData.map((booking: any) => ({
-          ...booking,
-          profiles: profileMap.get(booking.user_id),
-        }));
-      }
+      const bookingsWithProfiles = bookingsCache.length > 0
+        ? bookingsCache
+        : (await api.clinicAdmin.getBookings(selectedTimeFilter)).bookings || [];
 
       // Filter by date range
       let filteredBookings = bookingsWithProfiles;
@@ -581,7 +431,7 @@ const ClinicAdminDashboard = () => {
 
       setUpcomingAppointments(upcoming.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profiles?.full_name || 'Unknown Patient',
+        patient_name: booking.profile?.full_name || 'Unknown Patient',
         doctor_name: booking.doctor_name,
         specialty: booking.specialty,
         appointment_date: booking.appointment_date,
@@ -610,46 +460,9 @@ const ClinicAdminDashboard = () => {
       weekStart.setDate(weekStart.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      // Fetch bookings
-      let bookingsData: any[] = [];
-      const { data: bookingsById, error: errorById } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('appointment_date', { ascending: true })
-        .order('appointment_time', { ascending: true });
-
-      if (!errorById && bookingsById) {
-        bookingsData = bookingsById;
-      } else if (clinic?.name) {
-        const { data: bookingsByName } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('clinic', clinic.name)
-          .order('appointment_date', { ascending: true })
-          .order('appointment_time', { ascending: true });
-        if (bookingsByName) bookingsData = bookingsByName;
-      }
-
-      // Fetch profiles
-      let bookingsWithProfiles: any[] = [];
-      if (bookingsData.length > 0) {
-        const userIds = [...new Set(bookingsData.map((b: any) => b.user_id))];
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', userIds);
-
-        const profileMap = new Map();
-        profilesData?.forEach((profile: any) => {
-          profileMap.set(profile.user_id, profile);
-        });
-
-        bookingsWithProfiles = bookingsData.map((booking: any) => ({
-          ...booking,
-          profiles: profileMap.get(booking.user_id),
-        }));
-      }
+      const bookingsWithProfiles = bookingsCache.length > 0
+        ? bookingsCache
+        : (await api.clinicAdmin.getBookings(selectedPendingFilter)).bookings || [];
 
       // Filter by date range
       let filteredBookings = bookingsWithProfiles;
@@ -687,7 +500,7 @@ const ClinicAdminDashboard = () => {
 
       setPendingRequests(pending.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profiles?.full_name || 'Unknown Patient',
+        patient_name: booking.profile?.full_name || 'Unknown Patient',
         doctor_name: booking.doctor_name,
         specialty: booking.specialty,
         appointment_date: booking.appointment_date,
@@ -722,36 +535,25 @@ const ClinicAdminDashboard = () => {
       setLoadingDetails(true);
       setIsDetailsModalOpen(true);
 
-      // Fetch full appointment details
-      const { data: bookingData, error: bookingError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', appointment.id)
-        .single();
+      // Fetch full appointment details via backend
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
+      const bookingData = allBookings.find((b: any) => b.id === appointment.id);
 
-      if (bookingError) {
-        console.error('Error fetching booking:', bookingError);
+      if (!bookingData) {
+        console.error('Booking not found');
         toast.error('Failed to load appointment details');
         setIsDetailsModalOpen(false);
         return;
       }
 
-      // Fetch patient profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone, gender')
-        .eq('user_id', appointment.user_id || bookingData.user_id)
-        .maybeSingle();
+      // Patient profile is already attached from backend
+      const profileData = bookingData.profile;
 
       // Fetch doctor details if doctor_id exists
       let doctorData = null;
-      if (bookingData.doctor_id) {
-        const { data: docData } = await supabase
-          .from('doctors')
-          .select('name, specialty, availability')
-          .eq('id', bookingData.doctor_id)
-          .maybeSingle();
-        doctorData = docData;
+      if (bookingData.doctor_id && clinic?.id) {
+        const { doctors } = await api.doctors.getDoctors(clinic.id);
+        doctorData = doctors.find((d: any) => d.id === bookingData.doctor_id);
       }
 
       // Build appointment details
@@ -791,12 +593,10 @@ const ClinicAdminDashboard = () => {
     if (!selectedAppointmentDetails) return;
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      });
 
       toast.success('Appointment approved successfully');
       setIsApproveConfirmModalOpen(false);
@@ -821,12 +621,9 @@ const ClinicAdminDashboard = () => {
     if (!selectedAppointmentDetails) return;
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        status: 'cancelled'
+      });
 
       toast.success('Appointment cancelled successfully');
       setIsCancelConfirmModalOpen(false);
@@ -859,16 +656,11 @@ const ClinicAdminDashboard = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          appointment_date: newAppointmentDate,
-          appointment_time: newAppointmentTime,
-          status: 'rescheduled',
-        })
-        .eq('id', selectedAppointmentDetails.id);
-
-      if (error) throw error;
+      await api.bookings.updateBooking(selectedAppointmentDetails.id, {
+        appointment_date: newAppointmentDate,
+        appointment_time: newAppointmentTime,
+        status: 'rescheduled',
+      });
 
       toast.success('Appointment rescheduled successfully');
       setIsRescheduleModalOpen(false);

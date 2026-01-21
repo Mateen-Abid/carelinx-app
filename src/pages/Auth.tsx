@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,8 +38,21 @@ const Auth = () => {
     const inviteToken = urlParams.get('invite');
     const inviteEmail = urlParams.get('email');
     
-    if (message) {
-      setAuthMessage(message);
+    // Check for error parameter (expired email link)
+    const error = urlParams.get('error');
+    if (error === 'email_link_expired') {
+      setAuthMessage('The email confirmation link has expired. Please request a new confirmation email.');
+      setIsLogin(true);
+      setShowResendEmail(true);
+    } else if (message) {
+      if (message === 'email_confirmed') {
+        setIsLogin(true);
+      } else if (message === 'password_reset') {
+        setAuthMessage('Password reset email sent! Please check your inbox and follow the instructions to reset your password.');
+        setIsLogin(true);
+      } else {
+        setAuthMessage(message);
+      }
     }
     
     // Set form mode based on URL parameter
@@ -63,33 +77,85 @@ const Auth = () => {
       console.log('💾 Invitation token saved to sessionStorage and localStorage:', inviteToken);
     }
     
-    // IMPORTANT: Don't redirect if invitation token is present (user needs to signup first)
-    // Only redirect if user is logged in AND no invitation token
-    if (user && userRole && !inviteToken) {
-      // Redirect based on role from database (fully dynamic)
-      if (userRole === 'super_admin') {
-        console.log('🚀 Auth.tsx: Redirecting super admin to dashboard');
-        navigate('/admin/dashboard', { replace: true });
-      } else if (userRole === 'clinic_admin') {
-        console.log('🚀 Auth.tsx: Redirecting clinic admin to dashboard');
-        navigate('/clinic-admin/dashboard', { replace: true });
-      } else if (userRole === 'doctor') {
-        console.log('🚀 Auth.tsx: Redirecting doctor to appointments');
-        navigate('/doctor/appointments', { replace: true });
+    const isAuthPage = window.location.pathname === '/auth';
+    const isEmailConfirmedFlow = message === 'email_confirmed' || error === 'email_link_expired';
+
+    // IMPORTANT: If user is logged in and has a role, redirect to dashboard
+    // This takes priority over invitation token - user has already completed signup
+    if (user && userRole) {
+      // Check if user has a proper role (not just patient/public_user)
+      const hasAdminRole = userRole === 'super_admin' || userRole === 'clinic_admin' || userRole === 'doctor';
+      
+      if (hasAdminRole) {
+        // User has a role assigned - they've completed signup, redirect to dashboard
+        // Clear invitation token from URL since signup is complete
+        if (inviteToken) {
+          console.log('✅ User has role assigned, signup complete. Clearing invitation token and redirecting.');
+          // Remove invitation token from URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('invite');
+          newUrl.searchParams.delete('email');
+          newUrl.searchParams.set('mode', 'login');
+          window.history.replaceState(null, '', newUrl.toString());
+        }
+        
+        // Redirect based on role from database (fully dynamic)
+        if (userRole === 'super_admin') {
+          console.log('🚀 Auth.tsx: Redirecting super admin to dashboard');
+          navigate('/admin/dashboard', { replace: true });
+        } else if (userRole === 'clinic_admin') {
+          // Check if clinic exists and is active before redirecting
+          // If no clinic or clinic is pending, redirect to onboarding
+          (async () => {
+            try {
+              const { clinic } = await api.clinicAdmin.getClinic();
+              
+              if (!clinic || clinic.status === 'pending') {
+                console.log('🚀 Auth.tsx: Clinic admin has no clinic or clinic is pending, redirecting to onboarding');
+                navigate('/clinic-admin/onboarding', { replace: true });
+              } else {
+                console.log('🚀 Auth.tsx: Redirecting clinic admin to dashboard');
+                navigate('/clinic-admin/dashboard', { replace: true });
+              }
+            } catch (error) {
+              // If error checking clinic (e.g., clinic doesn't exist), redirect to onboarding
+              console.log('🚀 Auth.tsx: Error checking clinic, redirecting to onboarding');
+              navigate('/clinic-admin/onboarding', { replace: true });
+            }
+          })();
+        } else if (userRole === 'doctor') {
+          console.log('🚀 Auth.tsx: Redirecting doctor to appointments');
+          navigate('/doctor/appointments', { replace: true });
+        }
+        return; // Exit early - don't show signup form
       } else {
         // Patient or public_user - redirect to homepage
+        if (isAuthPage && isEmailConfirmedFlow) {
+          console.log('🚀 Auth.tsx: Clearing email-confirmed flow and redirecting to homepage');
+          sessionStorage.setItem('skip_email_confirmed_redirect', 'true');
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('message');
+          newUrl.searchParams.delete('error');
+          window.history.replaceState(null, '', newUrl.toString());
+          navigate('/', { replace: true });
+          return; // Exit early
+        }
         console.log('🚀 Auth.tsx: Redirecting to homepage');
         navigate('/', { replace: true });
+        return; // Exit early
       }
-    } else if (user && inviteToken) {
-      // User is logged in but has invitation token - sign them out to allow new signup
-      // Check if logged in user's email matches invitation email
+    }
+    
+    // If user is logged in but has invitation token and NO role yet
+    // This means they haven't completed signup, so handle invitation flow
+    if (user && inviteToken && !userRole) {
+      // User is logged in but has invitation token - check if email matches
       if (inviteEmail && user.email?.toLowerCase() !== decodeURIComponent(inviteEmail).toLowerCase()) {
         console.log('ℹ️ User logged in with different email, signing out to allow invitation signup');
         signOut();
       } else if (inviteEmail && user.email?.toLowerCase() === decodeURIComponent(inviteEmail).toLowerCase()) {
-        // Same email - user might already be signed up, don't redirect, let them see the form
-        console.log('ℹ️ User logged in with same email as invitation, showing signup form');
+        // Same email - user might already be signed up but no role yet, show signup form
+        console.log('ℹ️ User logged in with same email as invitation but no role yet, showing signup form');
       }
     }
   }, [user, userRole, navigate]);
@@ -120,7 +186,17 @@ const Auth = () => {
         return;
       }
       
-      const result = await signUp(formData.email, formData.password, formData.fullName);
+      // Get invitation token from storage if present
+      const invitationToken = localStorage.getItem('invitation_token') || sessionStorage.getItem('invitation_token');
+      
+      const result = await signUp(formData.email, formData.password, formData.fullName, invitationToken || undefined);
+      
+      // Clear invitation token after signup attempt
+      if (invitationToken) {
+        localStorage.removeItem('invitation_token');
+        sessionStorage.removeItem('invitation_token');
+        localStorage.removeItem('invitation_email');
+      }
       
       // Handle signup errors specifically
       if (result.error) {
@@ -130,6 +206,9 @@ const Auth = () => {
         setLoading(false);
         return;
       }
+      
+      // Show resend email button after successful signup
+      setShowResendEmail(true);
     }
     
     setLoading(false);
@@ -210,6 +289,16 @@ const Auth = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Show auth message for email confirmation or password reset */}
+          {authMessage && (
+            <div className={`${
+              authMessage.includes('successfully') || authMessage.includes('sent')
+                ? 'bg-green-500/20 border border-green-500/50 text-green-400'
+                : 'bg-blue-500/20 border border-blue-500/50 text-blue-400'
+            } text-sm p-3 rounded-lg text-center`}>
+              <p>{authMessage}</p>
+            </div>
+          )}
           {signupError && (
             <div className="bg-red-500/20 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg text-center">
               <p className="mb-2">{signupError}</p>
@@ -360,15 +449,17 @@ const Auth = () => {
 
           {!isLogin && (
             <>
-              <Button
-                type="button"
-                onClick={handleResendConfirmation}
-                disabled={loading || !formData.email}
-                variant="outline"
-                className="w-full h-8 text-sm border-[#6B7280] text-[#6B7280] hover:bg-[#6B7280] hover:text-white rounded-full"
-              >
-                Resend Confirmation Email
-              </Button>
+              {showResendEmail && (
+                <Button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={loading || !formData.email}
+                  variant="outline"
+                  className="w-full h-8 text-sm border-[#6B7280] text-[#6B7280] hover:bg-[#6B7280] hover:text-white rounded-full"
+                >
+                  Resend Confirmation Email
+                </Button>
+              )}
               <p className="text-xs text-[#6B7280] text-center">
                 By creating an account, you agree to the{' '}
                 <button type="button" className="text-[#00FFC2] hover:underline">

@@ -3,7 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, MoreVertical, ChevronDown, X, Check } from 'lucide-react';
@@ -133,19 +133,11 @@ const ClinicAdminDoctors = () => {
       try {
         setLoadingSpecialties(true);
         
-        // Fetch specialties
-        const { data: specialtiesData, error: specialtiesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_specialties' as any)
-          .select('name')
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
+        // Fetch specialties via backend
+        const { specialties: specialtiesData } = await api.adminServices.getSpecialties();
 
-        if (specialtiesError) {
-          console.error('Error fetching specialties:', specialtiesError);
-        } else {
-          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
+        if (specialtiesData) {
+          setAvailableSpecialties(specialtiesData.map((s: any) => s.name));
         }
 
         // Services will be fetched when a specialty is selected
@@ -171,38 +163,24 @@ const ClinicAdminDoctors = () => {
         // Get the first selected specialty (primary specialty)
         const selectedSpecialtyName = newDoctor.specialties[0];
         
-        // Find specialty ID
-        const { data: specialtyData, error: specialtyError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_specialties' as any)
-          .select('id')
-          .eq('name', selectedSpecialtyName)
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .maybeSingle() as any);
+        const [{ specialties }, { services: servicesData }] = await Promise.all([
+          api.adminServices.getSpecialties(),
+          api.adminServices.getServices(),
+        ]);
+        const specialtyData = specialties.find((s: any) => s.name === selectedSpecialtyName && s.is_active);
 
-        if (specialtyError || !specialtyData) {
-          console.error('Error finding specialty:', specialtyError);
+        if (!specialtyData) {
+          console.error('Error: Specialty not found');
           setAvailableServices([]);
           return;
         }
 
-        // Fetch services for this specialty
-        const { data: servicesData, error: servicesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_services' as any)
-          .select('name')
-          .eq('specialty_id', specialtyData.id)
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
-
-        if (servicesError) {
-          console.error('Error fetching services:', servicesError);
-          setAvailableServices([]);
-        } else {
-          setAvailableServices((servicesData || []).map((s: any) => s.name));
-        }
+        const filteredServices = servicesData
+          .filter((s: any) => s.specialty_id === specialtyData.id && s.is_active)
+          .map((s: any) => s.name)
+          .sort();
+        
+        setAvailableServices(filteredServices);
       } catch (error) {
         console.error('Error fetching services:', error);
         setAvailableServices([]);
@@ -217,17 +195,8 @@ const ClinicAdminDoctors = () => {
       if (!user) return;
 
       try {
-        const { data: clinicData, error } = await supabase
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('clinic_admin_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking clinic:', error);
-          setCheckingClinic(false);
-          return;
-        }
+        console.log('📡 Checking clinic via backend for admin:', user.id);
+        const { clinic: clinicData } = await api.clinics.getClinicByAdmin(user.id);
 
         if (!clinicData || clinicData.status === 'pending') {
           navigate('/clinic-admin/onboarding', { replace: true });
@@ -237,7 +206,7 @@ const ClinicAdminDoctors = () => {
         setClinic(clinicData);
         setCheckingClinic(false);
       } catch (error) {
-        console.error('Error in checkClinicExists:', error);
+        console.error('❌ Error in checkClinicExists:', error);
         setCheckingClinic(false);
       }
     };
@@ -247,80 +216,72 @@ const ClinicAdminDoctors = () => {
 
   useEffect(() => {
     if (clinic?.id) {
-      fetchDoctors(clinic.id);
-      fetchTreatments(clinic.id);
+      fetchClinicData(clinic.id);
     }
   }, [clinic?.id]);
 
-  // Real-time subscription for doctors table
+  // Real-time subscriptions removed - using backend API instead
   useEffect(() => {
     if (!clinic?.id) return;
-
-    const doctorsChannel = supabase
-      .channel('doctors-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'doctors',
-          filter: `clinic_id=eq.${clinic.id}`,
-        },
-        (payload) => {
-          console.log('🔄 Doctor change detected:', payload.eventType);
-          fetchDoctors(clinic.id);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(doctorsChannel);
-    };
+    // Polling or manual refresh can be added here if needed
   }, [clinic?.id]);
 
-  // Real-time subscription for treatments table
-  useEffect(() => {
-    if (!clinic?.id) return;
+  // Real-time subscription removed - using backend API instead
 
-    const treatmentsChannel = supabase
-      .channel('treatments-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'treatments',
-          filter: `clinic_id=eq.${clinic.id}`,
-        },
-        (payload) => {
-          console.log('🔄 Treatment change detected:', payload.eventType);
-          fetchTreatments(clinic.id);
-        }
-      )
-      .subscribe();
+  const fetchClinicData = async (clinicId: string) => {
+    try {
+      setLoading(true);
+      console.log('🔍 Fetching doctors and treatments for clinic via backend:', clinicId);
 
-    return () => {
-      supabase.removeChannel(treatmentsChannel);
-    };
-  }, [clinic?.id]);
+      const [
+        { doctors: doctorsData },
+        { treatments: treatmentsData },
+      ] = await Promise.all([
+        api.doctors.getDoctors(clinicId),
+        api.clinicAdmin.getTreatments(),
+      ]);
+
+      if (!doctorsData) {
+        console.error('❌ No doctors data returned');
+        setDoctors([]);
+      } else {
+        console.log('✅ Doctors fetched from backend:', doctorsData.length);
+        setDoctors(doctorsData);
+      }
+
+      console.log('✅ Treatments fetched:', treatmentsData?.length || 0);
+      const transformedTreatments: Treatment[] = (treatmentsData || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        specialty: t.specialty || '',
+        service: t.service || '',
+        description: t.description || '',
+        price: t.price || '',
+        status: t.status as 'active' | 'inactive',
+      }));
+      setTreatments(transformedTreatments);
+    } catch (error) {
+      console.error('❌ Error fetching clinic data:', error);
+      setDoctors([]);
+      setTreatments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchDoctors = async (clinicId: string) => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching doctors for clinic:', clinicId);
+      console.log('🔍 Fetching doctors for clinic via backend:', clinicId);
 
-      const { data: doctorsData, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('name', { ascending: true });
+      const { doctors: doctorsData } = await api.doctors.getDoctors(clinicId);
 
-      if (error) {
-        console.error('❌ Error fetching doctors:', error);
+      if (!doctorsData) {
+        console.error('❌ No doctors data returned');
         setDoctors([]);
       } else {
-        console.log('✅ Doctors fetched:', doctorsData?.length || 0);
-        setDoctors(doctorsData || []);
+        console.log('✅ Doctors fetched from backend:', doctorsData.length);
+        setDoctors(doctorsData);
       }
 
       setLoading(false);
@@ -335,29 +296,20 @@ const ClinicAdminDoctors = () => {
       setLoading(true);
       console.log('🔍 Fetching treatments for clinic:', clinicId);
 
-      const { data: treatmentsData, error } = await supabase
-        .from('treatments')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('name', { ascending: true });
+      const { treatments: treatmentsData } = await api.clinicAdmin.getTreatments();
 
-      if (error) {
-        console.error('❌ Error fetching treatments:', error);
-        setTreatments([]);
-      } else {
-        console.log('✅ Treatments fetched:', treatmentsData?.length || 0);
-        // Transform database data to Treatment interface
-        const transformedTreatments: Treatment[] = (treatmentsData || []).map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          specialty: t.specialty || '',
-          service: t.service || '',
-          description: t.description || '',
-          price: t.price || '',
-          status: t.status as 'active' | 'inactive',
-        }));
-        setTreatments(transformedTreatments);
-      }
+      console.log('✅ Treatments fetched:', treatmentsData?.length || 0);
+      // Transform database data to Treatment interface
+      const transformedTreatments: Treatment[] = (treatmentsData || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        specialty: t.specialty || '',
+        service: t.service || '',
+        description: t.description || '',
+        price: t.price || '',
+        status: t.status as 'active' | 'inactive',
+      }));
+      setTreatments(transformedTreatments);
 
       setLoading(false);
     } catch (error) {
@@ -398,24 +350,16 @@ const ClinicAdminDoctors = () => {
         ? newDoctor.services.join(',') 
         : null;
 
-      const { error } = await supabase
-        .from('doctors')
-        .insert({
-          clinic_id: clinic.id,
-          name: trimmedName,
-          specialty: primarySpecialty, // Store first specialty as primary
-          email: newDoctor.email?.trim() || null,
-          phone: newDoctor.phone?.trim() || null,
-          availability: newDoctor.availability?.trim() || null,
-          services: servicesString, // Store services as comma-separated string
-          status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
-        });
-
-      if (error) {
-        console.error('❌ Error adding doctor:', error);
-        toast.error('Failed to add doctor');
-        return;
-      }
+      await api.doctors.createDoctor({
+        clinic_id: clinic.id,
+        name: trimmedName,
+        specialty: primarySpecialty, // Store first specialty as primary
+        email: newDoctor.email?.trim() || null,
+        phone: newDoctor.phone?.trim() || null,
+        availability: newDoctor.availability?.trim() || null,
+        services: servicesString, // Store services as comma-separated string
+        status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
+      });
 
       toast.success('Doctor added successfully');
       setShowAddDoctorModal(false);
@@ -500,35 +444,17 @@ const ClinicAdminDoctors = () => {
     try {
       // Get the specialty ID from the selected specialty name
       const selectedSpecialtyName = newDoctor.specialties[0];
-      const { data: specialtyData, error: specialtyError } = await supabase
-        .from('super_admin_specialties')
-        .select('id')
-        .eq('name', selectedSpecialtyName)
-        .eq('is_active', true)
-        .maybeSingle();
+      const { specialties } = await api.adminServices.getSpecialties();
+      const specialtyData = specialties.find((s: any) => s.name === selectedSpecialtyName && s.is_active);
 
-      if (specialtyError || !specialtyData) {
-        console.error('Error fetching specialty:', specialtyError);
+      if (!specialtyData) {
+        console.error('Error: Specialty not found');
         toast.error('Specialty not found. Please select a valid specialty.');
         return;
       }
 
-      // Insert service request into database
-      const { error: requestError } = await supabase
-        .from('service_requests')
-        .insert({
-          clinic_id: clinic.id,
-          clinic_admin_id: user.id,
-          specialty_id: specialtyData.id,
-          service_name: newServiceName.trim(),
-          status: 'pending'
-        });
-
-      if (requestError) {
-        console.error('❌ Error submitting service request:', requestError);
-        toast.error('Failed to submit service request. Please try again.');
-        return;
-      }
+      // Create service request via backend
+      await api.clinicAdmin.createServiceRequest(specialtyData.id, newServiceName.trim());
 
       console.log('✅ Service request submitted successfully');
       toast.success('Service request submitted successfully!');
@@ -559,21 +485,8 @@ const ClinicAdminDoctors = () => {
     }
 
     try {
-      // Insert specialty request into database
-      const { error: requestError } = await supabase
-        .from('specialty_requests')
-        .insert({
-          clinic_id: clinic.id,
-          clinic_admin_id: user.id,
-          specialty_name: newSpecialtyName.trim(),
-          status: 'pending'
-        });
-
-      if (requestError) {
-        console.error('❌ Error submitting specialty request:', requestError);
-        toast.error('Failed to submit specialty request. Please try again.');
-        return;
-      }
+      // Create specialty request via backend
+      await api.clinicAdmin.createSpecialtyRequest(newSpecialtyName.trim());
 
       console.log('✅ Specialty request submitted successfully');
       toast.success('Specialty request submitted successfully!');
@@ -615,23 +528,14 @@ const ClinicAdminDoctors = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('doctors')
-        .update({
-          name: trimmedName,
-          email: editDoctor.email?.trim() || null,
-          phone: editDoctor.phone?.trim() || null,
-          specialty: editDoctor.specialty || null,
-          status: editDoctor.status as 'active' | 'inactive' | 'on-leave',
-          availability: editDoctor.availability?.trim() || null,
-        })
-        .eq('id', selectedDoctor.id);
-
-      if (error) {
-        console.error('❌ Error updating doctor:', error);
-        toast.error('Failed to update doctor');
-        return;
-      }
+      await api.doctors.updateDoctor(selectedDoctor.id, {
+        name: trimmedName,
+        email: editDoctor.email?.trim() || null,
+        phone: editDoctor.phone?.trim() || null,
+        specialty: editDoctor.specialty || null,
+        status: editDoctor.status as 'active' | 'inactive' | 'on-leave',
+        availability: editDoctor.availability?.trim() || null,
+      });
 
       toast.success('Doctor updated successfully');
       setShowEditDoctorModal(false);
@@ -652,16 +556,7 @@ const ClinicAdminDoctors = () => {
     if (!clinic?.id || !doctorToDelete) return;
 
     try {
-      const { error } = await supabase
-        .from('doctors')
-        .delete()
-        .eq('id', doctorToDelete.id);
-
-      if (error) {
-        console.error('❌ Error deleting doctor:', error);
-        toast.error('Failed to delete doctor');
-        return;
-      }
+      await api.doctors.deleteDoctor(doctorToDelete.id);
 
       toast.success('Doctor deleted successfully');
       setShowDeleteConfirmModal(false);
@@ -696,24 +591,16 @@ const ClinicAdminDoctors = () => {
         return;
       }
 
-      // Save to database
-      const { error } = await supabase
-        .from('treatments')
-        .insert({
-          clinic_id: clinic.id,
-          name: newTreatment.name.trim(),
-          description: newTreatment.description?.trim() || null,
-          price: newTreatment.price?.trim() || null,
-          specialty: newTreatment.specialties.join(', '), // Comma-separated specialties
-          service: newTreatment.services.join(', '), // Comma-separated services
-          status: 'active',
-        });
-
-      if (error) {
-        console.error('❌ Error adding treatment:', error);
-        toast.error('Failed to add treatment');
-        return;
-      }
+      // Save to database via backend
+      await api.clinicAdmin.createTreatment({
+        clinic_id: clinic.id,
+        name: newTreatment.name.trim(),
+        description: newTreatment.description?.trim() || null,
+        price: newTreatment.price?.trim() || null,
+        specialty: newTreatment.specialties.join(', '), // Comma-separated specialties
+        service: newTreatment.services.join(', '), // Comma-separated services
+        status: 'active',
+      });
 
       toast.success('Treatment added successfully');
       setShowAddTreatmentModal(false);
@@ -1185,18 +1072,14 @@ const ClinicAdminDoctors = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={async () => {
                                   if (!clinic?.id) return;
-                                  const newStatus = doctor.status === 'active' ? 'inactive' : 'active';
-                                  const { error } = await supabase
-                                    .from('doctors')
-                                    .update({ status: newStatus })
-                                    .eq('id', doctor.id);
-                                  
-                                  if (error) {
-                                    console.error('❌ Error updating doctor status:', error);
-                                    toast.error('Failed to update doctor status');
-                                  } else {
+                                  try {
+                                    const newStatus = doctor.status === 'active' ? 'inactive' : 'active';
+                                    await api.doctors.updateDoctor(doctor.id, { status: newStatus });
                                     fetchDoctors(clinic.id);
                                     toast.success(`Doctor ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+                                  } catch (error: any) {
+                                    console.error('❌ Error updating doctor status:', error);
+                                    toast.error(error?.message || 'Failed to update doctor status');
                                   }
                                 }}>
                                   {doctor.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -1325,18 +1208,14 @@ const ClinicAdminDoctors = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={async () => {
                                   if (!clinic?.id) return;
-                                  const newStatus = treatment.status === 'active' ? 'inactive' : 'active';
-                                  const { error } = await supabase
-                                    .from('treatments')
-                                    .update({ status: newStatus })
-                                    .eq('id', treatment.id);
-                                  
-                                  if (error) {
-                                    console.error('❌ Error updating treatment status:', error);
-                                    toast.error('Failed to update treatment status');
-                                  } else {
+                                  try {
+                                    const newStatus = treatment.status === 'active' ? 'inactive' : 'active';
+                                    await api.clinicAdmin.updateTreatment(treatment.id, { status: newStatus });
                                     fetchTreatments(clinic.id);
                                     toast.success(`Treatment ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+                                  } catch (error: any) {
+                                    console.error('❌ Error updating treatment status:', error);
+                                    toast.error(error?.message || 'Failed to update treatment status');
                                   }
                                 }}>
                                   {treatment.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -1345,17 +1224,13 @@ const ClinicAdminDoctors = () => {
                                   onClick={async () => {
                                     if (!clinic?.id) return;
                                     if (confirm('Are you sure you want to delete this treatment?')) {
-                                      const { error } = await supabase
-                                        .from('treatments')
-                                        .delete()
-                                        .eq('id', treatment.id);
-                                      
-                                      if (error) {
-                                        console.error('❌ Error deleting treatment:', error);
-                                        toast.error('Failed to delete treatment');
-                                      } else {
+                                      try {
+                                        await api.clinicAdmin.deleteTreatment(treatment.id);
                                         fetchTreatments(clinic.id);
                                         toast.success('Treatment deleted successfully');
+                                      } catch (error: any) {
+                                        console.error('❌ Error deleting treatment:', error);
+                                        toast.error(error?.message || 'Failed to delete treatment');
                                       }
                                     }
                                   }}

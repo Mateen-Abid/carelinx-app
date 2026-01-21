@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Filter, X, Info, Eye, Trash2, MoreVertical, Settings, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import {
   Dialog,
   DialogContent,
@@ -75,63 +75,35 @@ const AdminDoctors = () => {
 
   useEffect(() => {
     fetchDoctors();
-
-    // Set up real-time subscription for doctors table
-    const doctorsChannel = supabase
-      .channel('doctors-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'doctors',
-        },
-        (payload) => {
-          console.log('🔄 Doctor change detected:', payload.eventType);
-          // Refresh doctors when doctors table changes
-          fetchDoctors();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(doctorsChannel);
-    };
+    // Real-time subscriptions removed - using backend API instead
   }, []);
 
   const fetchDoctors = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching ALL doctors from ALL clinics (super admin view)...');
+      console.log('🔍 Fetching ALL doctors from ALL clinics via backend (super admin view)...');
       
-      // Fetch ALL doctors from ALL clinics - super admin can see all doctors
-      const { data: doctorsData, error: doctorsError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('doctors' as any)
-        .select('*')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .order('name', { ascending: true }) as any);
+      // Fetch doctors + clinics in parallel
+      const [
+        { doctors: doctorsData },
+        { clinics: clinicsData },
+      ] = await Promise.all([
+        api.doctors.getDoctors(),
+        api.clinics.getClinics(),
+      ]);
 
-      if (doctorsError) {
-        console.error('❌ Error fetching doctors:', doctorsError);
+      if (!doctorsData) {
+        console.error('❌ No doctors data returned');
         setDoctorsData([]);
         return;
       }
 
-      console.log('✅ Doctors fetched from database:', doctorsData?.length || 0, 'doctors from ALL clinics');
+      console.log('✅ Doctors fetched from backend:', doctorsData.length, 'doctors from ALL clinics');
 
-      // Fetch all clinics to map clinic_id to clinic name
-      const { data: clinicsData, error: clinicsError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('clinics' as any)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .select('id, name') as any);
-
-      if (clinicsError) {
-        console.error('❌ Error fetching clinics:', clinicsError);
+      if (!clinicsData) {
+        console.error('❌ No clinics data returned');
       } else {
-        console.log('✅ Clinics fetched:', clinicsData?.length || 0, 'clinics');
+        console.log('✅ Clinics fetched from backend:', clinicsData.length, 'clinics');
       }
 
       // Create clinic map
@@ -264,23 +236,11 @@ const AdminDoctors = () => {
     setLoadingAppointments(true);
 
     try {
-      // Fetch appointments for this doctor
-      const { data: appointments, error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('bookings' as any)
-        .select('*')
-        .eq('doctor_name', doctor.name)
-        .order('appointment_date', { ascending: false })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .limit(10) as any);
-
-      if (error) {
-        console.error('Error fetching appointments:', error);
-      } else {
-        setDoctorAppointments((appointments as Appointment[]) || []);
-      }
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.log('🔍 Fetching doctor appointments from backend:', doctor.id);
+      const { appointments } = await api.doctors.getDoctorAppointments(doctor.id);
+      setDoctorAppointments((appointments as Appointment[]) || []);
+    } catch (error: any) {
+      console.error('❌ Error fetching appointments:', error);
     } finally {
       setLoadingAppointments(false);
     }
@@ -297,26 +257,15 @@ const AdminDoctors = () => {
 
     setDeletingDoctor(true);
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('doctors' as any)
-        .delete()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .eq('id', selectedDoctor.id)) as any;
-
-      if (error) {
-        console.error('Error deleting doctor:', error);
-        toast.error('Failed to delete doctor: ' + error.message);
-        return;
-      }
-
+      console.log('🗑️ Deleting doctor via backend:', selectedDoctor.id);
+      await api.doctors.deleteDoctor(selectedDoctor.id);
       toast.success('Doctor deleted successfully');
       setIsDeleteConfirmModalOpen(false);
       setSelectedDoctor(null);
       fetchDoctors();
-    } catch (error) {
-      console.error('Error deleting doctor:', error);
-      toast.error('Failed to delete doctor');
+    } catch (error: any) {
+      console.error('❌ Error deleting doctor:', error);
+      toast.error('Failed to delete doctor: ' + (error.message || 'Unknown error'));
     } finally {
       setDeletingDoctor(false);
     }
@@ -349,19 +298,8 @@ const AdminDoctors = () => {
 
     setChangingStatus(true);
     try {
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('doctors' as any)
-        .update({ status: newStatus })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .eq('id', selectedDoctor.id)) as any;
-
-      if (error) {
-        console.error('Error updating doctor status:', error);
-        toast.error('Failed to update doctor status: ' + error.message);
-        return;
-      }
-
+      console.log('🔄 Updating doctor status via backend:', selectedDoctor.id, newStatus);
+      await api.doctors.updateDoctor(selectedDoctor.id, { status: newStatus });
       toast.success(`Doctor status updated to ${newStatus === 'on-leave' ? 'On Leave' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`);
       setIsStatusChangeModalOpen(false);
       setSelectedDoctor(null);
@@ -392,7 +330,7 @@ const AdminDoctors = () => {
                   <Button
                     onClick={handleExportToExcel}
                     variant="outline"
-                    className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export to Excel

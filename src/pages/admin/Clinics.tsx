@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Check, X, Eye, Edit, Ban, MoreVertical, ChevronRight, AlertTriangle, OctagonAlert, Download } from 'lucide-react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,75 +104,17 @@ const AdminClinics = () => {
 
   useEffect(() => {
     fetchClinics();
-
-    // Set up real-time subscription for clinics table
-    const clinicsChannel = supabase
-      .channel('clinics-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'clinics',
-        },
-        (payload) => {
-          console.log('🔄 Clinic change detected:', payload.eventType, payload.new || payload.old);
-          // Refresh clinics list when any change occurs
-          fetchClinics();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(clinicsChannel);
-    };
   }, []);
 
   const fetchClinics = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching clinics from database...');
+      console.log('🔍 Fetching clinics from backend...');
       
-      // Check authentication first
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        console.error('❌ Authentication error:', authError);
-        setClinicsData([]);
-        setLoading(false);
-        return;
-      }
-      console.log('✅ User authenticated:', user.id, user.email);
-      
-      // Check user role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (profileError) {
-        console.error('❌ Error fetching profile:', profileError);
-      } else {
-        console.log('✅ User role:', profile?.role);
-      }
-      
-      // Fetch ALL clinics from clinics table ONLY (no bookings merge)
-      const { data: clinicsTableData, error: clinicsError } = await supabase
-        .from('clinics')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch dashboard stats and clinics from backend (includes clinics data)
+      const { clinics: clinicsTableData } = await api.stats.getDashboard();
 
-      if (clinicsError) {
-        console.error('❌ Error fetching clinics table:', clinicsError);
-        console.error('Error code:', clinicsError.code);
-        console.error('Error message:', clinicsError.message);
-        setClinicsData([]);
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Clinics table fetched:', clinicsTableData?.length || 0, 'clinics');
+      console.log('✅ Clinics fetched from backend:', clinicsTableData?.length || 0, 'clinics');
 
       // Transform clinics data directly from clinics table
       const clinics: Clinic[] = (clinicsTableData || []).map((clinic: any) => ({
@@ -293,57 +235,21 @@ const AdminClinics = () => {
         return;
       }
 
-      // Create clinic admin user first
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Create clinic via backend API (creates user, clinic, and updates profile)
+      console.log('📝 Creating clinic via backend...');
+      const { clinic: data } = await api.clinics.createClinic({
+        name: newClinic.name,
         email: newClinic.email,
         password: newClinic.password,
-        options: {
-          data: {
-            full_name: newClinic.name,
-            role: 'clinic_admin',
-          },
-        },
+        address: newClinic.address,
+        contact_phone: newClinic.contact_phone,
+        contact_email: newClinic.contact_email || newClinic.email,
+        website: newClinic.website,
+        description: newClinic.description,
+        specialties: newClinic.specialties,
       });
 
-      if (authError) {
-        console.error('Error creating clinic admin:', authError);
-        alert('Error creating clinic admin: ' + authError.message);
-        return;
-      }
-
-      // Insert clinic into database
-      const { data, error } = await supabase
-        .from('clinics')
-        .insert({
-          name: newClinic.name,
-          email: newClinic.email,
-          address: newClinic.address,
-          contact_phone: newClinic.contact_phone,
-          contact_email: newClinic.contact_email || newClinic.email,
-          website: newClinic.website,
-          description: newClinic.description,
-          specialties: newClinic.specialties,
-          status: 'active',
-          clinic_admin_id: authData.user?.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating clinic:', error);
-        alert('Error creating clinic: ' + error.message);
-        return;
-      }
-
-      // Update profile role
-      if (authData.user) {
-        await supabase
-          .from('profiles')
-          .update({ role: 'clinic_admin' })
-          .eq('user_id', authData.user.id);
-      }
-
-      console.log('✅ Clinic created:', data);
+      console.log('✅ Clinic created via backend:', data);
       
       // Transform to Clinic interface
       const createdClinic: Clinic = {
@@ -382,91 +288,23 @@ const AdminClinics = () => {
         specialties: [],
       });
       fetchClinics(); // Refresh list
-    } catch (error) {
-      console.error('Error adding clinic:', error);
-      alert('Error adding clinic');
+    } catch (error: any) {
+      console.error('❌ Error adding clinic:', error);
+      alert('Error adding clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
   const fetchClinicStats = async (clinic: Clinic) => {
     try {
       setLoadingStats(true);
-      console.log('📊 Fetching stats for clinic:', clinic.id, clinic.name);
+      console.log('📊 Fetching stats for clinic from backend:', clinic.id, clinic.name);
 
-      // Get clinic ID - handle both UUID and string IDs
-      const clinicId = clinic.id;
-      const clinicName = clinic.name;
+      // Fetch stats from backend API
+      const stats = await api.stats.getClinicStats(clinic.id);
 
-      // Fetch total doctors for this clinic
-      const { count: totalDoctors, error: doctorsError } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
+      setClinicStats(stats);
 
-      if (doctorsError) {
-        console.error('❌ Error fetching doctors count:', doctorsError);
-      }
-
-      // Fetch total appointments for this clinic
-      // First try by clinic_id
-      const { count: appointmentsByClinicId, error: appointmentsErrorById } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('clinic_id', clinicId);
-
-      // Also fetch by clinic name for NULL clinic_id bookings
-      let appointmentsByClinicName = 0;
-      if (clinicName) {
-        const { count: countByName, error: appointmentsErrorByName } = await supabase
-          .from('bookings')
-          .select('*', { count: 'exact', head: true })
-          .is('clinic_id', null)
-          .ilike('clinic', clinicName);
-
-        if (!appointmentsErrorByName && countByName) {
-          appointmentsByClinicName = countByName;
-        }
-      }
-
-      const totalAppointments = (appointmentsByClinicId || 0) + appointmentsByClinicName;
-
-      // Fetch total patients (unique users who have booked with this clinic)
-      // First get bookings by clinic_id
-      const { data: bookingsByClinicId, error: bookingsErrorById } = await supabase
-        .from('bookings')
-        .select('user_id')
-        .eq('clinic_id', clinicId);
-
-      // Also get bookings by clinic name for NULL clinic_id
-      let bookingsByClinicName: any[] = [];
-      if (clinicName) {
-        const { data: bookingsByName, error: bookingsErrorByName } = await supabase
-          .from('bookings')
-          .select('user_id')
-          .is('clinic_id', null)
-          .ilike('clinic', clinicName);
-
-        if (!bookingsErrorByName && bookingsByName) {
-          bookingsByClinicName = bookingsByName;
-        }
-      }
-
-      // Combine both sets and get unique user_ids
-      const allBookings = [...(bookingsByClinicId || []), ...bookingsByClinicName];
-      const uniqueUserIds = new Set(allBookings.map(b => b.user_id).filter(Boolean));
-      const totalPatients = uniqueUserIds.size;
-
-      setClinicStats({
-        totalDoctors: totalDoctors || 0,
-        totalPatients: totalPatients || 0,
-        totalAppointments: totalAppointments || 0,
-      });
-
-      console.log('✅ Clinic stats:', {
-        totalDoctors: totalDoctors || 0,
-        totalPatients: totalPatients || 0,
-        totalAppointments: totalAppointments || 0,
-      });
+      console.log('✅ Clinic stats:', stats);
     } catch (error) {
       console.error('❌ Error fetching clinic stats:', error);
       setClinicStats({
@@ -493,20 +331,12 @@ const AdminClinics = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('clinics')
-        .update({
-          status: 'suspended',
-          suspended_reason: suspendReason,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', selectedClinic.id);
-
-      if (error) {
-        console.error('Error suspending clinic:', error);
-        alert('Error suspending clinic: ' + error.message);
-        return;
-      }
+      console.log('🔄 Suspending clinic via backend:', selectedClinic.id);
+      await api.clinics.updateClinic(selectedClinic.id, {
+        status: 'suspended',
+        suspended_reason: suspendReason,
+        updated_at: new Date().toISOString(),
+      });
 
       // Update the selected clinic state to reflect the change
       setSelectedClinic({
@@ -526,9 +356,9 @@ const AdminClinics = () => {
       alert(`Clinic "${selectedClinic.name}" has been suspended successfully. It will no longer be visible on the public page.`);
       
       setSelectedClinic(null);
-    } catch (error) {
-      console.error('Error suspending clinic:', error);
-      alert('Error suspending clinic');
+    } catch (error: any) {
+      console.error('❌ Error suspending clinic:', error);
+      alert('Error suspending clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -574,24 +404,16 @@ const AdminClinics = () => {
 
     setSavingEdit(true);
     try {
-      const { error } = await supabase
-        .from('clinics')
-        .update({
-          name: editClinicForm.name,
-          description: editClinicForm.description || null,
-          specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
-          contact_email: editClinicForm.contact_email || null,
-          contact_phone: editClinicForm.contact_phone || null,
-          address: editClinicForm.address,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', selectedClinic.id);
-
-      if (error) {
-        console.error('Error updating clinic:', error);
-        alert('Error updating clinic: ' + error.message);
-        return;
-      }
+      console.log('💾 Updating clinic via backend:', selectedClinic.id);
+      await api.clinics.updateClinic(selectedClinic.id, {
+        name: editClinicForm.name,
+        description: editClinicForm.description || null,
+        specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
+        contact_email: editClinicForm.contact_email || null,
+        contact_phone: editClinicForm.contact_phone || null,
+        address: editClinicForm.address,
+        updated_at: new Date().toISOString(),
+      });
 
       // Update the selectedClinic state to reflect changes immediately
       setSelectedClinic({
@@ -608,9 +430,9 @@ const AdminClinics = () => {
       // Refresh the clinics list to show updated data
       await fetchClinics();
       alert('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
-    } catch (error) {
-      console.error('Error updating clinic:', error);
-      alert('Error updating clinic');
+    } catch (error: any) {
+      console.error('❌ Error updating clinic:', error);
+      alert('Error updating clinic: ' + (error.message || 'Unknown error'));
     } finally {
       setSavingEdit(false);
     }
@@ -636,29 +458,21 @@ const AdminClinics = () => {
     if (!clinic) return;
 
     try {
-      const { error } = await supabase
-        .from('clinics')
-        .update({
-          status: 'active',
-          suspended_reason: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', clinic.id);
-
-      if (error) {
-        console.error('Error unsuspending clinic:', error);
-        alert('Error unsuspending clinic: ' + error.message);
-        return;
-      }
+      console.log('🔄 Unsuspending clinic via backend:', clinic.id);
+      await api.clinics.updateClinic(clinic.id, {
+        status: 'active',
+        suspended_reason: null,
+        updated_at: new Date().toISOString(),
+      });
 
       // Refresh the clinics list to show updated status
       await fetchClinics();
       
       // Show success message
       alert(`Clinic "${clinic.name}" has been unsuspended successfully. It will now be visible on the public page.`);
-    } catch (error) {
-      console.error('Error unsuspending clinic:', error);
-      alert('Error unsuspending clinic');
+    } catch (error: any) {
+      console.error('❌ Error unsuspending clinic:', error);
+      alert('Error unsuspending clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -696,7 +510,7 @@ const AdminClinics = () => {
                 <Button 
                   onClick={handleExportToExcel}
                   variant="outline"
-                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium px-6"
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export to Excel

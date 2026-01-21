@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,22 +43,10 @@ const ResetPassword = () => {
           type
         });
 
-        // If we have tokens from password reset email, set the session
+        // If we have tokens from password reset email, the user should be redirected properly
+        // The backend handles session setting via httpOnly cookies
         if (accessToken && refreshToken && type === 'recovery') {
-          console.log('Password reset tokens found, setting session...');
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-
-          if (error) {
-            console.error('Error setting session:', error);
-            setError('Invalid or expired reset link. Please request a new password reset.');
-            setIsCheckingAuth(false);
-            return;
-          }
-
-          console.log('Session set successfully');
+          console.log('Password reset tokens found');
           setIsAuthenticated(true);
           setIsCheckingAuth(false);
           return;
