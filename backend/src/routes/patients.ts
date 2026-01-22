@@ -121,6 +121,14 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     const lastAppointmentAnyMap = new Map<string, string>();
     // Create a map of user_id to doctor names (doctors this patient has appointments with)
     const patientDoctorMap = new Map<string, Set<string>>();
+    // Create a map of user_id to clinic names (clinics this patient has appointments with)
+    const patientClinicMap = new Map<string, Set<string>>();
+    
+    // Create a map of clinic_id to clinic name for quick lookup
+    const clinicIdToNameMap = new Map<string, string>();
+    clinicsData?.forEach(clinic => {
+      clinicIdToNameMap.set(clinic.id, clinic.name);
+    });
     
     const normalizeDate = (dateValue?: string | null): string => {
       if (!dateValue) return '';
@@ -148,6 +156,20 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         }
         if (booking.doctor_name) {
           patientDoctorMap.get(userId)!.add(booking.doctor_name);
+        }
+        // Track clinic names for this patient
+        if (!patientClinicMap.has(userId)) {
+          patientClinicMap.set(userId, new Set<string>());
+        }
+        // Get clinic name from clinic_id or clinic field
+        let clinicName = '';
+        if (booking.clinic_id && clinicIdToNameMap.has(booking.clinic_id)) {
+          clinicName = clinicIdToNameMap.get(booking.clinic_id)!;
+        } else if (booking.clinic) {
+          clinicName = booking.clinic;
+        }
+        if (clinicName) {
+          patientClinicMap.get(userId)!.add(clinicName);
         }
       }
     });
@@ -186,6 +208,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
       const age = calculateAge(profile.date_of_birth);
 
       const patientDoctors = patientDoctorMap.get(profile.user_id);
+      const patientClinics = patientClinicMap.get(profile.user_id);
       
       return {
         id: profile.user_id,
@@ -198,6 +221,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         lastAppointment: formattedDate,
         status: activePatientIds.has(profile.user_id) ? 'active' as const : 'inactive' as const,
         doctorNames: patientDoctors ? Array.from(patientDoctors) : [],
+        clinicNames: patientClinics ? Array.from(patientClinics) : [],
       };
     }) || [];
 
@@ -299,26 +323,196 @@ router.get('/:userId/profile', authenticate, async (req: AuthRequest, res) => {
 router.patch('/:userId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
-    const { fullName, gender, dateOfBirth, phone } = req.body;
+    const { fullName, gender, dateOfBirth, phone, email } = req.body;
 
-    const { error } = await supabaseAdmin
+    console.log('💾 Updating patient profile (super admin):', {
+      userId,
+      fullName,
+      gender,
+      dateOfBirth,
+      phone,
+      email
+    });
+
+    // Prepare update data - only include fields that exist in profiles table
+    // Convert API field names to database field names
+    const updateData: any = {
+      full_name: fullName?.trim() || null,
+      gender: gender || null,
+      date_of_birth: dateOfBirth || null,
+      phone: phone?.trim() || null,
+    };
+
+    // Include email if provided
+    if (email && email.trim()) {
+      updateData.email = email.trim();
+    }
+
+    // Remove any null/undefined/empty string values to avoid unnecessary updates
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === null || updateData[key] === undefined || updateData[key] === '') {
+        delete updateData[key];
+      }
+    });
+
+    // Ensure at least full_name is present for update
+    if (!updateData.full_name && !fullName) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+    
+    // If full_name was removed during cleaning, add it back
+    if (!updateData.full_name && fullName) {
+      updateData.full_name = fullName.trim();
+    }
+
+    console.log('💾 Cleaned update data:', updateData);
+
+    // First check if profile exists
+    const { data: existingProfile, error: checkError } = await supabaseAdmin
       .from('profiles')
-      .update({
-        full_name: fullName,
-        gender: gender,
-        date_of_birth: dateOfBirth || null,
-        phone: phone || null,
-      })
-      .eq('user_id', userId);
+      .select('user_id, full_name, email')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking profile:', checkError);
+      return res.status(400).json({ error: checkError.message });
+    }
+
+    if (!existingProfile) {
+      // Profile doesn't exist - try to get user email from auth to create profile
+      console.log('⚠️ Profile not found for user:', userId, '- attempting to create profile');
+      
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+      
+      if (userError) {
+        console.error('❌ Error fetching user from auth:', userError);
+        return res.status(404).json({ error: `User not found: ${userError.message}` });
+      }
+      
+      if (!user) {
+        console.error('❌ User not found in auth for user_id:', userId);
+        return res.status(404).json({ error: 'User not found in authentication system' });
+      }
+
+      console.log('✅ User found in auth:', { email: user.email, id: user.id });
+
+      // Prepare profile data - ensure all required fields are present
+      const profileData: any = {
+        user_id: userId,
+        email: user.email || updateData.email || '',
+        full_name: updateData.full_name || user.user_metadata?.full_name || 'Unknown Patient',
+      };
+
+      // Add optional fields only if they exist
+      if (updateData.gender) profileData.gender = updateData.gender;
+      if (updateData.phone) profileData.phone = updateData.phone;
+      if (updateData.date_of_birth) profileData.date_of_birth = updateData.date_of_birth;
+
+      console.log('💾 Creating profile with data:', profileData);
+
+      // Create profile
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData)
+        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
+        .maybeSingle();
+
+      if (createError) {
+        console.error('❌ Error creating profile:', createError);
+        console.error('❌ Profile data attempted:', profileData);
+        return res.status(400).json({ error: `Failed to create profile: ${createError.message}` });
+      }
+
+      if (!newProfile) {
+        console.error('❌ Profile creation returned no data');
+        return res.status(500).json({ error: 'Profile creation failed - no data returned' });
+      }
+
+      console.log('✅ Profile created successfully:', newProfile);
+      return res.json({ profile: newProfile, success: true, created: true });
+    }
+
+    console.log('✅ Profile exists, updating:', existingProfile);
+
+    // Update profile and return updated data in one query
+    // Use maybeSingle() to avoid errors when no rows are found
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update(updateData)
+      .eq('user_id', userId)
+      .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
+      .maybeSingle();
 
     if (error) {
-      console.error('Error updating patient:', error);
+      console.error('❌ Error updating patient profile:', error);
       return res.status(400).json({ error: error.message });
     }
 
-    res.json({ success: true, message: 'Patient information updated successfully' });
+    if (!data) {
+      // This means the update didn't find any rows to update
+      // This shouldn't happen since we checked for existingProfile above
+      // But handle it gracefully with fallback creation
+      console.error('❌ Profile update returned no data - profile may have been deleted:', userId);
+      
+      // Try to create the profile as a fallback
+      console.log('🔄 Attempting to create profile as fallback...');
+      const { data: { user: fallbackUser }, error: fallbackUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+      
+      if (fallbackUserError || !fallbackUser) {
+        console.error('❌ User not found in auth:', fallbackUserError);
+        return res.status(404).json({ error: 'Profile not found and user does not exist' });
+      }
+
+      // Create profile with the update data - use both updateData and original request body
+      const fallbackProfileData: any = {
+        user_id: userId,
+        email: fallbackUser.email || updateData.email || email || '',
+        full_name: updateData.full_name || fullName?.trim() || fallbackUser.user_metadata?.full_name || 'Unknown Patient',
+      };
+
+      // Add optional fields from updateData or original request
+      if (updateData.gender || gender) {
+        fallbackProfileData.gender = updateData.gender || gender;
+      }
+      if (updateData.phone || phone) {
+        fallbackProfileData.phone = (updateData.phone || phone)?.trim();
+      }
+      if (updateData.date_of_birth || dateOfBirth) {
+        fallbackProfileData.date_of_birth = updateData.date_of_birth || dateOfBirth;
+      }
+
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert(fallbackProfileData)
+        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
+        .maybeSingle();
+
+      if (createError) {
+        console.error('❌ Error creating profile as fallback:', createError);
+        return res.status(400).json({ error: `Failed to create profile: ${createError.message}` });
+      }
+
+      if (!newProfile) {
+        return res.status(404).json({ error: 'Profile not found and creation failed' });
+      }
+
+      console.log('✅ Profile created as fallback:', newProfile);
+      return res.json({ profile: newProfile, success: true, created: true });
+    }
+
+    console.log('✅ Patient profile updated successfully:', {
+      userId: data.user_id,
+      full_name: data.full_name,
+      email: data.email,
+      gender: data.gender,
+      phone: data.phone,
+      date_of_birth: data.date_of_birth
+    });
+
+    res.json({ profile: data, success: true, message: 'Patient information updated successfully' });
   } catch (error: any) {
-    console.error('Error updating patient:', error);
+    console.error('❌ Update patient error:', error);
     res.status(500).json({ error: error.message || 'Failed to update patient' });
   }
 });

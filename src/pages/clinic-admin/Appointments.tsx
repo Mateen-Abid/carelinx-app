@@ -107,10 +107,46 @@ const ClinicAdminAppointments = () => {
       setLoading(true);
       console.log('🔍 Fetching appointments for clinic ID:', clinicId);
 
-      // Fetch bookings via backend (includes profiles)
-      const { bookings } = await api.clinicAdmin.getBookings(dateFilter || undefined);
+      // Fetch bookings via backend
+      // Only pass timeFilter if it's 'today' or 'tomorrow' (backend only supports these)
+      const timeFilterParam = (dateFilter === 'today' || dateFilter === 'tomorrow') ? dateFilter : undefined;
+      const { bookings } = await api.clinicAdmin.getBookings(timeFilterParam);
+      
+      console.log('📡 Fetched bookings with timeFilter:', timeFilterParam);
+      console.log('📊 Bookings returned:', bookings?.length || 0);
 
-      console.log('✅ Total bookings found:', bookings?.length || 0);
+      // Fetch profiles separately for each unique user_id (since backend attachment isn't working reliably)
+      const uniqueUserIds = [...new Set((bookings || []).map((b: any) => b.user_id).filter((id: any) => id !== null && id !== undefined))];
+      console.log('👥 Unique user IDs to fetch profiles for:', uniqueUserIds.length);
+      
+      const profileMap = new Map();
+      if (uniqueUserIds.length > 0) {
+        // Fetch profiles in parallel for all unique user IDs
+        const profilePromises = uniqueUserIds.map(async (userId: string) => {
+          try {
+            const { profile } = await api.clinicAdmin.getPatientProfile(userId);
+            if (profile) {
+              profileMap.set(userId, profile);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to fetch profile for user ${userId}:`, error);
+          }
+        });
+        
+        await Promise.all(profilePromises);
+        console.log('✅ Profiles fetched and mapped:', profileMap.size, 'out of', uniqueUserIds.length);
+      }
+
+      // Attach profiles to bookings
+      const bookingsWithProfiles = (bookings || []).map((booking: any) => {
+        const profile = booking.user_id ? profileMap.get(booking.user_id) || booking.profile || null : null;
+        return {
+          ...booking,
+          profile: profile,
+        };
+      });
+      
+      console.log('📊 Bookings with profiles after frontend fetch:', bookingsWithProfiles.filter((b: any) => b.profile).length);
 
       // Helper function to format date in YYYY-MM-DD format using local timezone
       const formatDateLocal = (date: Date): string => {
@@ -121,7 +157,7 @@ const ClinicAdminAppointments = () => {
       };
 
       // Apply date filter locally if needed (backend already handles timeFilter, but we can filter further)
-      let filteredBookings = bookings || [];
+      let filteredBookings = bookingsWithProfiles || [];
       if (dateFilter === 'this-week') {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -137,19 +173,52 @@ const ClinicAdminAppointments = () => {
         });
       }
 
+      // Debug: Check profiles in bookings
+      console.log('📊 Total filtered bookings:', filteredBookings.length);
+      console.log('📊 Bookings with profiles:', filteredBookings.filter((b: any) => b.profile).length);
+      console.log('📊 Bookings without profiles:', filteredBookings.filter((b: any) => !b.profile).length);
+      if (filteredBookings.length > 0) {
+        const sampleBooking = filteredBookings[0];
+        console.log('📋 Sample booking:', {
+          id: sampleBooking.id,
+          userId: sampleBooking.user_id,
+          hasProfile: !!sampleBooking.profile,
+          profileData: sampleBooking.profile ? {
+            user_id: sampleBooking.profile.user_id,
+            full_name: sampleBooking.profile.full_name,
+            email: sampleBooking.profile.email
+          } : null
+        });
+      }
+      
       // Transform bookings to appointments
       const appointments: Appointment[] = filteredBookings.map((booking: any) => {
         const profile = booking.profile;
         
+        // Debug logging for patient name
+        if (!profile) {
+          console.log('⚠️ No profile attached for booking:', {
+            bookingId: booking.id,
+            userId: booking.user_id,
+            clinic: booking.clinic,
+            bookingKeys: Object.keys(booking)
+          });
+        } else {
+          console.log('✅ Profile found for booking:', {
+            bookingId: booking.id,
+            userId: booking.user_id,
+            profileKeys: Object.keys(profile),
+            full_name: profile.full_name,
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone,
+            profileStringified: JSON.stringify(profile)
+          });
+        }
+        
         // Map database status to UI status
         let mappedStatus: 'pending' | 'approved' | 'completed' | 'cancelled';
         const dbStatus = booking.status || 'pending';
-        
-        console.log('📋 Booking status mapping:', {
-          bookingId: booking.id,
-          dbStatus: dbStatus,
-          rawStatus: booking.status
-        });
         
         if (dbStatus === 'confirmed') {
           mappedStatus = 'approved';
@@ -166,10 +235,30 @@ const ClinicAdminAppointments = () => {
           mappedStatus = 'pending';
         }
         
+        // Get patient name with better fallback - check all possible fields
+        let patientName = 'Unknown Patient';
+        if (profile) {
+          patientName = profile.full_name || profile.name || profile.email || 'Unknown Patient';
+        } else if (booking.user_id) {
+          // If profile is missing but we have user_id, try to get name from booking data
+          // This shouldn't happen if backend is working correctly, but as a fallback
+          console.warn('⚠️ Profile missing for booking, user_id:', booking.user_id);
+        }
+        
+        // Log the final patient name for debugging
+        if (patientName === 'Unknown Patient' && booking.user_id) {
+          console.log('⚠️ Using "Unknown Patient" for booking:', {
+            bookingId: booking.id,
+            userId: booking.user_id,
+            hasProfile: !!profile,
+            profileKeys: profile ? Object.keys(profile) : []
+          });
+        }
+        
         return {
           id: booking.id,
           user_id: booking.user_id,
-          patientName: profile?.full_name || 'Unknown Patient',
+          patientName: patientName,
           doctorName: booking.doctor_name || 'Unknown Doctor',
           service: booking.specialty || 'General Consultation',
           appointment_date: booking.appointment_date,
@@ -179,6 +268,10 @@ const ClinicAdminAppointments = () => {
           doctor_id: booking.doctor_id,
         };
       });
+      
+      console.log('📊 Appointments created:', appointments.length);
+      console.log('📊 Appointments with patient names:', appointments.filter(a => a.patientName !== 'Unknown Patient').length);
+      console.log('📊 Appointments with "Unknown Patient":', appointments.filter(a => a.patientName === 'Unknown Patient').length);
 
       setAppointmentsData(appointments);
       setLoading(false);
@@ -259,12 +352,16 @@ const ClinicAdminAppointments = () => {
       setLoadingDetails(true);
       setIsDetailsModalOpen(true);
 
-      // Fetch full appointment details via backend
-      const { bookings: allBookings } = await api.clinicAdmin.getBookings();
+      // Fetch full appointment details via backend (use same filter as main list)
+      const { bookings: allBookings } = await api.clinicAdmin.getBookings(dateFilter === 'today' ? 'today' : dateFilter === 'tomorrow' ? 'tomorrow' : undefined);
       const bookingData = allBookings.find((b: any) => b.id === appointment.id);
 
+      console.log('🔍 Looking for booking:', appointment.id);
+      console.log('📊 Total bookings fetched:', allBookings?.length || 0);
+      console.log('📋 Booking data found:', bookingData ? 'Yes' : 'No');
+
       if (!bookingData) {
-        console.error('Booking not found');
+        console.error('❌ Booking not found for ID:', appointment.id);
         toast.error('Failed to load appointment details');
         setIsDetailsModalOpen(false);
         return;
@@ -272,6 +369,17 @@ const ClinicAdminAppointments = () => {
 
       // Patient profile is already attached from backend
       const profileData = bookingData.profile;
+      
+      console.log('👤 Profile data:', profileData ? {
+        user_id: profileData.user_id,
+        full_name: profileData.full_name,
+        email: profileData.email,
+        phone: profileData.phone,
+        gender: profileData.gender,
+        sex: profileData.sex
+      } : 'No profile attached');
+      
+      console.log('📋 Booking user_id:', bookingData.user_id);
 
       // Fetch doctor details if doctor_id exists
       let doctorData = null;
@@ -281,13 +389,56 @@ const ClinicAdminAppointments = () => {
       }
 
       // Build appointment details
+      // Handle gender with fallback to sex field
+      const genderValue = profileData?.gender || profileData?.sex;
+      let patientGender = 'Not specified';
+      if (genderValue) {
+        const genderLower = String(genderValue).toLowerCase();
+        if (genderLower === 'male' || genderLower === 'm') {
+          patientGender = 'Male';
+        } else if (genderLower === 'female' || genderLower === 'f') {
+          patientGender = 'Female';
+        } else {
+          patientGender = 'Other';
+        }
+      }
+
+      // If profile is missing, try to fetch it directly
+      let finalProfileData = profileData;
+      if (!profileData && bookingData.user_id) {
+        console.log('⚠️ Profile not attached, trying to fetch directly for user_id:', bookingData.user_id);
+        try {
+          const { profile: directProfile } = await api.clinicAdmin.getPatientProfile(bookingData.user_id);
+          if (directProfile) {
+            finalProfileData = directProfile;
+            console.log('✅ Fetched profile directly:', directProfile);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching profile directly:', error);
+        }
+      }
+
+      // Re-calculate gender with the final profile data
+      const finalGenderValue = finalProfileData?.gender || finalProfileData?.sex;
+      let finalPatientGender = 'Not specified';
+      if (finalGenderValue) {
+        const genderLower = String(finalGenderValue).toLowerCase();
+        if (genderLower === 'male' || genderLower === 'm') {
+          finalPatientGender = 'Male';
+        } else if (genderLower === 'female' || genderLower === 'f') {
+          finalPatientGender = 'Female';
+        } else {
+          finalPatientGender = 'Other';
+        }
+      }
+
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: profileData?.full_name || appointment.patientName || 'Unknown Patient',
-          gender: profileData?.gender || 'Not specified',
-          contact: profileData?.phone || 'Not provided',
-          email: profileData?.email || 'Not provided',
+          name: finalProfileData?.full_name || appointment.patientName || 'Unknown Patient',
+          gender: finalPatientGender,
+          contact: finalProfileData?.phone || finalProfileData?.email || appointment.patientName || 'Not provided',
+          email: finalProfileData?.email || 'Not provided',
         },
         doctor: {
           name: doctorData?.name || bookingData.doctor_name || appointment.doctorName || 'Unknown Doctor',

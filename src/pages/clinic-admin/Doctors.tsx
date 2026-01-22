@@ -152,16 +152,23 @@ const ClinicAdminDoctors = () => {
   }, []);
 
   // Fetch services for selected specialty
+  // Priority: Treatment specialties > Doctor specialties
   useEffect(() => {
     const fetchServicesForSpecialty = async () => {
-      if (newDoctor.specialties.length === 0) {
+      // Determine which specialties to use based on which modal is open
+      // If treatment modal is open, use treatment specialties; otherwise use doctor specialties
+      const specialtiesToUse = showAddTreatmentModal && newTreatment.specialties.length > 0
+        ? newTreatment.specialties
+        : newDoctor.specialties;
+
+      if (specialtiesToUse.length === 0) {
         setAvailableServices([]);
         return;
       }
 
       try {
         // Get the first selected specialty (primary specialty)
-        const selectedSpecialtyName = newDoctor.specialties[0];
+        const selectedSpecialtyName = specialtiesToUse[0];
         
         const [{ specialties }, { services: servicesData }] = await Promise.all([
           api.adminServices.getSpecialties(),
@@ -188,7 +195,7 @@ const ClinicAdminDoctors = () => {
     };
 
     fetchServicesForSpecialty();
-  }, [newDoctor.specialties]);
+  }, [newDoctor.specialties, newTreatment.specialties, showAddTreatmentModal]);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -1834,11 +1841,7 @@ const ClinicAdminDoctors = () => {
                     onOpenChange={setShowTreatmentServiceDropdown}
                     onValueChange={(value) => {
                       if (value) {
-                        if (value === 'request-new-service') {
-                          handleRequestNewService();
-                        } else {
-                          handleAddTreatmentService(value);
-                        }
+                        handleAddTreatmentService(value);
                       }
                     }}
                   >
@@ -1856,9 +1859,6 @@ const ClinicAdminDoctors = () => {
                             {service}
                           </SelectItem>
                         ))}
-                      <SelectItem value="request-new-service" className="text-[#0C2243] dark:text-[#00FFA2]">
-                        Other / Request a New Service
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                   

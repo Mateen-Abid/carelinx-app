@@ -44,6 +44,7 @@ interface Patient {
   lastAppointment: string;
   status: 'active' | 'inactive';
   doctorNames?: string[]; // Doctors this patient has appointments with
+  clinicNames?: string[]; // Clinics this patient has appointments with
 }
 
 const AdminPatients = () => {
@@ -123,6 +124,58 @@ const AdminPatients = () => {
         patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.contact.toLowerCase().includes(searchQuery.toLowerCase());
       
+      // Clinic filter (from dropdown)
+      const matchesClinic = selectedClinic === 'All Clinics' || 
+        (patient.clinicNames && patient.clinicNames.some(clinic => clinic === selectedClinic));
+      
+      // Date filter (from dropdown)
+      let matchesDate = true;
+      if (selectedDate !== 'To date' && patient.lastAppointment !== 'No appointments') {
+        try {
+          const lastApptDate = new Date(patient.lastAppointment);
+          if (isNaN(lastApptDate.getTime())) {
+            matchesDate = false;
+          } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const thisWeekStart = new Date(today);
+            thisWeekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+            const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+            
+            lastApptDate.setHours(0, 0, 0, 0);
+            
+            switch (selectedDate) {
+              case 'Today':
+                matchesDate = lastApptDate.getTime() === today.getTime();
+                break;
+              case 'Yesterday':
+                matchesDate = lastApptDate.getTime() === yesterday.getTime();
+                break;
+              case 'This Week':
+                matchesDate = lastApptDate >= thisWeekStart && lastApptDate <= today;
+                break;
+              case 'This Month':
+                matchesDate = lastApptDate >= thisMonthStart && lastApptDate <= today;
+                break;
+              case 'Last Month':
+                matchesDate = lastApptDate >= lastMonthStart && lastApptDate <= lastMonthEnd;
+                break;
+              default:
+                matchesDate = true;
+            }
+          }
+        } catch (e) {
+          matchesDate = false;
+        }
+      } else if (selectedDate !== 'To date' && patient.lastAppointment === 'No appointments') {
+        // If date filter is set but patient has no appointments, exclude them
+        matchesDate = false;
+      }
+      
       // Filter modal: Gender
       const matchesFilterGender = filterGender === 'all' || patient.gender.toLowerCase() === filterGender.toLowerCase();
       
@@ -175,11 +228,13 @@ const AdminPatients = () => {
       const matchesFilterDoctor = filterDoctor === 'all' || 
         (patient.doctorNames && patient.doctorNames.some(name => name.toLowerCase() === filterDoctor.toLowerCase()));
       
-      return matchesSearch && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
+      return matchesSearch && matchesClinic && matchesDate && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
     });
   }, [
     patientsData,
     searchQuery,
+    selectedClinic,
+    selectedDate,
     filterGender,
     filterAgeRange,
     filterDateFrom,
@@ -243,16 +298,30 @@ const AdminPatients = () => {
       const response = await api.patients.getPatientProfile(patient.user_id);
       const data = response.profile;
       
+      // Handle gender - check both gender and sex fields, handle different formats
+      let patientGender: 'Male' | 'Female' | 'Other' = 'Male';
+      if (data?.gender) {
+        const genderValue = data.gender;
+        const genderLower = String(genderValue).toLowerCase();
+        if (genderLower === 'male' || genderLower === 'm') {
+          patientGender = 'Male';
+        } else if (genderLower === 'female' || genderLower === 'f') {
+          patientGender = 'Female';
+        } else {
+          patientGender = 'Other';
+        }
+      }
+      
       setEditFormData({
-        fullName: data?.full_name || '',
-        gender: (data?.gender as 'Male' | 'Female' | 'Other') || 'Male',
+        fullName: data?.full_name || patient.name || '',
+        gender: patientGender,
         dateOfBirth: data?.date_of_birth || '',
-        email: data?.email || '',
-        phone: data?.phone || '',
+        email: data?.email || patient.email || '',
+        phone: data?.phone || patient.contact || '',
       });
       setIsEditPatientModalOpen(true);
     } catch (error) {
-      console.error('Error fetching patient data:', error);
+      console.error('❌ Error fetching patient data:', error);
       toast.error('Failed to load patient data');
     }
   };
@@ -260,22 +329,55 @@ const AdminPatients = () => {
   const handleSavePatientChanges = async () => {
     if (!selectedPatient) return;
 
+    setSavingPatient(true);
     try {
-      setSavingPatient(true);
-      await api.patients.updatePatient(selectedPatient.user_id, {
-        fullName: editFormData.fullName,
+      // Prepare update data - API expects: fullName, gender, dateOfBirth, phone, email
+      const updatePayload: any = {
+        fullName: editFormData.fullName.trim(),
         gender: editFormData.gender,
-        dateOfBirth: editFormData.dateOfBirth || null,
-        phone: editFormData.phone || null,
+      };
+
+      // Only include phone if it's not empty
+      if (editFormData.phone && editFormData.phone.trim()) {
+        updatePayload.phone = editFormData.phone.trim();
+      } else {
+        updatePayload.phone = null;
+      }
+
+      // Only include email if it's not empty
+      if (editFormData.email && editFormData.email.trim()) {
+        updatePayload.email = editFormData.email.trim();
+      }
+
+      // Include dateOfBirth if provided
+      if (editFormData.dateOfBirth) {
+        updatePayload.dateOfBirth = editFormData.dateOfBirth;
+      } else {
+        updatePayload.dateOfBirth = null;
+      }
+
+      console.log('💾 Updating patient profile:', {
+        userId: selectedPatient.user_id,
+        updatePayload
       });
 
+      // Update patient profile via backend
+      const response = await api.patients.updatePatient(selectedPatient.user_id, updatePayload);
+      
+      console.log('✅ Patient profile updated successfully:', response);
+
       toast.success('Patient information updated successfully');
+
+      // Close modal
       setIsEditPatientModalOpen(false);
       setSelectedPatient(null);
+      
+      // Refresh the patient list to show updated data
       await fetchPatients();
-    } catch (error) {
-      console.error('Error updating patient:', error);
-      toast.error('Failed to update patient information');
+    } catch (error: any) {
+      console.error('❌ Error saving patient changes:', error);
+      const errorMessage = error?.message || error?.error || 'Failed to update patient information. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setSavingPatient(false);
     }
@@ -712,8 +814,8 @@ const AdminPatients = () => {
               </Button>
               <Button
                 onClick={handleSavePatientChanges}
-                disabled={savingPatient}
-                className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243]"
+                disabled={savingPatient || !editFormData.fullName.trim()}
+                className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {savingPatient ? 'Saving...' : 'Save Changes'}
               </Button>

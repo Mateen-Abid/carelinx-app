@@ -64,7 +64,60 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 
     if (error) throw error;
 
-    res.json({ bookings: data });
+    // Fetch clinics to get addresses
+    const clinicIds = [...new Set(data?.map((b: any) => b.clinic_id).filter((id: any) => id) || [])];
+    const clinicNames = [...new Set(data?.map((b: any) => b.clinic).filter((name: any) => name) || [])];
+    
+    let clinicMap = new Map<string, { address: string | null }>();
+    
+    if (clinicIds.length > 0) {
+      const { data: clinicsById } = await supabaseAdmin
+        .from('clinics')
+        .select('id, name, address')
+        .in('id', clinicIds);
+      
+      clinicsById?.forEach((clinic: any) => {
+        clinicMap.set(clinic.id, { address: clinic.address });
+        // Also map by name for fallback
+        clinicMap.set(clinic.name.toLowerCase().trim(), { address: clinic.address });
+      });
+    }
+    
+    // Also fetch by clinic names (for bookings without clinic_id)
+    if (clinicNames.length > 0) {
+      const { data: clinicsByName } = await supabaseAdmin
+        .from('clinics')
+        .select('id, name, address')
+        .in('name', clinicNames);
+      
+      clinicsByName?.forEach((clinic: any) => {
+        clinicMap.set(clinic.id, { address: clinic.address });
+        clinicMap.set(clinic.name.toLowerCase().trim(), { address: clinic.address });
+      });
+    }
+
+    // Add clinic address to each booking
+    const bookingsWithAddress = data?.map((booking: any) => {
+      let clinicAddress = null;
+      
+      // Try to find address by clinic_id first
+      if (booking.clinic_id && clinicMap.has(booking.clinic_id)) {
+        clinicAddress = clinicMap.get(booking.clinic_id)?.address || null;
+      } else if (booking.clinic) {
+        // Fallback to clinic name
+        const normalizedName = booking.clinic.toLowerCase().trim();
+        if (clinicMap.has(normalizedName)) {
+          clinicAddress = clinicMap.get(normalizedName)?.address || null;
+        }
+      }
+      
+      return {
+        ...booking,
+        clinic_address: clinicAddress
+      };
+    });
+
+    res.json({ bookings: bookingsWithAddress || [] });
   } catch (error: any) {
     console.error('Get bookings error:', error);
     res.status(400).json({ error: error.message });

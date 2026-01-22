@@ -119,7 +119,7 @@ const ClinicAdminPatients = () => {
       setLoading(true);
       console.log('🔍 Fetching patients for clinic:', clinicId, clinic?.name);
 
-      // Fetch bookings via backend (includes profiles)
+      // Fetch bookings via backend
       const { bookings: allBookings } = await api.clinicAdmin.getBookings();
 
       console.log('✅ Total bookings fetched:', allBookings?.length || 0);
@@ -135,13 +135,24 @@ const ClinicAdminPatients = () => {
 
       console.log('👥 Unique user IDs from bookings:', userIds.length);
 
-      // Create a map of user_id to profile for quick lookup (profiles are already attached)
+      // Fetch profiles separately for each unique user_id (since backend attachment isn't working reliably)
       const profileMap = new Map();
-      allBookings?.forEach((booking: any) => {
-        if (booking.profile && !profileMap.has(booking.user_id)) {
-          profileMap.set(booking.user_id, booking.profile);
-        }
-      });
+      if (userIds.length > 0) {
+        // Fetch profiles in parallel for all unique user IDs
+        const profilePromises = userIds.map(async (userId: string) => {
+          try {
+            const { profile } = await api.clinicAdmin.getPatientProfile(userId);
+            if (profile) {
+              profileMap.set(userId, profile);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to fetch profile for user ${userId}:`, error);
+          }
+        });
+        
+        await Promise.all(profilePromises);
+        console.log('✅ Profiles fetched and mapped:', profileMap.size, 'out of', userIds.length);
+      }
       
       console.log('🗺️ Profile map size:', profileMap.size);
 
@@ -234,8 +245,24 @@ const ClinicAdminPatients = () => {
         }
         
         // If user has a profile, use profile data; otherwise use booking data
-        const patientName = profile?.full_name || 'Unknown Patient';
-        const patientGender = (profile?.gender as 'Male' | 'Female' | 'Other') || 'Other';
+        const patientName = profile?.full_name || profile?.name || 'Unknown Patient';
+        
+        // Handle gender - check both gender and sex fields, handle different formats
+        let patientGender: 'Male' | 'Female' | 'Other' = 'Other';
+        if (profile) {
+          const genderValue = profile.gender || profile.sex;
+          if (genderValue) {
+            const genderLower = String(genderValue).toLowerCase();
+            if (genderLower === 'male' || genderLower === 'm') {
+              patientGender = 'Male';
+            } else if (genderLower === 'female' || genderLower === 'f') {
+              patientGender = 'Female';
+            } else {
+              patientGender = 'Other';
+            }
+          }
+        }
+        
         const patientContact = profile?.phone || profile?.email || 'N/A';
         
         console.log('👤 Creating patient for user_id:', userId, 'with name:', patientName, 'gender:', patientGender, 'age:', age);
@@ -440,60 +467,54 @@ const ClinicAdminPatients = () => {
         dateOfBirth = `${birthYear}-01-01`; // Approximate to January 1st
       }
 
-      // Update profile in Supabase
+      // Update profile data - ensure all fields are properly formatted
+      // Note: age is not a column in profiles table, it's calculated from date_of_birth
       const updateData: any = {
-        full_name: editFormData.fullName,
+        full_name: editFormData.fullName.trim(),
         gender: editFormData.gender,
-        phone: editFormData.phone || null,
       };
 
+      // Only include phone if it's not empty
+      if (editFormData.phone && editFormData.phone.trim()) {
+        updateData.phone = editFormData.phone.trim();
+      } else {
+        updateData.phone = null;
+      }
+
+      // Only include email if it's not empty
+      if (editFormData.email && editFormData.email.trim()) {
+        updateData.email = editFormData.email.trim();
+      }
+
+      // Include date_of_birth if age was provided (age is calculated from date_of_birth)
       if (dateOfBirth) {
         updateData.date_of_birth = dateOfBirth;
       }
 
+      console.log('💾 Updating patient profile:', {
+        userId: selectedPatient.user_id,
+        updateData
+      });
+
       // Update patient profile via backend
-      await api.clinicAdmin.updatePatientProfile(selectedPatient.user_id, updateData);
+      const response = await api.clinicAdmin.updatePatientProfile(selectedPatient.user_id, updateData);
+      
+      console.log('✅ Patient profile updated successfully:', response);
 
       toast.success('Patient information updated successfully');
 
-      // Close modal and refresh patient list
+      // Close modal
       setIsEditPatientModalOpen(false);
+      setSelectedPatient(null);
       
-      // Refresh the patient list
+      // Refresh the patient list to show updated data
       if (clinic?.id) {
         await fetchPatients(clinic.id);
       }
-      
-      // Re-fetch the updated patient data via backend
-      const { profile: updatedProfile } = await api.clinicAdmin.getPatientProfile(selectedPatient.user_id);
-
-      if (updatedProfile) {
-        // Re-open patient details modal with updated data
-        // We need to reconstruct the patient object with updated data
-        const updatedPatient: Patient = {
-          ...selectedPatient,
-          name: updatedProfile.full_name || selectedPatient.name,
-          gender: (updatedProfile.gender as 'Male' | 'Female' | 'Other') || selectedPatient.gender,
-          email: updatedProfile.email || selectedPatient.email,
-          contact: updatedProfile.phone || updatedProfile.email || selectedPatient.contact,
-          age: updatedProfile.date_of_birth 
-            ? (() => {
-                const birthDate = new Date(updatedProfile.date_of_birth);
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const monthDiff = today.getMonth() - birthDate.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                  age--;
-                }
-                return age > 0 && age < 120 ? age : 0;
-              })()
-            : selectedPatient.age,
-        };
-        await handleViewPatientDetails(updatedPatient);
-      }
-    } catch (error) {
-      console.error('Error saving patient changes:', error);
-      toast.error('Failed to update patient information. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error saving patient changes:', error);
+      const errorMessage = error?.message || error?.error || 'Failed to update patient information. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setSavingPatient(false);
     }
@@ -513,16 +534,19 @@ const ClinicAdminPatients = () => {
       await api.clinicAdmin.deletePatient(patientToDelete.user_id);
 
       toast.success('Patient deleted successfully');
+      
+      // Close modal and clear selection
       setIsDeleteConfirmModalOpen(false);
       setPatientToDelete(null);
       
-      // Refresh patient list
+      // Refresh patient list to reflect deletion
       if (clinic.id) {
         await fetchPatients(clinic.id);
       }
-    } catch (error) {
-      console.error('Error deleting patient:', error);
-      toast.error('Failed to delete patient. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error deleting patient:', error);
+      const errorMessage = error?.message || 'Failed to delete patient. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setDeletingPatient(false);
     }
@@ -1114,13 +1138,13 @@ const ClinicAdminPatients = () => {
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSavePatientChanges}
-                disabled={savingPatient}
-                className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {savingPatient ? 'Saving...' : 'Save Changes'}
-              </Button>
+                <Button
+                  onClick={handleSavePatientChanges}
+                  disabled={savingPatient || !editFormData.fullName.trim()}
+                  className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingPatient ? 'Saving...' : 'Save Changes'}
+                </Button>
             </div>
           </DialogContent>
         </Dialog>

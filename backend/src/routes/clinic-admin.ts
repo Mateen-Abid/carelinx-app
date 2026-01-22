@@ -226,25 +226,70 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
     }
 
     // Fetch profiles for bookings
-    const userIds = [...new Set((bookingsData || []).map((b: any) => b.user_id))];
+    const userIds = [...new Set((bookingsData || []).map((b: any) => b.user_id).filter((id: any) => id !== null && id !== undefined))];
     let profilesMap = new Map();
     
+    console.log('👥 Unique user IDs from bookings:', userIds.length);
     if (userIds.length > 0) {
-      const { data: profilesData } = await supabaseAdmin
+      console.log('👥 Sample user IDs:', userIds.slice(0, 3));
+    }
+    
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabaseAdmin
         .from('profiles')
-        .select('user_id, full_name, email')
+        .select('user_id, full_name, email, phone, gender, date_of_birth, created_at')
         .in('user_id', userIds);
 
-      profilesData?.forEach((profile: any) => {
-        profilesMap.set(profile.user_id, profile);
-      });
+      if (profilesError) {
+        console.error('❌ Error fetching profiles:', profilesError);
+      } else {
+        console.log('✅ Profiles fetched:', profilesData?.length || 0, 'out of', userIds.length, 'user IDs');
+        if (profilesData && profilesData.length > 0) {
+          console.log('✅ Sample profile:', {
+            user_id: profilesData[0].user_id,
+            full_name: profilesData[0].full_name,
+            email: profilesData[0].email
+          });
+        }
+        profilesData?.forEach((profile: any) => {
+          if (profile.user_id) {
+            profilesMap.set(profile.user_id, profile);
+          }
+        });
+        console.log('📊 Profiles in map:', profilesMap.size);
+        if (profilesMap.size > 0) {
+          const sampleKey = Array.from(profilesMap.keys())[0];
+          console.log('📊 Sample map entry:', {
+            key: sampleKey,
+            value: profilesMap.get(sampleKey)
+          });
+        }
+      }
+    } else {
+      console.log('⚠️ No user IDs found in bookings');
     }
 
     // Attach profiles to bookings
-    const bookingsWithProfiles = (bookingsData || []).map((booking: any) => ({
-      ...booking,
-      profile: profilesMap.get(booking.user_id) || null,
-    }));
+    const bookingsWithProfiles = (bookingsData || []).map((booking: any) => {
+      const profile = booking.user_id ? profilesMap.get(booking.user_id) || null : null;
+      if (booking.user_id && !profile) {
+        console.log('⚠️ No profile found for booking:', {
+          bookingId: booking.id,
+          userId: booking.user_id,
+          userIdType: typeof booking.user_id,
+          userIdInMap: profilesMap.has(booking.user_id),
+          mapSize: profilesMap.size,
+          clinic: booking.clinic
+        });
+      }
+      return {
+        ...booking,
+        profile: profile,
+      };
+    });
+    
+    console.log('📊 Bookings with profiles:', bookingsWithProfiles.filter((b: any) => b.profile).length);
+    console.log('📊 Bookings without profiles:', bookingsWithProfiles.filter((b: any) => !b.profile && b.user_id).length);
 
     res.json({ bookings: bookingsWithProfiles });
   } catch (error: any) {
@@ -520,7 +565,7 @@ router.get('/treatments', authenticate, async (req: AuthRequest, res) => {
 router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const { name, description, price, duration, clinic_id } = req.body;
+    const { name, description, price, specialty, service, status, clinic_id } = req.body;
 
     // Verify clinic belongs to user
     const { data: clinicData, error: clinicError } = await supabaseAdmin
@@ -534,23 +579,46 @@ router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
       return res.status(403).json({ error: 'Clinic not found or access denied' });
     }
 
+    console.log('💾 Creating treatment:', { userId, clinic_id, name, specialty, service });
+    
     const { data, error } = await supabaseAdmin
       .from('treatments')
       .insert({
         name,
         description,
         price,
-        duration,
+        specialty: specialty || null,
+        service: service || null,
+        status: status || 'active',
         clinic_id,
-        is_active: true,
       })
       .select()
       .single();
 
     if (error) {
       console.error('❌ Error creating treatment:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // If RLS error, provide helpful message
+      if (error.message?.includes('row-level security') || error.message?.includes('RLS')) {
+        console.error('💡 RLS error detected - this suggests:');
+        console.error('   1. SUPABASE_SERVICE_ROLE_KEY might not be set correctly in backend .env');
+        console.error('   2. Or the treatments table RLS policies need to be updated');
+        console.error('   3. Run the migration: 20250120000000_fix_treatments_rls_policies.sql');
+        return res.status(403).json({ 
+          error: 'Permission denied. Please ensure the service role key is configured correctly, or contact an administrator. If the error persists, run the treatments RLS migration.' 
+        });
+      }
+      
       return res.status(400).json({ error: error.message });
     }
+    
+    console.log('✅ Treatment created successfully:', data);
 
     res.json({ treatment: data });
   } catch (error: any) {
@@ -765,23 +833,123 @@ router.patch('/patients/:userId', authenticate, async (req: AuthRequest, res) =>
     }
 
     // Verify patient has bookings with this clinic
-    const { data: bookingData } = await supabaseAdmin
+    const { data: bookingData, error: bookingCheckError } = await supabaseAdmin
       .from('bookings')
       .select('id')
       .eq('user_id', patientUserId)
       .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`)
       .limit(1);
 
-    if (!bookingData || bookingData.length === 0) {
-      return res.status(403).json({ error: 'Patient not found or access denied' });
+    if (bookingCheckError) {
+      console.error('❌ Error checking bookings:', bookingCheckError);
+      return res.status(400).json({ error: `Failed to verify patient access: ${bookingCheckError.message}` });
     }
 
-    // Update profile
-    const { data, error } = await supabaseAdmin
+    if (!bookingData || bookingData.length === 0) {
+      console.error('❌ No bookings found for patient:', {
+        patientUserId,
+        clinicId: clinicData.id,
+        clinicName: clinicData.name
+      });
+      return res.status(403).json({ error: 'Patient not found or access denied. Patient must have bookings with this clinic.' });
+    }
+
+    console.log('✅ Patient has bookings with clinic, proceeding with update');
+
+    // Log the update request
+    console.log('💾 Updating patient profile:', {
+      patientUserId,
+      updates,
+      clinicId: clinicData.id,
+      clinicName: clinicData.name
+    });
+
+    // First, check if profile exists
+    const { data: existingProfile, error: checkError } = await supabaseAdmin
       .from('profiles')
-      .update(updates)
+      .select('user_id, full_name, email')
       .eq('user_id', patientUserId)
-      .select()
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking profile:', checkError);
+      return res.status(400).json({ error: checkError.message });
+    }
+
+    if (!existingProfile) {
+      // Profile doesn't exist - try to get user email from auth to create profile
+      console.log('⚠️ Profile not found for user:', patientUserId, '- attempting to create profile');
+      
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(patientUserId);
+      
+      if (userError) {
+        console.error('❌ Error fetching user from auth:', userError);
+        return res.status(404).json({ error: `User not found: ${userError.message}` });
+      }
+      
+      if (!user) {
+        console.error('❌ User not found in auth for user_id:', patientUserId);
+        return res.status(404).json({ error: 'User not found in authentication system' });
+      }
+
+      console.log('✅ User found in auth:', { email: user.email, id: user.id });
+
+      // Prepare profile data - ensure all required fields are present
+      const profileData: any = {
+        user_id: patientUserId,
+        email: user.email || updates.email || '',
+        full_name: updates.full_name || user.user_metadata?.full_name || 'Unknown Patient',
+      };
+
+      // Add optional fields only if they exist
+      if (updates.gender) profileData.gender = updates.gender;
+      if (updates.phone) profileData.phone = updates.phone;
+      if (updates.date_of_birth) profileData.date_of_birth = updates.date_of_birth;
+
+      console.log('💾 Creating profile with data:', profileData);
+
+      // Create profile with basic info
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData)
+        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
+        .maybeSingle();
+
+      if (createError) {
+        console.error('❌ Error creating profile:', createError);
+        console.error('❌ Profile data attempted:', profileData);
+        return res.status(400).json({ error: `Failed to create profile: ${createError.message}` });
+      }
+
+      if (!newProfile) {
+        console.error('❌ Profile creation returned no data');
+        return res.status(500).json({ error: 'Profile creation failed - no data returned' });
+      }
+
+      console.log('✅ Profile created successfully:', newProfile);
+      return res.json({ profile: newProfile, success: true, created: true });
+    }
+
+    console.log('✅ Profile exists, updating:', existingProfile);
+
+    // Update profile - ensure we're updating the correct fields
+    // Only update fields that actually exist in the profiles table:
+    // user_id, full_name, email, gender, date_of_birth, phone, created_at, updated_at
+    // Remove any non-existent fields from updates
+    const { age, birth_date, dob, sex, ...updatesCleaned } = updates;
+    if (age !== undefined || birth_date !== undefined || dob !== undefined || sex !== undefined) {
+      console.log('⚠️ Removed non-existent fields from updates:', { age, birth_date, dob, sex });
+    }
+
+    console.log('💾 Cleaned update data:', updatesCleaned);
+
+    // Update profile and return updated data in one query
+    // Use maybeSingle() first to check if update affected any rows
+    const { data, error, count } = await supabaseAdmin
+      .from('profiles')
+      .update(updatesCleaned)
+      .eq('user_id', patientUserId)
+      .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
       .maybeSingle();
 
     if (error) {
@@ -789,7 +957,69 @@ router.patch('/patients/:userId', authenticate, async (req: AuthRequest, res) =>
       return res.status(400).json({ error: error.message });
     }
 
-    res.json({ profile: data });
+    if (!data) {
+      // This means the update didn't find any rows to update
+      // This shouldn't happen since we checked for existingProfile above
+      // But handle it gracefully
+      console.error('❌ Profile update returned no data - profile may have been deleted:', patientUserId);
+      
+      // Try to create the profile as a fallback
+      console.log('🔄 Attempting to create profile as fallback...');
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(patientUserId);
+      
+      if (userError || !user) {
+        console.error('❌ User not found in auth:', userError);
+        return res.status(404).json({ error: 'Profile not found and user does not exist' });
+      }
+
+      // Create profile
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          user_id: patientUserId,
+          email: user.email || updates.email || '',
+          full_name: updates.full_name || user.user_metadata?.full_name || 'Unknown',
+          gender: updates.gender || null,
+          phone: updates.phone || null,
+          date_of_birth: updates.date_of_birth || null,
+        })
+        .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
+        .maybeSingle();
+
+      if (createError) {
+        console.error('❌ Error creating profile as fallback:', createError);
+        return res.status(400).json({ error: `Failed to create profile: ${createError.message}` });
+      }
+
+      if (!newProfile) {
+        return res.status(404).json({ error: 'Profile not found and creation failed' });
+      }
+
+      console.log('✅ Profile created as fallback:', newProfile);
+      return res.json({ profile: newProfile, success: true, created: true });
+    }
+
+    console.log('✅ Patient profile updated successfully:', {
+      userId: data.user_id,
+      full_name: data.full_name,
+      email: data.email,
+      gender: data.gender,
+      phone: data.phone,
+      date_of_birth: data.date_of_birth
+    });
+
+    // Verify the update by fetching the profile again
+    const { data: verifyData } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, full_name, email, gender, phone, date_of_birth, created_at')
+      .eq('user_id', patientUserId)
+      .maybeSingle();
+
+    if (verifyData) {
+      console.log('✅ Verified updated profile:', verifyData);
+    }
+
+    res.json({ profile: data, success: true });
   } catch (error: any) {
     console.error('❌ Update patient profile error:', error);
     res.status(400).json({ error: error.message });
@@ -850,11 +1080,14 @@ router.get('/patients/:userId/profile', authenticate, async (req: AuthRequest, r
 /**
  * DELETE /api/clinic-admin/patients/:userId
  * Delete patient (clinic admin can delete their patients' bookings)
+ * This removes all appointments for the patient with this clinic
  */
 router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
     const { userId: patientUserId } = req.params;
+
+    console.log('🗑️ Delete patient request:', { userId, patientUserId });
 
     // Verify clinic belongs to user
     const { data: clinicData, error: clinicError } = await supabaseAdmin
@@ -864,22 +1097,88 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
       .maybeSingle();
 
     if (clinicError || !clinicData) {
+      console.error('❌ Clinic not found for user:', userId);
       return res.status(404).json({ error: 'Clinic not found' });
     }
 
-    // Delete bookings for this patient with this clinic
-    const { error: deleteError } = await supabaseAdmin
+    console.log('✅ Clinic found:', { clinicId: clinicData.id, clinicName: clinicData.name });
+
+    // First, check how many bookings exist for this patient with this clinic
+    const { data: existingBookings, error: checkError } = await supabaseAdmin
       .from('bookings')
-      .delete()
+      .select('id')
       .eq('user_id', patientUserId)
       .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`);
 
-    if (deleteError) {
-      console.error('❌ Error deleting patient bookings:', deleteError);
-      return res.status(400).json({ error: deleteError.message });
+    if (checkError) {
+      console.error('❌ Error checking bookings:', checkError);
+      return res.status(400).json({ error: `Failed to check bookings: ${checkError.message}` });
     }
 
-    res.json({ success: true, message: 'Patient deleted successfully' });
+    const bookingCount = existingBookings?.length || 0;
+    console.log(`📊 Found ${bookingCount} bookings to delete for patient ${patientUserId} with clinic ${clinicData.name}`);
+
+    if (bookingCount === 0) {
+      console.log('⚠️ No bookings found for this patient with this clinic');
+      return res.json({ 
+        success: true, 
+        message: 'Patient deleted successfully (no appointments found)', 
+        deletedCount: 0 
+      });
+    }
+
+    // Delete bookings for this patient with this clinic
+    // Use two separate queries to ensure we catch both clinic_id and clinic name matches
+    let totalDeleted = 0;
+    
+    // Delete bookings matching clinic_id
+    const { data: deletedById, error: deleteByIdError } = await supabaseAdmin
+      .from('bookings')
+      .delete()
+      .eq('user_id', patientUserId)
+      .eq('clinic_id', clinicData.id)
+      .select('id');
+
+    if (deleteByIdError) {
+      console.error('❌ Error deleting bookings by clinic_id:', deleteByIdError);
+      // Continue to try deleting by clinic name
+    } else {
+      totalDeleted += deletedById?.length || 0;
+      console.log(`✅ Deleted ${deletedById?.length || 0} bookings by clinic_id`);
+    }
+
+    // Delete bookings matching clinic name (for backward compatibility with old bookings)
+    const { data: deletedByName, error: deleteByNameError } = await supabaseAdmin
+      .from('bookings')
+      .delete()
+      .eq('user_id', patientUserId)
+      .eq('clinic', clinicData.name)
+      .select('id');
+
+    if (deleteByNameError) {
+      console.error('❌ Error deleting bookings by clinic name:', deleteByNameError);
+      if (totalDeleted === 0) {
+        return res.status(400).json({ error: `Failed to delete bookings: ${deleteByNameError.message}` });
+      }
+    } else {
+      const deletedByNameCount = deletedByName?.length || 0;
+      // Avoid double-counting if a booking matched both conditions
+      if (deletedByNameCount > 0) {
+        // Check if any of these were already deleted (unlikely but possible)
+        const newDeletions = deletedByName?.filter((b: any) => 
+          !deletedById?.some((d: any) => d.id === b.id)
+        ) || [];
+        totalDeleted += newDeletions.length;
+        console.log(`✅ Deleted ${newDeletions.length} additional bookings by clinic name`);
+      }
+    }
+
+    console.log(`✅ Successfully deleted ${totalDeleted} bookings for patient ${patientUserId}`);
+    res.json({ 
+      success: true, 
+      message: 'Patient deleted successfully', 
+      deletedCount: totalDeleted 
+    });
   } catch (error: any) {
     console.error('❌ Delete patient error:', error);
     res.status(400).json({ error: error.message });

@@ -428,7 +428,7 @@ const MyBookings = () => {
                       <div className="flex items-start gap-1 text-sm text-gray-600 mb-2">
                         <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <span className="line-clamp-3 leading-relaxed">
-                          1st Floor, Icon Mall, 2001, 12th Main Rd, Indiranagar...
+                          {appointment.clinicAddress || 'Location not specified'}
                         </span>
                       </div>
                       
@@ -548,7 +548,7 @@ const MyBookings = () => {
               {/* Location */}
               <div className="flex items-start gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>1st Floor, Icon Mall, 2981, 12th Main Rd, Indiranagar...</span>
+                <span>{appointmentToReschedule.clinicAddress || 'Location not specified'}</span>
               </div>
 
               {/* Treatment Type */}

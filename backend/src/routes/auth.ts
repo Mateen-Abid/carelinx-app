@@ -197,12 +197,26 @@ router.post('/signup', async (req, res) => {
       throw new Error('Signup failed - no user data returned');
     }
 
-    console.log('✅ Signup successful - confirmation email should be sent automatically');
-    console.log('📧 Email sent to:', email);
-    console.log('💡 If email is not received, check:');
-    console.log('   1. SMTP configuration in Supabase Dashboard → Settings → Auth → SMTP Settings');
-    console.log('   2. "Confirm email" toggle in Dashboard → Authentication → Providers → Email');
-    console.log('   3. Check spam/junk folder');
+    // Check if email was actually sent
+    // Note: Supabase doesn't return explicit confirmation that email was sent,
+    // but if signup succeeds and email confirmation is enabled, it should be sent
+    const emailSent = signupData.user && !signupData.user.email_confirmed_at;
+    
+    console.log('✅ Signup successful');
+    console.log('📧 User created:', signupData.user.email);
+    console.log('📧 Email confirmation status:', signupData.user.email_confirmed_at ? 'Already confirmed' : 'Pending confirmation');
+    
+    if (emailSent) {
+      console.log('📧 Confirmation email should be sent automatically by Supabase');
+      console.log('💡 If email is not received, check:');
+      console.log('   1. SMTP configuration in Supabase Dashboard → Settings → Auth → SMTP Settings');
+      console.log('   2. "Confirm email" toggle in Dashboard → Authentication → Providers → Email (must be ENABLED)');
+      console.log('   3. Redirect URL whitelisted in Dashboard → Auth → URL Configuration → Redirect URLs');
+      console.log('   4. Check spam/junk folder');
+      console.log('   5. Wait 1-5 minutes for email to arrive');
+    } else {
+      console.log('⚠️ Email may already be confirmed or email sending may be disabled');
+    }
     
     // Store user data for response
     const data = { user: signupData.user };

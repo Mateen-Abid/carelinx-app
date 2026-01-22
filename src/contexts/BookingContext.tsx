@@ -10,6 +10,7 @@ export interface Appointment {
   specialty?: string;
   clinic: string;
   clinicLogo?: string;
+  clinicAddress?: string;
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled';
@@ -84,6 +85,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Try to find clinic logo from database
         // First try by clinic_id (most reliable)
         let clinicLogo = '';
+        let clinicAddress = booking.clinic_address || null;
+        
         if (booking.clinic_id && clinicMapById.has(booking.clinic_id)) {
           clinicLogo = clinicMapById.get(booking.clinic_id)?.logo_url || '';
         } else if (booking.clinic) {
@@ -96,7 +99,22 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
             const clinicData = clinicsData.find(clinic => 
               clinic.name.toLowerCase() === normalizedClinicName
             );
-            clinicLogo = clinicData?.logo || '';
+            if (clinicData) {
+              clinicLogo = clinicData.logo || '';
+              // Use hardcoded address for hardcoded clinics
+              clinicAddress = clinicData.address;
+            }
+          }
+        }
+        
+        // If no address found from database, check hardcoded clinics
+        if (!clinicAddress && booking.clinic) {
+          const normalizedClinicName = booking.clinic.trim().toLowerCase();
+          const hardcodedClinic = clinicsData.find(clinic => 
+            clinic.name.toLowerCase() === normalizedClinicName
+          );
+          if (hardcodedClinic) {
+            clinicAddress = hardcodedClinic.address;
           }
         }
         
@@ -109,7 +127,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           rawStatus: booking.status,
           clinicLogo: clinicLogo ? 'Found' : 'Not found',
           clinicName: booking.clinic,
-          clinicId: booking.clinic_id
+          clinicId: booking.clinic_id,
+          clinicAddress: clinicAddress || 'Not found'
         });
         
         return {
@@ -118,6 +137,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           specialty: booking.specialty,
           clinic: booking.clinic,
           clinicLogo: clinicLogo,
+          clinicAddress: clinicAddress || 'Location not specified',
           date: booking.appointment_date,
           time: booking.appointment_time,
           status: bookingStatus as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled',
