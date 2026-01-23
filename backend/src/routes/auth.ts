@@ -69,20 +69,37 @@ router.post('/signin', async (req, res) => {
 
     console.log('✅ Signin successful:', email);
 
-    // Set JWT in httpOnly cookie (JavaScript can't access it!)
-    res.cookie('access_token', data.session.access_token, {
-      httpOnly: true, // Frontend JavaScript CANNOT read this
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    // Cookie security: Use COOKIE_SECURE env var, default to false for HTTP deployments
+    // Set COOKIE_SECURE=true only if using HTTPS
+    const cookieSecure = process.env.COOKIE_SECURE === 'true';
+    
+    console.log('🍪 Setting cookies:', {
+      secure: cookieSecure,
+      httpOnly: true,
       sameSite: 'lax',
-      maxAge: 3600000, // 1 hour
+      domain: process.env.COOKIE_DOMAIN || 'undefined (default)',
     });
 
+    // Set JWT in httpOnly cookie (JavaScript can't access it!)
+    const cookieOptions: any = {
+      httpOnly: true, // Frontend JavaScript CANNOT read this
+      secure: cookieSecure, // Only true if COOKIE_SECURE=true (for HTTPS)
+      sameSite: 'lax' as const,
+      maxAge: 3600000, // 1 hour
+    };
+
+    // Set domain if specified (useful for subdomains)
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    res.cookie('access_token', data.session.access_token, cookieOptions);
     res.cookie('refresh_token', data.session.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 604800000, // 7 days
     });
+
+    console.log('✅ Cookies set successfully');
 
     // Return user data WITHOUT tokens
     res.json({
@@ -444,18 +461,22 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ error: 'Token refresh failed' });
     }
 
-    // Update httpOnly cookies with new tokens
-    res.cookie('access_token', data.session.access_token, {
+    // Update httpOnly cookies with new tokens (using same cookie options as signin)
+    const cookieSecure = process.env.COOKIE_SECURE === 'true';
+    const cookieOptions: any = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: cookieSecure,
+      sameSite: 'lax' as const,
       maxAge: 3600000, // 1 hour
-    });
+    };
 
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    res.cookie('access_token', data.session.access_token, cookieOptions);
     res.cookie('refresh_token', data.session.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 604800000, // 7 days
     });
 

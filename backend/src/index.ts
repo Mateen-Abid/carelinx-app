@@ -26,9 +26,15 @@ console.log('\n🚀 Starting CareLinx Backend...\n');
 
 // CORS Configuration
 // IMPORTANT: credentials: true allows httpOnly cookies
+// Use APP_ORIGIN for production, fallback to FRONTEND_URL or localhost
+const allowedOrigin = process.env.APP_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:8080';
+console.log('🌐 CORS origin configured:', allowedOrigin);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: allowedOrigin,
   credentials: true, // CRITICAL: Allows cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Request logging middleware (to debug route issues)
@@ -110,6 +116,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 app.listen(PORT, () => {
   console.log(`✅ Backend server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 CORS Origin: ${allowedOrigin}`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:8080'}`);
   console.log(`\n🔒 SECURITY:`);
   console.log(`   ✓ API key hidden (backend .env)`);

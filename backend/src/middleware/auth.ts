@@ -21,13 +21,30 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
+    // Log request details for debugging (without exposing secrets)
+    const hasCookies = !!req.cookies && Object.keys(req.cookies).length > 0;
+    const cookieNames = req.cookies ? Object.keys(req.cookies) : [];
+    
+    console.log('🔐 Auth middleware:', {
+      path: req.path,
+      method: req.method,
+      hasCookies,
+      cookieNames: cookieNames.length > 0 ? cookieNames : 'none',
+      origin: req.headers.origin || 'none',
+    });
+
     // Read token from httpOnly cookie (set during login)
     const token = req.cookies.access_token;
 
     if (!token) {
       console.log('❌ Auth: No token in cookie');
+      console.log('   Available cookies:', cookieNames);
+      console.log('   Request origin:', req.headers.origin);
+      console.log('   Request host:', req.headers.host);
       return res.status(401).json({ error: 'Unauthorized - No token' });
     }
+
+    console.log('🔑 Token found in cookie (length:', token.length, ')');
 
     // Validate token with Supabase (backend only, frontend can't see this)
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
