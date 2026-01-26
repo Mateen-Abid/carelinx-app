@@ -84,11 +84,12 @@ const AdminDoctors = () => {
       console.log('🔍 Fetching ALL doctors from ALL clinics via backend (super admin view)...');
       
       // Fetch doctors + clinics in parallel
+      // Use allStatuses=true to get ALL doctors regardless of status (for super admin)
       const [
         { doctors: doctorsData },
         { clinics: clinicsData },
       ] = await Promise.all([
-        api.doctors.getDoctors(),
+        api.doctors.getDoctors(undefined, true), // Get all doctors regardless of status
         api.clinics.getClinics(),
       ]);
 
@@ -259,10 +260,25 @@ const AdminDoctors = () => {
     try {
       console.log('🗑️ Deleting doctor via backend:', selectedDoctor.id);
       await api.doctors.deleteDoctor(selectedDoctor.id);
+      
+      console.log('✅ Doctor deleted successfully');
+
+      // Update the doctors list immediately to reflect the deletion
+      setDoctorsData(prevDoctors => 
+        prevDoctors.filter(doctor => doctor.id !== selectedDoctor.id)
+      );
+
+      // Also remove from selected doctors if it was selected
+      setSelectedDoctors(prevSelected => 
+        prevSelected.filter(id => id !== selectedDoctor.id)
+      );
+
       toast.success('Doctor deleted successfully');
       setIsDeleteConfirmModalOpen(false);
       setSelectedDoctor(null);
-      fetchDoctors();
+      
+      // Refresh to ensure data is in sync with database
+      await fetchDoctors();
     } catch (error: any) {
       console.error('❌ Error deleting doctor:', error);
       toast.error('Failed to delete doctor: ' + (error.message || 'Unknown error'));
@@ -299,14 +315,36 @@ const AdminDoctors = () => {
     setChangingStatus(true);
     try {
       console.log('🔄 Updating doctor status via backend:', selectedDoctor.id, newStatus);
-      await api.doctors.updateDoctor(selectedDoctor.id, { status: newStatus });
+      const updatedDoctor = await api.doctors.updateDoctor(selectedDoctor.id, { status: newStatus });
+      
+      console.log('✅ Doctor status updated successfully:', updatedDoctor);
+
+      // Update the doctors list immediately to reflect the change
+      setDoctorsData(prevDoctors => 
+        prevDoctors.map(doctor => 
+          doctor.id === selectedDoctor.id 
+            ? { ...doctor, status: newStatus }
+            : doctor
+        )
+      );
+
+      // Update selected doctor if it's still the same one
+      if (selectedDoctor) {
+        setSelectedDoctor({
+          ...selectedDoctor,
+          status: newStatus,
+        });
+      }
+
       toast.success(`Doctor status updated to ${newStatus === 'on-leave' ? 'On Leave' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`);
       setIsStatusChangeModalOpen(false);
       setSelectedDoctor(null);
-      fetchDoctors(); // Refresh to show updated status
-    } catch (error) {
-      console.error('Error updating doctor status:', error);
-      toast.error('Failed to update doctor status');
+      
+      // Refresh to ensure data is in sync with database
+      await fetchDoctors();
+    } catch (error: any) {
+      console.error('❌ Error updating doctor status:', error);
+      toast.error('Failed to update doctor status: ' + (error.message || 'Unknown error'));
     } finally {
       setChangingStatus(false);
     }

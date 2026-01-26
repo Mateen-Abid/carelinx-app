@@ -329,6 +329,11 @@ const AdminPatients = () => {
   const handleSavePatientChanges = async () => {
     if (!selectedPatient) return;
 
+    if (!editFormData.fullName.trim()) {
+      toast.error('Full name is required');
+      return;
+    }
+
     setSavingPatient(true);
     try {
       // Prepare update data - API expects: fullName, gender, dateOfBirth, phone, email
@@ -366,13 +371,55 @@ const AdminPatients = () => {
       
       console.log('✅ Patient profile updated successfully:', response);
 
-      toast.success('Patient information updated successfully');
+      // Calculate age from dateOfBirth if provided
+      let updatedAge = selectedPatient.age;
+      if (editFormData.dateOfBirth) {
+        const birthDate = new Date(editFormData.dateOfBirth);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          updatedAge = age - 1;
+        } else {
+          updatedAge = age;
+        }
+      }
+
+      // Update the patients list immediately to reflect the change
+      setPatientsData(prevPatients => 
+        prevPatients.map(patient => 
+          patient.user_id === selectedPatient.user_id 
+            ? {
+                ...patient,
+                name: editFormData.fullName.trim(),
+                gender: editFormData.gender,
+                age: updatedAge,
+                contact: editFormData.phone?.trim() || patient.contact,
+                email: editFormData.email?.trim() || patient.email,
+              }
+            : patient
+        )
+      );
+
+      // Update selected patient if it's still the same one
+      if (selectedPatient) {
+        setSelectedPatient({
+          ...selectedPatient,
+          name: editFormData.fullName.trim(),
+          gender: editFormData.gender,
+          age: updatedAge,
+          contact: editFormData.phone?.trim() || selectedPatient.contact,
+          email: editFormData.email?.trim() || selectedPatient.email,
+        });
+      }
+
+      toast.success('Patient information updated successfully. Changes will be reflected in the patient profile page.');
 
       // Close modal
       setIsEditPatientModalOpen(false);
       setSelectedPatient(null);
       
-      // Refresh the patient list to show updated data
+      // Refresh the patient list to ensure data is in sync with database
       await fetchPatients();
     } catch (error: any) {
       console.error('❌ Error saving patient changes:', error);

@@ -27,6 +27,7 @@ interface BookingContextType {
   getPendingAppointments: () => Appointment[];
   getPastAppointments: () => Appointment[];
   showFeedbackModal: (bookingId: string, clinicName: string, doctorName: string) => void;
+  fetchAppointments: () => Promise<void>;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -286,7 +287,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       getUpcomingAppointments,
       getPendingAppointments,
       getPastAppointments,
-      showFeedbackModal
+      showFeedbackModal,
+      fetchAppointments
     }}>
       {children}
       <FeedbackModal

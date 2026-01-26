@@ -7,15 +7,42 @@ const router = Router();
 /**
  * GET /api/doctors
  * Get all active doctors (public route)
+ * For super admin: use ?all=true to get all doctors regardless of status
  */
 router.get('/', optionalAuth, async (req: AuthRequest, res) => {
   try {
-    const { clinic_id } = req.query;
+    const { clinic_id, all } = req.query;
     
+    // Check if user is super admin or clinic admin (if authenticated)
+    let isSuperAdmin = false;
+    let isClinicAdmin = false;
+    if (req.user) {
+      const { data: userRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('role_type')
+        .eq('user_id', req.user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      isSuperAdmin = userRole?.role_type === 'super_admin';
+      isClinicAdmin = userRole?.role_type === 'clinic_admin';
+    }
+    
+    // If super admin requests all doctors, or clinic admin is viewing their clinic's doctors, don't filter by status
+    // Otherwise, only return active doctors for public users
     let query = supabaseAdmin
       .from('doctors')
-      .select('id, name, specialty, email, phone, availability, clinic_id, status, services')
-      .eq('status', 'active');
+      .select('id, name, specialty, email, phone, availability, clinic_id, status, services');
+
+    // Only filter by status if:
+    // - Not super admin requesting all doctors (all=true)
+    // - Not clinic admin viewing their own clinic's doctors
+    // - Public user (unauthenticated or not admin)
+    const shouldFilterByStatus = !(isSuperAdmin && all === 'true') && !(isClinicAdmin && clinic_id);
+    
+    if (shouldFilterByStatus) {
+      query = query.eq('status', 'active');
+    }
 
     if (clinic_id) {
       query = query.eq('clinic_id', clinic_id);

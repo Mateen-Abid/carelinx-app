@@ -411,22 +411,48 @@ router.patch('/:userId', authenticate, async (req: AuthRequest, res) => {
 
       console.log('💾 Creating profile with data:', profileData);
 
-      // Create profile
-      const { data: newProfile, error: createError } = await supabaseAdmin
+      // Try to create profile using service role (should bypass RLS)
+      let newProfile = null;
+      let createError = null;
+      
+      const { data: insertData, error: insertErr } = await supabaseAdmin
         .from('profiles')
         .insert(profileData)
         .select('user_id, full_name, email, gender, date_of_birth, phone, created_at')
         .maybeSingle();
 
-      if (createError) {
-        console.error('❌ Error creating profile:', createError);
-        console.error('❌ Profile data attempted:', profileData);
-        return res.status(400).json({ error: `Failed to create profile: ${createError.message}` });
+      if (insertErr) {
+        console.error('❌ Error creating profile with direct insert:', insertErr);
+        console.log('🔄 Attempting to use RPC function as fallback...');
+        
+        // If direct insert fails due to RLS, use the RPC function that bypasses RLS
+        const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('create_profile_for_user', {
+          p_user_id: profileData.user_id,
+          p_email: profileData.email,
+          p_full_name: profileData.full_name,
+          p_gender: profileData.gender || null,
+          p_phone: profileData.phone || null,
+          p_date_of_birth: profileData.date_of_birth || null,
+        });
+
+        if (rpcErr) {
+          console.error('❌ Error creating profile with RPC:', rpcErr);
+          createError = rpcErr;
+        } else if (rpcData && rpcData.length > 0) {
+          newProfile = rpcData[0];
+          console.log('✅ Profile created successfully via RPC:', newProfile);
+        } else {
+          createError = new Error('RPC function returned no data');
+        }
+      } else {
+        newProfile = insertData;
+        console.log('✅ Profile created successfully via direct insert:', newProfile);
       }
 
-      if (!newProfile) {
-        console.error('❌ Profile creation returned no data');
-        return res.status(500).json({ error: 'Profile creation failed - no data returned' });
+      if (createError || !newProfile) {
+        console.error('❌ Error creating profile:', createError);
+        console.error('❌ Profile data attempted:', profileData);
+        return res.status(400).json({ error: `Failed to create profile: ${createError?.message || 'Unknown error'}` });
       }
 
       console.log('✅ Profile created successfully:', newProfile);

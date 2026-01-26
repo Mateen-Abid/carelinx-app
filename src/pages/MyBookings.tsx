@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { api } from '@/services/api';
 
 const MyBookings = () => {
-  const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment } = useBooking();
+  const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment, confirmAppointment, fetchAppointments } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -140,15 +140,12 @@ const MyBookings = () => {
   const handleApproveRescheduled = async (appointment: Appointment) => {
     try {
       console.log('✅ Approving rescheduled appointment via backend:', appointment.id);
-      // Approve the rescheduled appointment - change status to confirmed
-      await api.bookings.updateBooking(appointment.id, {
-        status: 'confirmed',
-        confirmed_at: new Date().toISOString()
-      });
+      // Use the context method which handles refetching automatically
+      await confirmAppointment(appointment.id);
 
       toast.success('Appointment approved successfully');
-      // Refresh appointments
-      window.location.reload(); // Simple refresh to update the list
+      // The context method already refreshes appointments, but ensure it's called
+      await fetchAppointments();
     } catch (error: any) {
       console.error('❌ Error approving rescheduled appointment:', error);
       toast.error(error.message || 'Failed to approve appointment. Please try again.');

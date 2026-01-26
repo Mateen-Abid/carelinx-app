@@ -839,6 +839,9 @@ const ClinicAdminDashboard = () => {
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                             Date & Time
                           </th>
+                          <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                            Action
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -855,6 +858,15 @@ const ClinicAdminDashboard = () => {
                             </td>
                             <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
                               {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
+                            </td>
+                            <td className="py-4 px-4">
+                              <Button
+                                size="sm"
+                                className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
+                                onClick={() => handleViewDetails(appointment)}
+                              >
+                                View Details
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -1026,31 +1038,33 @@ const ClinicAdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <Button
-                    onClick={handleCancelAppointment}
-                    variant="outline"
-                    className="border-red-600 text-red-600 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
-                  >
-                    <X className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    Cancel Appointment
-                  </Button>
-                  <Button
-                    onClick={handleRescheduleAppointment}
-                    className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
-                  >
-                    <Clock className="w-4 h-4" />
-                    Reschedule
-                  </Button>
-                  <Button
-                    onClick={handleApproveAppointment}
-                    className="bg-[#00FFA2] hover:bg-[#00e692] text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
-                  >
-                    <Check className="w-4 h-4 text-white" />
-                    Approve Appointment
-                  </Button>
-                </div>
+                {/* Action Buttons - Only show for pending appointments */}
+                {selectedAppointmentDetails.status === 'pending' && (
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button
+                      onClick={handleCancelAppointment}
+                      variant="outline"
+                      className="border-red-600 text-red-600 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    >
+                      <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      Cancel Appointment
+                    </Button>
+                    <Button
+                      onClick={handleRescheduleAppointment}
+                      className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    >
+                      <Clock className="w-4 h-4" />
+                      Reschedule
+                    </Button>
+                    <Button
+                      onClick={handleApproveAppointment}
+                      className="bg-[#00FFA2] hover:bg-[#00e692] text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    >
+                      <Check className="w-4 h-4 text-white" />
+                      Approve Appointment
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : null}
           </DialogContent>

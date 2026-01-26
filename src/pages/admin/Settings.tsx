@@ -84,7 +84,7 @@ const AdminSettings = () => {
     email: string;
   }>({
     name: '',
-    role: '',
+    role: 'Admin', // Default to Admin
     description: '',
     status: 'active',
     access_level: '',
@@ -320,7 +320,7 @@ const AdminSettings = () => {
       // Reset form
       setNewTeamMember({
         name: '',
-        role: '',
+        role: 'Admin', // Default to Admin
         description: '',
         status: 'active',
         access_level: '' as const,
@@ -375,14 +375,22 @@ const AdminSettings = () => {
         return;
       }
 
+      console.log('💾 Saving profile changes:', profileData.fullName);
+
       const { error } = await updateProfile(profileData.fullName);
 
       if (error) {
         return; // Error already handled in updateProfile
       }
 
+      // Close modal
       setShowEditProfileModal(false);
-      fetchProfile();
+      
+      // Refresh profile data from backend to reflect changes
+      console.log('🔄 Refreshing profile data...');
+      await fetchProfile();
+      
+      console.log('✅ Profile updated and refreshed');
     } catch (error: any) {
       console.error('❌ Error updating profile:', error);
       toast.error('Failed to update profile');
@@ -681,11 +689,6 @@ const AdminSettings = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="Doctor">Doctor</SelectItem>
-                    <SelectItem value="Nurse">Nurse</SelectItem>
-                    <SelectItem value="Contributor">Contributor</SelectItem>
-                    <SelectItem value="Billing Specialist">Billing Specialist</SelectItem>
-                    <SelectItem value="Pharmacist">Pharmacist</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -773,7 +776,7 @@ const AdminSettings = () => {
                   setShowAddTeamMemberModal(false);
                   setNewTeamMember({ 
                     name: '', 
-                    role: '', 
+                    role: 'Admin', // Default to Admin
                     description: '', 
                     status: 'active',
                     access_level: '' as const,

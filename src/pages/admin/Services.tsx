@@ -192,18 +192,47 @@ const AdminServices = () => {
     }
 
     try {
-      await api.adminServices.updateSpecialty(editingSpecialty.id, {
+      const updatedSpecialty = await api.adminServices.updateSpecialty(editingSpecialty.id, {
         name: editingSpecialty.name.trim(),
         description: editingSpecialty.description || null
       });
 
-      toast.success('Specialty updated successfully');
+      console.log('✅ Specialty updated successfully:', updatedSpecialty);
+
+      // Update the specialties list immediately to reflect the change
+      setSpecialties(prevSpecialties => 
+        prevSpecialties.map(specialty => 
+          specialty.id === editingSpecialty.id 
+            ? {
+                ...specialty,
+                name: editingSpecialty.name.trim(),
+                description: editingSpecialty.description || null,
+              }
+            : specialty
+        )
+      );
+
+      // Also update the specialty_name in services that belong to this specialty
+      setServices(prevServices => 
+        prevServices.map(service => 
+          service.specialty_id === editingSpecialty.id
+            ? {
+                ...service,
+                specialty_name: editingSpecialty.name.trim(),
+              }
+            : service
+        )
+      );
+
+      toast.success('Specialty updated successfully. Changes will be reflected immediately.');
       setShowEditSpecialtyModal(false);
       setEditingSpecialty(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating specialty:', error);
-      toast.error('Failed to update specialty');
+      
+      // Refresh to ensure data is in sync with database
+      await fetchData();
+    } catch (error: any) {
+      console.error('❌ Error updating specialty:', error);
+      toast.error('Failed to update specialty: ' + (error?.message || 'Unknown error'));
     }
   };
 
@@ -211,19 +240,55 @@ const AdminServices = () => {
   const handleDeleteSpecialty = async () => {
     if (!deletingSpecialty) return;
 
-    console.log('🗑️ Deleting specialty:', deletingSpecialty.id, deletingSpecialty.name);
+    console.log('🗑️ Deleting specialty:', {
+      id: deletingSpecialty.id,
+      name: deletingSpecialty.name,
+      is_active: deletingSpecialty.is_active,
+      idType: typeof deletingSpecialty.id,
+      idLength: deletingSpecialty.id?.length
+    });
 
     try {
-      console.log('🗑️ Deleting specialty via backend:', deletingSpecialty.id);
-      const { deleted_services_count } = await api.adminServices.deleteSpecialty(deletingSpecialty.id);
+      console.log('🗑️ Calling deleteSpecialty API with ID:', deletingSpecialty.id);
+      const response = await api.adminServices.deleteSpecialty(deletingSpecialty.id);
+      console.log('✅ Delete specialty API response:', response);
+      const deleted_services_count = response?.deleted_services_count || 0;
+      
+      // Verify the deletion was successful
+      if (!response?.success && !response?.specialty) {
+        throw new Error('Delete operation did not return success confirmation');
+      }
+
       console.log('✅ Specialty and services deleted successfully');
-      toast.success(`Specialty and ${deleted_services_count || 0} service(s) deleted successfully`);
+
+      // Update the specialties list immediately to reflect the deletion
+      // Since it's a soft delete (is_active = false), remove it from the UI
+      setSpecialties(prevSpecialties => {
+        const updated = prevSpecialties.filter(specialty => specialty.id !== deletingSpecialty.id);
+        console.log('🔄 Updated specialties list:', updated.length, 'specialties remaining');
+        return updated;
+      });
+
+      // Also remove all services that belong to this specialty from the services list
+      setServices(prevServices => {
+        const updated = prevServices.filter(service => service.specialty_id !== deletingSpecialty.id);
+        console.log('🔄 Updated services list:', updated.length, 'services remaining');
+        return updated;
+      });
+
+      toast.success(`Specialty and ${deleted_services_count || 0} service(s) deleted successfully. The specialty and its services will no longer be visible to public users or clinic admins.`);
       setShowDeleteSpecialtyModal(false);
       setDeletingSpecialty(null);
-      fetchData();
+      
+      // Refresh to ensure data is in sync with database
+      // This will fetch only active specialties (is_active = true), so deleted ones won't appear
+      await fetchData();
     } catch (error: any) {
       console.error('❌ Error deleting specialty:', error);
       toast.error(`Failed to delete specialty: ${error?.message || 'Unknown error'}`);
+      
+      // Revert optimistic update on error by refreshing
+      await fetchData();
     }
   };
 
@@ -267,19 +332,38 @@ const AdminServices = () => {
     }
 
     try {
-      await api.adminServices.updateService(editingService.id, {
+      const updatedService = await api.adminServices.updateService(editingService.id, {
         specialty_id: editingService.specialty_id,
         name: editingService.name.trim(),
         description: editingService.description || null
       });
 
-      toast.success('Service updated successfully');
+      console.log('✅ Service updated successfully:', updatedService);
+
+      // Update the services list immediately to reflect the change
+      setServices(prevServices => 
+        prevServices.map(service => 
+          service.id === editingService.id 
+            ? {
+                ...service,
+                name: editingService.name.trim(),
+                specialty_id: editingService.specialty_id,
+                specialty_name: specialties.find(s => s.id === editingService.specialty_id)?.name || service.specialty_name,
+                description: editingService.description || null,
+              }
+            : service
+        )
+      );
+
+      toast.success('Service updated successfully. Changes will be reflected immediately.');
       setShowEditServiceModal(false);
       setEditingService(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating service:', error);
-      toast.error('Failed to update service');
+      
+      // Refresh to ensure data is in sync with database
+      await fetchData();
+    } catch (error: any) {
+      console.error('❌ Error updating service:', error);
+      toast.error('Failed to update service: ' + (error?.message || 'Unknown error'));
     }
   };
 
@@ -293,10 +377,19 @@ const AdminServices = () => {
       console.log('🗑️ Deleting service via backend:', deletingService.id);
       await api.adminServices.deleteService(deletingService.id);
       console.log('✅ Service deleted successfully');
-      toast.success('Service deleted successfully');
+
+      // Update the services list immediately to reflect the deletion
+      // Since it's a soft delete (is_active = false), remove it from the UI
+      setServices(prevServices => 
+        prevServices.filter(service => service.id !== deletingService.id)
+      );
+
+      toast.success('Service deleted successfully. The service will no longer be visible to public users or clinic admins.');
       setShowDeleteServiceModal(false);
       setDeletingService(null);
-      fetchData();
+      
+      // Refresh to ensure data is in sync with database
+      await fetchData();
     } catch (error: any) {
       console.error('❌ Exception deleting service:', error);
       toast.error(`Failed to delete service: ${error?.message || error?.code || 'Unknown error'}`);

@@ -722,7 +722,7 @@ const ClinicAdminDoctors = () => {
   const getStatusLabel = (status: Doctor['status']) => {
     const statusConfig = {
       active: 'Active',
-      inactive: 'Inactive',
+      inactive: 'Deactivated',
       'on-leave': 'On Leave',
     };
     return statusConfig[status];
@@ -1081,12 +1081,27 @@ const ClinicAdminDoctors = () => {
                                   if (!clinic?.id) return;
                                   try {
                                     const newStatus = doctor.status === 'active' ? 'inactive' : 'active';
+                                    
+                                    // Optimistic UI update - update immediately
+                                    setDoctors(prevDoctors => 
+                                      prevDoctors.map(d => 
+                                        d.id === doctor.id 
+                                          ? { ...d, status: newStatus }
+                                          : d
+                                      )
+                                    );
+                                    
                                     await api.doctors.updateDoctor(doctor.id, { status: newStatus });
-                                    fetchDoctors(clinic.id);
                                     toast.success(`Doctor ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+                                    
+                                    // Refresh to ensure data is in sync with database
+                                    await fetchDoctors(clinic.id);
                                   } catch (error: any) {
                                     console.error('❌ Error updating doctor status:', error);
                                     toast.error(error?.message || 'Failed to update doctor status');
+                                    
+                                    // Revert optimistic update on error
+                                    await fetchDoctors(clinic.id);
                                   }
                                 }}>
                                   {doctor.status === 'active' ? 'Deactivate' : 'Activate'}

@@ -209,17 +209,17 @@ const AdminClinics = () => {
   const handleNextStep = () => {
     // Validate credentials step
     if (!newClinic.email || !newClinic.password || !newClinic.confirmPassword) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
     if (newClinic.password !== newClinic.confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
     if (newClinic.password.length < 6) {
-      alert('Password must be at least 6 characters');
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -231,7 +231,7 @@ const AdminClinics = () => {
     try {
       // Validate details step
       if (!newClinic.name || !newClinic.address) {
-        alert('Please fill in clinic name and address');
+        toast.error('Please fill in clinic name and address');
         return;
       }
 
@@ -288,9 +288,10 @@ const AdminClinics = () => {
         specialties: [],
       });
       fetchClinics(); // Refresh list
+      toast.success('Clinic added successfully!');
     } catch (error: any) {
       console.error('❌ Error adding clinic:', error);
-      alert('Error adding clinic: ' + (error.message || 'Unknown error'));
+      toast.error('Error adding clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -326,39 +327,52 @@ const AdminClinics = () => {
 
   const handleSuspendClinic = async () => {
     if (!selectedClinic || !suspendReason.trim()) {
-      alert('Please provide a reason for suspension');
+      toast.error('Please provide a reason for suspension');
       return;
     }
 
     try {
       console.log('🔄 Suspending clinic via backend:', selectedClinic.id);
-      await api.clinics.updateClinic(selectedClinic.id, {
+      const updatedClinic = await api.clinics.updateClinic(selectedClinic.id, {
         status: 'suspended',
-        suspended_reason: suspendReason,
+        suspended_reason: suspendReason.trim(),
         updated_at: new Date().toISOString(),
       });
 
-      // Update the selected clinic state to reflect the change
-      setSelectedClinic({
-        ...selectedClinic,
-        status: 'suspended',
-        suspended_reason: suspendReason,
-      });
+      console.log('✅ Clinic suspended successfully:', updatedClinic);
+
+      // Update the clinics list to reflect the change
+      setClinicsData(prevClinics => 
+        prevClinics.map(clinic => 
+          clinic.id === selectedClinic.id 
+            ? { ...clinic, status: 'suspended' as const, suspended_reason: suspendReason.trim() }
+            : clinic
+        )
+      );
+
+      // Update the selected clinic state if modal is still open
+      if (selectedClinic) {
+        setSelectedClinic({
+          ...selectedClinic,
+          status: 'suspended',
+          suspended_reason: suspendReason.trim(),
+        });
+      }
 
       // Close modal
       setShowSuspendModal(false);
       setSuspendReason('');
       
-      // Refresh the clinics list to show updated status
+      // Refresh the clinics list to ensure data is in sync
       await fetchClinics();
       
       // Show success message
-      alert(`Clinic "${selectedClinic.name}" has been suspended successfully. It will no longer be visible on the public page.`);
+      toast.success(`Clinic "${selectedClinic.name}" has been suspended successfully. It will no longer be visible on the public page.`);
       
       setSelectedClinic(null);
     } catch (error: any) {
       console.error('❌ Error suspending clinic:', error);
-      alert('Error suspending clinic: ' + (error.message || 'Unknown error'));
+      toast.error('Error suspending clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -398,41 +412,64 @@ const AdminClinics = () => {
     if (!selectedClinic) return;
 
     if (!editClinicForm.name || !editClinicForm.address) {
-      alert('Please fill in clinic name and address');
+      toast.error('Please fill in clinic name and address');
       return;
     }
 
     setSavingEdit(true);
     try {
       console.log('💾 Updating clinic via backend:', selectedClinic.id);
-      await api.clinics.updateClinic(selectedClinic.id, {
-        name: editClinicForm.name,
-        description: editClinicForm.description || null,
+      const updatedClinic = await api.clinics.updateClinic(selectedClinic.id, {
+        name: editClinicForm.name.trim(),
+        description: editClinicForm.description?.trim() || null,
         specialties: editClinicForm.specialties.length > 0 ? editClinicForm.specialties : null,
-        contact_email: editClinicForm.contact_email || null,
-        contact_phone: editClinicForm.contact_phone || null,
-        address: editClinicForm.address,
+        contact_email: editClinicForm.contact_email?.trim() || null,
+        contact_phone: editClinicForm.contact_phone?.trim() || null,
+        address: editClinicForm.address.trim(),
         updated_at: new Date().toISOString(),
       });
+
+      console.log('✅ Clinic updated successfully:', updatedClinic);
+
+      // Update the clinics list to reflect changes immediately
+      setClinicsData(prevClinics => 
+        prevClinics.map(clinic => 
+          clinic.id === selectedClinic.id 
+            ? {
+                ...clinic,
+                name: editClinicForm.name.trim(),
+                description: editClinicForm.description?.trim() || undefined,
+                specialties: editClinicForm.specialties,
+                contact_email: editClinicForm.contact_email?.trim() || undefined,
+                contact_phone: editClinicForm.contact_phone?.trim() || undefined,
+                address: editClinicForm.address.trim(),
+                updated_at: new Date().toISOString(),
+              }
+            : clinic
+        )
+      );
 
       // Update the selectedClinic state to reflect changes immediately
       setSelectedClinic({
         ...selectedClinic,
-        name: editClinicForm.name,
-        description: editClinicForm.description || undefined,
+        name: editClinicForm.name.trim(),
+        description: editClinicForm.description?.trim() || undefined,
         specialties: editClinicForm.specialties,
-        contact_email: editClinicForm.contact_email || undefined,
-        contact_phone: editClinicForm.contact_phone || undefined,
-        address: editClinicForm.address,
+        contact_email: editClinicForm.contact_email?.trim() || undefined,
+        contact_phone: editClinicForm.contact_phone?.trim() || undefined,
+        address: editClinicForm.address.trim(),
+        updated_at: new Date().toISOString(),
       });
 
       setShowEditModal(false);
-      // Refresh the clinics list to show updated data
+      
+      // Refresh the clinics list to ensure data is in sync with database
       await fetchClinics();
-      alert('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
+      
+      toast.success('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
     } catch (error: any) {
       console.error('❌ Error updating clinic:', error);
-      alert('Error updating clinic: ' + (error.message || 'Unknown error'));
+      toast.error('Error updating clinic: ' + (error.message || 'Unknown error'));
     } finally {
       setSavingEdit(false);
     }
@@ -447,7 +484,7 @@ const AdminClinics = () => {
   const handleSuspendClinicClick = async () => {
     // Directly suspend the clinic after reason is provided
     if (!selectedClinic || !suspendReason.trim()) {
-      alert('Please provide a reason for suspension');
+      toast.error('Please provide a reason for suspension');
       return;
     }
     
@@ -459,20 +496,40 @@ const AdminClinics = () => {
 
     try {
       console.log('🔄 Unsuspending clinic via backend:', clinic.id);
-      await api.clinics.updateClinic(clinic.id, {
+      const updatedClinic = await api.clinics.updateClinic(clinic.id, {
         status: 'active',
         suspended_reason: null,
         updated_at: new Date().toISOString(),
       });
 
-      // Refresh the clinics list to show updated status
+      console.log('✅ Clinic unsuspended successfully:', updatedClinic);
+
+      // Update the clinics list to reflect the change immediately
+      setClinicsData(prevClinics => 
+        prevClinics.map(c => 
+          c.id === clinic.id 
+            ? { ...c, status: 'active' as const, suspended_reason: undefined }
+            : c
+        )
+      );
+
+      // Update selected clinic if it's the one being unsuspended
+      if (selectedClinic && selectedClinic.id === clinic.id) {
+        setSelectedClinic({
+          ...selectedClinic,
+          status: 'active',
+          suspended_reason: undefined,
+        });
+      }
+
+      // Refresh the clinics list to ensure data is in sync
       await fetchClinics();
       
       // Show success message
-      alert(`Clinic "${clinic.name}" has been unsuspended successfully. It will now be visible on the public page.`);
+      toast.success(`Clinic "${clinic.name}" has been unsuspended successfully. It will now be visible on the public page.`);
     } catch (error: any) {
       console.error('❌ Error unsuspending clinic:', error);
-      alert('Error unsuspending clinic: ' + (error.message || 'Unknown error'));
+      toast.error('Error unsuspending clinic: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -514,13 +571,6 @@ const AdminClinics = () => {
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export to Excel
-                </Button>
-                <Button 
-                  onClick={() => setShowAddModal(true)}
-                  className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium px-6"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New Clinic
                 </Button>
               </div>
             </div>

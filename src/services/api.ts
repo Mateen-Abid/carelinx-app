@@ -15,10 +15,12 @@
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
 
 /**
- * Helper function for API calls
+ * Helper function for API calls with automatic token refresh on 401
  * IMPORTANT: credentials: 'include' sends httpOnly cookies
  */
-const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+const fetchWithAuth = async (endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<any> => {
+  const maxRetries = 1; // Only retry once to avoid infinite loops
+  
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -27,6 +29,30 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
     },
     credentials: 'include', // CRITICAL: Sends httpOnly cookies with every request
   });
+
+  // If 401 Unauthorized, try refreshing token and retrying once
+  if (response.status === 401 && retryCount < maxRetries) {
+    console.log('🔄 401 Unauthorized - attempting token refresh...');
+    try {
+      // Try to refresh token
+      await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('✅ Token refreshed, retrying original request...');
+      // Retry the original request
+      return fetchWithAuth(endpoint, options, retryCount + 1);
+    } catch (refreshError) {
+      console.error('❌ Token refresh failed:', refreshError);
+      // If refresh fails, throw the original error
+      const error = await response.json().catch(() => ({ error: 'Unauthorized' }));
+      throw new Error(error.error || 'Unauthorized');
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
@@ -174,8 +200,12 @@ export const clinicsApi = {
 
 // Doctors API (Public)
 export const doctorsApi = {
-  getDoctors: async (clinicId?: string) => {
-    const url = clinicId ? `/doctors?clinic_id=${clinicId}` : '/doctors';
+  getDoctors: async (clinicId?: string, allStatuses?: boolean) => {
+    let url = '/doctors';
+    const params = new URLSearchParams();
+    if (clinicId) params.append('clinic_id', clinicId);
+    if (allStatuses) params.append('all', 'true');
+    if (params.toString()) url += `?${params.toString()}`;
     return fetchWithAuth(url);
   },
 

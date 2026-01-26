@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -330,12 +331,12 @@ const ClinicAdminClinicProfile = () => {
         }
       }
 
-      // Update clinic via backend
+      // Update clinic via backend (email is not editable, so we don't send it)
       await api.clinicAdmin.updateClinic({
         name: editProfileForm.name,
         description: editProfileForm.description || null,
         specialties: editProfileForm.specialties.length > 0 ? editProfileForm.specialties : null,
-        contact_email: editProfileForm.email,
+        // contact_email is not editable, so we don't include it in the update
         contact_phone: editProfileForm.phone || null,
         address: editProfileForm.address,
         logo_url: logoUrl || undefined,
@@ -401,7 +402,7 @@ const ClinicAdminClinicProfile = () => {
       });
 
       // Update operating hours via backend
-      await api.clinicAdmin.updateOperatingHours({ hours: hoursToInsert });
+      await api.clinicAdmin.updateOperatingHours(hoursToInsert);
 
       toast.success('Operating hours updated successfully');
       setIsEditHoursModalOpen(false);
@@ -738,8 +739,8 @@ const ClinicAdminClinicProfile = () => {
                   id="email"
                   type="email"
                   value={editProfileForm.email}
-                  onChange={(e) => setEditProfileForm({ ...editProfileForm, email: e.target.value })}
-                  className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  disabled
+                  className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                   placeholder="Enter email"
                 />
               </div>
@@ -833,6 +834,9 @@ const ClinicAdminClinicProfile = () => {
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                         Closing
                       </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        Closed
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -846,6 +850,7 @@ const ClinicAdminClinicProfile = () => {
                           <td className="py-3 px-4">
                             <Select
                               value={dayHours.opening || ''}
+                              disabled={dayHours.isClosed}
                               onValueChange={(value) => {
                                 setEditHoursForm(prev => ({
                                   ...prev,
@@ -858,7 +863,7 @@ const ClinicAdminClinicProfile = () => {
                                 }));
                               }}
                             >
-                              <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                              <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed">
                                 <SelectValue placeholder="Select time" />
                               </SelectTrigger>
                               <SelectContent>
@@ -873,6 +878,7 @@ const ClinicAdminClinicProfile = () => {
                           <td className="py-3 px-4">
                             <Select
                               value={dayHours.closing || ''}
+                              disabled={dayHours.isClosed}
                               onValueChange={(value) => {
                                 setEditHoursForm(prev => ({
                                   ...prev,
@@ -885,7 +891,7 @@ const ClinicAdminClinicProfile = () => {
                                 }));
                               }}
                             >
-                              <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                              <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed">
                                 <SelectValue placeholder="Select time" />
                               </SelectTrigger>
                               <SelectContent>
@@ -896,6 +902,31 @@ const ClinicAdminClinicProfile = () => {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`closed-${day.value}`}
+                                checked={dayHours.isClosed}
+                                onCheckedChange={(checked) => {
+                                  setEditHoursForm(prev => ({
+                                    ...prev,
+                                    [day.value]: {
+                                      ...prev[day.value],
+                                      isClosed: checked === true,
+                                      opening: checked === true ? '' : prev[day.value]?.opening || '',
+                                      closing: checked === true ? '' : prev[day.value]?.closing || '',
+                                    },
+                                  }));
+                                }}
+                              />
+                              <label
+                                htmlFor={`closed-${day.value}`}
+                                className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                              >
+                                Closed
+                              </label>
+                            </div>
                           </td>
                         </tr>
                       );

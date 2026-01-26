@@ -55,8 +55,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  // If still no role after waiting, deny access
-  if (!effectiveRole || !allowedRoles.includes(effectiveRole)) {
+  // If still no role after waiting, try to fetch it one more time
+  if (!effectiveRole) {
+    console.warn('⚠️ No role found, attempting to fetch role...');
+    // This will be handled by the auth context, but we should wait a bit more
+    // Don't immediately redirect - give it time to fetch
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#0C2243] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading user role...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if role is allowed
+  if (!allowedRoles.includes(effectiveRole)) {
     console.log('🚫 Access denied. User role:', effectiveRole, 'Required roles:', allowedRoles);
     console.log('🚫 User:', user?.email, 'UserRole from context:', userRole, 'Cached role:', localStorage.getItem('userRole'));
     return <Navigate to={redirectTo} replace />;

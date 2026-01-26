@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   // Fetch user role from backend API (NO Supabase direct calls)
-  const fetchUserRole = async (): Promise<UserRole> => {
+  const fetchUserRole = async (retryOnError = true): Promise<UserRole | null> => {
     try {
       console.log('📡 Fetching role from backend...');
       const { role } = await api.user.getUserRole();
@@ -53,9 +53,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(mappedRole);
       localStorage.setItem('userRole', mappedRole);
       return mappedRole;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching role:', error);
-      return 'patient';
+      
+      // If it's a 401 (unauthorized), try refreshing token and retrying once
+      if (retryOnError && error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.log('🔄 401 error - attempting token refresh and retry...');
+        try {
+          await api.auth.refreshToken();
+          console.log('✅ Token refreshed, retrying role fetch...');
+          return await fetchUserRole(false); // Retry once without infinite loop
+        } catch (refreshError) {
+          console.error('❌ Token refresh failed:', refreshError);
+          // If refresh fails, preserve current role instead of defaulting to patient
+          const currentRole = userRole || (localStorage.getItem('userRole') as UserRole | null);
+          if (currentRole) {
+            console.log('⚠️ Using preserved role:', currentRole);
+            return currentRole;
+          }
+          return null; // Return null instead of 'patient' to indicate error
+        }
+      }
+      
+      // For other errors, preserve current role instead of defaulting to patient
+      const currentRole = userRole || (localStorage.getItem('userRole') as UserRole | null);
+      if (currentRole) {
+        console.log('⚠️ Error fetching role, preserving current role:', currentRole);
+        return currentRole;
+      }
+      
+      // Only return null if we have no role at all
+      console.warn('⚠️ No role available, returning null');
+      return null;
     }
   };
 
@@ -162,7 +191,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // If RLS is needed for direct Supabase queries, use the backend API instead
           
           const role = await fetchUserRole();
-          console.log('✅ Auth initialized with role:', role);
+          if (role) {
+            console.log('✅ Auth initialized with role:', role);
+          } else {
+            console.warn('⚠️ Auth initialized but role fetch failed - using cached role if available');
+            // Try to use cached role as fallback
+            const cachedRole = localStorage.getItem('userRole') as UserRole | null;
+            if (cachedRole) {
+              setUserRole(cachedRole);
+              console.log('✅ Using cached role:', cachedRole);
+            }
+          }
         } else {
           console.log('ℹ️ No active session');
         }
@@ -186,13 +225,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // This keeps the httpOnly cookie refreshed
         await api.auth.refreshToken();
         console.log('✅ Token refreshed via backend');
+        
+        // CRITICAL: Refresh user role after token refresh to ensure it's still correct
+        // This prevents role from being lost or defaulting to patient
+        const refreshedRole = await fetchUserRole(false);
+        if (refreshedRole) {
+          console.log('✅ Role refreshed after token refresh:', refreshedRole);
+        }
       } catch (error) {
         console.warn('⚠️ Token refresh failed:', error);
+        // If token refresh fails, try to preserve current role
+        const currentRole = userRole || (localStorage.getItem('userRole') as UserRole | null);
+        if (currentRole) {
+          console.log('⚠️ Preserving current role after refresh failure:', currentRole);
+        }
       }
     }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens expire after 1 hour)
 
     return () => clearInterval(refreshInterval);
-  }, [user]);
+  }, [user, userRole]);
 
   const signUp = async (email: string, password: string, fullName: string, invitationToken?: string) => {
     try {
@@ -268,8 +319,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateProfile = async (fullName: string) => {
-    toast.info('Profile update will be implemented soon');
-    return { error: null };
+    try {
+      if (!user) {
+        toast.error('You must be signed in to update your profile');
+        return { error: new Error('Not authenticated') };
+      }
+
+      console.log('💾 Updating profile via backend...', { fullName });
+      
+      // Update profile via backend API
+      const { profile } = await api.profiles.updateProfile({
+        full_name: fullName.trim(),
+      });
+
+      console.log('✅ Profile updated successfully:', profile);
+
+      // Update local user state if profile data is returned
+      if (profile) {
+        // Update user metadata if available
+        setUser({
+          ...user,
+          user_metadata: {
+            ...user.user_metadata,
+            full_name: profile.full_name || fullName,
+          },
+        });
+      }
+
+      toast.success('Profile updated successfully');
+      return { error: null };
+    } catch (error: any) {
+      console.error('❌ Update profile error:', error);
+      toast.error(error.message || 'Failed to update profile');
+      return { error };
+    }
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {

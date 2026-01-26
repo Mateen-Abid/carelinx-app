@@ -117,6 +117,45 @@ router.patch('/specialties/:id', authenticate, async (req: AuthRequest, res) => 
 router.delete('/specialties/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
+    console.log('🗑️ Delete specialty request:', id, 'User:', req.user?.email);
+
+    // First check if specialty exists (regardless of active status)
+    const { data: existingSpecialty, error: checkError } = await supabaseAdmin
+      .from('super_admin_specialties')
+      .select('id, name, is_active')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking specialty existence:', checkError);
+      throw checkError;
+    }
+
+    if (!existingSpecialty) {
+      console.log('⚠️ Specialty not found:', id);
+      return res.status(404).json({ error: 'Specialty not found' });
+    }
+
+    console.log('✅ Specialty found:', existingSpecialty.name, 'Active:', existingSpecialty.is_active);
+
+    // If already inactive, return success (idempotent operation)
+    if (!existingSpecialty.is_active) {
+      console.log('ℹ️ Specialty already deleted, returning success');
+      // Still count services that would have been deleted
+      const { data: servicesData } = await supabaseAdmin
+        .from('super_admin_services')
+        .select('id')
+        .eq('specialty_id', id)
+        .eq('is_active', false);
+      
+      const deletedServicesCount = servicesData?.length || 0;
+      return res.json({ 
+        success: true, 
+        message: 'Specialty already deleted',
+        deleted_services_count: deletedServicesCount,
+        specialty: existingSpecialty 
+      });
+    }
 
     // First, soft delete all services under this specialty
     const { data: servicesData, error: servicesError } = await supabaseAdmin
@@ -129,9 +168,13 @@ router.delete('/specialties/:id', authenticate, async (req: AuthRequest, res) =>
       .eq('is_active', true)
       .select('id');
 
-    if (servicesError) throw servicesError;
+    if (servicesError) {
+      console.error('❌ Error deleting services:', servicesError);
+      throw servicesError;
+    }
 
     const deletedServicesCount = servicesData?.length || 0;
+    console.log('✅ Deleted', deletedServicesCount, 'service(s) under specialty');
 
     // Then, soft delete the specialty itself
     const { data: specialtyData, error: specialtyError } = await supabaseAdmin
@@ -141,22 +184,57 @@ router.delete('/specialties/:id', authenticate, async (req: AuthRequest, res) =>
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('is_active', true) // Only update if currently active
       .select()
       .maybeSingle();
 
-    if (specialtyError) throw specialtyError;
-
-    if (!specialtyData) {
-      return res.status(404).json({ error: 'Specialty not found' });
+    if (specialtyError) {
+      console.error('❌ Error updating specialty:', specialtyError);
+      throw specialtyError;
     }
 
+    if (!specialtyData) {
+      console.log('⚠️ Update returned no data for specialty:', id);
+      // Check if specialty was already inactive (race condition or concurrent update)
+      const { data: checkData, error: checkError } = await supabaseAdmin
+        .from('super_admin_specialties')
+        .select('id, name, is_active')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('❌ Error checking specialty after update:', checkError);
+        throw checkError;
+      }
+      
+      if (checkData && !checkData.is_active) {
+        console.log('ℹ️ Specialty was already inactive, returning success');
+        return res.json({ 
+          success: true, 
+          deleted_services_count: deletedServicesCount,
+          specialty: checkData
+        });
+      }
+      
+      // If we get here, the specialty is still active, which means the update failed
+      console.error('❌ Specialty update failed - specialty is still active:', checkData);
+      throw new Error('Failed to update specialty - update query returned no data and specialty is still active');
+    }
+    
+    // Verify the update actually set is_active to false
+    if (specialtyData.is_active !== false) {
+      console.error('❌ Specialty update did not set is_active to false:', specialtyData);
+      throw new Error('Specialty update did not complete correctly - is_active is still true');
+    }
+
+    console.log('✅ Specialty deleted successfully:', specialtyData.name, 'is_active:', specialtyData.is_active);
     res.json({ 
       success: true, 
       deleted_services_count: deletedServicesCount,
       specialty: specialtyData
     });
   } catch (error: any) {
-    console.error('Delete specialty error:', error);
+    console.error('❌ Delete specialty error:', error);
     res.status(400).json({ error: error.message });
   }
 });
