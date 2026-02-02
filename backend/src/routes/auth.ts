@@ -628,6 +628,87 @@ router.post('/reset-password', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/update-password
+ *
+ * Updates password using recovery tokens from the reset email.
+ */
+router.post('/update-password', async (req, res) => {
+  try {
+    const { accessToken, refreshToken, newPassword } = req.body;
+
+    if (!accessToken || !refreshToken) {
+      return res.status(400).json({ error: 'Reset tokens are required' });
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables (SUPABASE_URL or SUPABASE_ANON_KEY)');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Establish session using recovery tokens
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (sessionError || !sessionData?.session) {
+      console.error('❌ Error setting session from recovery tokens:', sessionError);
+      return res.status(400).json({ error: 'Invalid or expired reset tokens' });
+    }
+
+    // Update password for the user associated with the session
+    const { error: updateError } = await supabaseClient.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      console.error('❌ Error updating password:', updateError);
+      return res.status(400).json({ error: updateError.message || 'Failed to update password' });
+    }
+
+    // Set httpOnly cookies so the user is authenticated after reset
+    const cookieSecure = process.env.COOKIE_SECURE === 'true';
+    const cookieOptions: any = {
+      httpOnly: true,
+      secure: cookieSecure,
+      sameSite: 'lax' as const,
+      maxAge: 3600000, // 1 hour
+    };
+
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    res.cookie('access_token', sessionData.session.access_token, cookieOptions);
+    res.cookie('refresh_token', sessionData.session.refresh_token, {
+      ...cookieOptions,
+      maxAge: 604800000, // 7 days
+    });
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully',
+    });
+  } catch (error: any) {
+    console.error('❌ Update password error:', error);
+    res.status(400).json({ error: error.message || 'Failed to update password' });
+  }
+});
+
+/**
  * POST /api/auth/change-password
  * 
  * Changes password for authenticated user (requires current password)

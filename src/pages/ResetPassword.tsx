@@ -18,6 +18,7 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [resetTokens, setResetTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   
   const { user, updatePassword } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const ResetPassword = () => {
         // The backend handles session setting via httpOnly cookies
         if (accessToken && refreshToken && type === 'recovery') {
           console.log('Password reset tokens found');
+          setResetTokens({ accessToken, refreshToken });
           setIsAuthenticated(true);
           setIsCheckingAuth(false);
           return;
@@ -116,7 +118,13 @@ const ResetPassword = () => {
     setError('');
     
     try {
-      const { error } = await updatePassword(formData.password);
+      if (!resetTokens) {
+        setError('This password reset link is invalid or has expired. Please request a new one.');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await updatePassword(formData.password, resetTokens.accessToken, resetTokens.refreshToken);
       
       if (error) {
         setError(error.message || 'Failed to update password');

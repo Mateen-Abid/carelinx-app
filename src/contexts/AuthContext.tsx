@@ -17,7 +17,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (fullName: string) => Promise<{ error: any }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>;
-  updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string, accessToken?: string, refreshToken?: string) => Promise<{ error: any }>;
   deleteAccount: () => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -369,9 +369,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updatePassword = async (newPassword: string) => {
-    toast.info('Password update will be implemented soon');
-    return { error: null };
+  const updatePassword = async (newPassword: string, accessToken?: string, refreshToken?: string) => {
+    try {
+      if (!accessToken || !refreshToken) {
+        const error = new Error('Reset link is invalid or expired');
+        toast.error(error.message);
+        return { error };
+      }
+
+      console.log('🔐 Updating password via backend...');
+      const { message } = await api.auth.updatePassword(newPassword, accessToken, refreshToken);
+
+      // Refresh user state after password reset
+      const { user: currentUser } = await api.auth.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        setSession({ user: currentUser });
+      }
+
+      toast.success(message || 'Password updated successfully');
+      return { error: null };
+    } catch (error: any) {
+      console.error('❌ Update password error:', error);
+      toast.error(error.message || 'Failed to update password');
+      return { error };
+    }
   };
 
   const deleteAccount = async () => {

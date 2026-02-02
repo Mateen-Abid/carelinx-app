@@ -136,6 +136,13 @@ export const authApi = {
     });
   },
 
+  updatePassword: async (newPassword: string, accessToken: string, refreshToken: string) => {
+    return fetchWithAuth('/auth/update-password', {
+      method: 'POST',
+      body: JSON.stringify({ newPassword, accessToken, refreshToken }),
+    });
+  },
+
   changePassword: async (currentPassword: string, newPassword: string) => {
     return fetchWithAuth('/auth/change-password', {
       method: 'POST',
