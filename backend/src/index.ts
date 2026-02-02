@@ -18,6 +18,7 @@ import adminSettingsRouter from './routes/admin-settings';
 import profilesRouter from './routes/profiles';
 import invitationsRouter from './routes/invitations';
 import clinicAdminRouter from './routes/clinic-admin';
+import doctorRouter from './routes/doctor';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
@@ -99,6 +100,7 @@ app.use('/api/admin', adminSettingsRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/invitations', invitationsRouter);
 app.use('/api/clinic-admin', clinicAdminRouter);
+app.use('/api/doctor', doctorRouter);
 
 // 404 handler
 app.use((req, res) => {

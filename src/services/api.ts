@@ -531,6 +531,17 @@ export const clinicAdminApi = {
   },
 };
 
+// Doctor API
+export const doctorApi = {
+  getClinic: async () => {
+    return fetchWithAuth('/doctor/clinic');
+  },
+  getBookings: async (dateFilter?: string) => {
+    const query = dateFilter ? `?dateFilter=${encodeURIComponent(dateFilter)}` : '';
+    return fetchWithAuth(`/doctor/bookings${query}`);
+  },
+};
+
 export const api = {
   auth: authApi,
   bookings: bookingsApi,
@@ -545,5 +556,6 @@ export const api = {
   profiles: profilesApi,
   invitations: invitationsApi,
   clinicAdmin: clinicAdminApi,
+  doctor: doctorApi,
 };
 

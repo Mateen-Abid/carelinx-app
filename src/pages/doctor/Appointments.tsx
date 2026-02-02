@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import DoctorSidebar from '@/components/doctor/DoctorSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -71,31 +72,7 @@ const DoctorAppointments = () => {
       if (!user) return;
 
       try {
-        // First get doctor's clinic_id
-        const { data: doctorData, error: doctorError } = await (supabase as any)
-          .from('doctors')
-          .select('clinic_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (doctorError || !doctorData || !doctorData.clinic_id) {
-          console.error('Error fetching doctor clinic:', doctorError);
-          setCheckingClinic(false);
-          return;
-        }
-
-        // Then get clinic details
-        const { data: clinicData, error: clinicError } = await (supabase as any)
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('id', doctorData.clinic_id)
-          .maybeSingle();
-
-        if (clinicError) {
-          console.error('Error checking clinic:', clinicError);
-          setCheckingClinic(false);
-          return;
-        }
+        const { clinic: clinicData } = await api.doctor.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           setCheckingClinic(false);
@@ -115,74 +92,18 @@ const DoctorAppointments = () => {
 
   useEffect(() => {
     if (clinic?.id) {
-      fetchAppointments(clinic.id);
+      fetchAppointments();
     }
   }, [clinic?.id, dateFilter]);
 
-  const fetchAppointments = async (clinicId: string) => {
+  const fetchAppointments = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching appointments for clinic ID:', clinicId);
-      console.log('📋 Clinic name:', clinic?.name);
-
-      // Get date range for filtering
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() - today.getDay());
-
-      // Fetch bookings for this clinic - try by clinic_id first (same as clinic admin)
-      const clinicNameTrimmed = clinic?.name?.trim() || '';
-      let bookingsQuery = supabase
-        .from('bookings')
-        .select('*')
-        .or(`clinic.eq.${clinicNameTrimmed},clinic.ilike.${clinicNameTrimmed}`)
-        .order('appointment_date', { ascending: false })
-        .order('appointment_time', { ascending: false });
-      
-      console.log('🔍 Querying bookings by clinic name:', clinicNameTrimmed);
-
-      // Apply date filter
-      if (dateFilter === 'today') {
-        const todayStr = today.toISOString().split('T')[0];
-        bookingsQuery = bookingsQuery.eq('appointment_date', todayStr);
-      } else if (dateFilter === 'tomorrow') {
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        bookingsQuery = bookingsQuery.eq('appointment_date', tomorrowStr);
-      } else if (dateFilter === 'this-week') {
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        bookingsQuery = bookingsQuery
-          .gte('appointment_date', weekStart.toISOString().split('T')[0])
-          .lt('appointment_date', weekEnd.toISOString().split('T')[0]);
-      }
-
-      const { data: bookingsData, error: bookingsError } = await bookingsQuery;
-
-      console.log('📋 Bookings by clinic name:', {
-        count: bookingsData?.length || 0,
-        bookings: bookingsData?.map((b: any) => ({ id: b.id, clinic: b.clinic, status: b.status })),
-        error: bookingsError
-      });
-
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings by clinic_id:', bookingsError);
-      }
-
-      // Use bookings directly (same as clinic admin)
-      let bookings = bookingsData || [];
-      
-      
-      console.log('✅ Total bookings found:', bookings.length);
+      const { bookings, profiles } = await api.doctor.getBookings(dateFilter);
+      const bookingsData = bookings || [];
 
       // Fetch profiles to get patient names
-      const userIds = [...new Set(bookings.map((b: any) => b.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', userIds);
+      const profilesData = profiles || [];
 
       const profileMap = new Map();
       profilesData?.forEach((profile: any) => {
@@ -190,7 +111,7 @@ const DoctorAppointments = () => {
       });
 
       // Transform bookings to appointments
-      const appointments: Appointment[] = bookings.map((booking: any) => {
+      const appointments: Appointment[] = bookingsData.map((booking: any) => {
         const profile = profileMap.get(booking.user_id);
         
         // Map database status to UI status
@@ -252,6 +173,12 @@ const DoctorAppointments = () => {
         icon: Check,
         label: 'Approved',
       },
+      confirmed: {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        icon: Check,
+        label: 'Confirmed',
+      },
       cancelled: {
         bg: 'bg-red-100',
         text: 'text-red-800',
@@ -272,7 +199,7 @@ const DoctorAppointments = () => {
       },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
 
     return (
@@ -386,7 +313,7 @@ const DoctorAppointments = () => {
       
       // Refresh appointments
       if (clinic?.id) {
-        fetchAppointments(clinic.id);
+        fetchAppointments();
       }
     } catch (error) {
       console.error('Error approving appointment:', error);
@@ -417,7 +344,7 @@ const DoctorAppointments = () => {
       
       // Refresh appointments
       if (clinic?.id) {
-        fetchAppointments(clinic.id);
+        fetchAppointments();
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
@@ -489,7 +416,7 @@ const DoctorAppointments = () => {
       
       // Refresh appointments
       if (clinic?.id) {
-        fetchAppointments(clinic.id);
+        fetchAppointments();
       }
     } catch (error: any) {
       console.error('Error rescheduling appointment:', error);

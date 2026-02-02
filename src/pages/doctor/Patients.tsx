@@ -4,6 +4,7 @@ import DoctorSidebar from '@/components/doctor/DoctorSidebar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Search, MoreVertical, ArrowUpDown, ChevronDown, Eye, Pencil, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -55,6 +56,7 @@ const DoctorPatients = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctorBookings, setDoctorBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [checkingClinic, setCheckingClinic] = useState(true);
@@ -87,31 +89,7 @@ const DoctorPatients = () => {
       if (!user) return;
 
       try {
-        // First get doctor's clinic_id
-        const { data: doctorData, error: doctorError } = await (supabase as any)
-          .from('doctors')
-          .select('clinic_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (doctorError || !doctorData || !doctorData.clinic_id) {
-          console.error('Error fetching doctor clinic:', doctorError);
-          setCheckingClinic(false);
-          return;
-        }
-
-        // Then get clinic details
-        const { data: clinicData, error: clinicError } = await (supabase as any)
-          .from('clinics')
-          .select('id, name, status, logo_url')
-          .eq('id', doctorData.clinic_id)
-          .maybeSingle();
-
-        if (clinicError) {
-          console.error('Error checking clinic:', clinicError);
-          setCheckingClinic(false);
-          return;
-        }
+        const { clinic: clinicData } = await api.doctor.getClinic();
 
         if (!clinicData || clinicData.status === 'pending') {
           setCheckingClinic(false);
@@ -131,51 +109,16 @@ const DoctorPatients = () => {
 
   useEffect(() => {
     if (clinic?.id) {
-      fetchPatients(clinic.id);
+      fetchPatients();
     }
   }, [clinic?.id]);
 
-  const fetchPatients = async (clinicId: string) => {
+  const fetchPatients = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching patients for clinic:', clinicId, clinic?.name);
-
-      // Fetch bookings for this clinic by clinic name (same as clinic admin)
-      const clinicNameTrimmed = clinic?.name?.trim() || '';
-      const { data: bookingsByClinicId, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('user_id, appointment_date, created_at, clinic_id, clinic')
-        .or(`clinic.eq.${clinicNameTrimmed},clinic.ilike.${clinicNameTrimmed}`)
-        .order('appointment_date', { ascending: false });
-
-      if (bookingsError) {
-        console.error('❌ Error fetching bookings by clinic_id:', bookingsError);
-      }
-
-      console.log('✅ Bookings by clinic name:', bookingsByClinicId?.length || 0);
-
-      // Also fetch bookings with NULL clinic_id that match clinic name (same as clinic admin)
-      let bookingsWithNullClinicId: any[] = [];
-      if (clinicNameTrimmed) {
-        const { data: nullClinicBookings, error: nullError } = await supabase
-          .from('bookings')
-          .select('user_id, appointment_date, created_at, clinic_id, clinic')
-          .is('clinic_id', null)
-          .ilike('clinic', clinicNameTrimmed)
-          .order('appointment_date', { ascending: false });
-
-        if (!nullError && nullClinicBookings) {
-          bookingsWithNullClinicId = nullClinicBookings;
-          console.log('✅ Bookings with NULL clinic_id:', bookingsWithNullClinicId.length);
-        }
-      }
-
-      // Combine both sets of bookings (avoid duplicates) - same as clinic admin
-      const existingUserIds = new Set((bookingsByClinicId || []).map((b: any) => b.user_id));
-      const uniqueNullBookings = bookingsWithNullClinicId.filter((b: any) => !existingUserIds.has(b.user_id));
-      const bookingsData = [...(bookingsByClinicId || []), ...uniqueNullBookings];
-
-      console.log('✅ Total bookings fetched:', bookingsData.length);
+      const { bookings, profiles } = await api.doctor.getBookings();
+      const bookingsData = bookings || [];
+      setDoctorBookings(bookingsData);
 
       // Get unique user IDs from bookings (only patients who have booked with THIS clinic)
       const userIds = [...new Set(bookingsData?.map(b => b.user_id).filter(id => id !== null) || [])];
@@ -190,20 +133,7 @@ const DoctorPatients = () => {
 
       // Fetch profiles for these users (including gender and date_of_birth if they exist)
       // This will only return profiles for users who have set up their profile
-      const { data: profilesData, error: profilesError } = await (supabase as any)
-        .from('profiles')
-        .select('user_id, full_name, email, created_at, gender, date_of_birth, phone')
-        .in('user_id', userIds);
-
-      if (profilesError) {
-        console.error('❌ Error fetching profiles:', profilesError);
-        // Don't return here - we can still show patients without profiles
-      }
-
-      console.log('✅ Profiles fetched:', profilesData?.length || 0);
-      if (profilesData && profilesData.length > 0) {
-        console.log('📋 Sample profile data:', profilesData[0]);
-      }
+      const profilesData = profiles || [];
 
       // Create a map of user_id to profile for quick lookup
       const profileMap = new Map();
@@ -432,19 +362,16 @@ const DoctorPatients = () => {
     setLoadingAppointments(true);
 
     try {
-      // Fetch appointments by clinic name
-      const { data: appointmentsByClinicId, error: error1 } = await supabase
-        .from('bookings')
-        .select('id, appointment_date, doctor_name, specialty, status')
-        .eq('user_id', patient.user_id)
-        .ilike('clinic', clinic?.name || '')
-        .order('appointment_date', { ascending: false });
-
-      if (error1) {
-        console.error('Error fetching appointments:', error1);
-      }
-
-      const allAppointments = appointmentsByClinicId || [];
+      const allAppointments = doctorBookings
+        .filter((booking: any) => booking.user_id === patient.user_id)
+        .map((booking: any) => ({
+          id: booking.id,
+          appointment_date: booking.appointment_date,
+          doctor_name: booking.doctor_name,
+          specialty: booking.specialty,
+          status: booking.status,
+        }))
+        .sort((a: any, b: any) => (a.appointment_date > b.appointment_date ? -1 : 1));
 
       setPatientAppointments(allAppointments);
     } catch (error) {
@@ -516,7 +443,7 @@ const DoctorPatients = () => {
       
       // Refresh the patient list
       if (clinic?.id) {
-        await fetchPatients(clinic.id);
+        await fetchPatients();
       }
       
       // Re-fetch the updated patient data
@@ -592,7 +519,7 @@ const DoctorPatients = () => {
       
       // Refresh patient list
       if (clinic.id) {
-        await fetchPatients(clinic.id);
+        await fetchPatients();
       }
     } catch (error) {
       console.error('Error deleting patient:', error);
