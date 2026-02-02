@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import { optionalAuth, authenticate, AuthRequest } from '../middleware/auth';
+import { sendEmail } from '../utils/email';
 
 const router = Router();
 
@@ -146,11 +147,86 @@ router.post('/send', authenticate, async (req: AuthRequest, res) => {
       }),
     });
 
-    const responseData = await response.json();
+    const responseData = (await response.json()) as {
+      invitation_url?: string;
+      [key: string]: any;
+    };
 
     if (!response.ok) {
       console.error('❌ Edge Function error:', responseData);
       return res.status(response.status).json(responseData);
+    }
+
+    // Send invitation email via SMTP (backend)
+    try {
+      const invitationUrl = responseData?.invitation_url;
+      if (invitationUrl) {
+        const appName = process.env.APP_NAME || 'CareLinx';
+        const supportEmail = process.env.SUPPORT_EMAIL || process.env.SMTP_FROM || 'support@carelinx.sa';
+        const roleDisplayName = role_type === 'super_admin' ? 'Super Admin' : 'Clinic Admin';
+        const emailSubject = `You've been invited to join ${appName} as ${roleDisplayName}`;
+
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invitation to ${appName}</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #0C2243; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="color: #00FFA2; margin: 0;">${appName}</h1>
+            </div>
+            <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
+              <h2 style="color: #0C2243; margin-top: 0;">You've been invited!</h2>
+              <p>Hello${name ? ` ${name}` : ''},</p>
+              <p>You've been invited to join <strong>${appName}</strong> as a <strong>${roleDisplayName}</strong>.</p>
+              <p>Click the button below to accept the invitation and create your account:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${invitationUrl}" style="background-color: #00FFA2; color: #0C2243; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                  Accept Invitation
+                </a>
+              </div>
+              <p style="font-size: 12px; color: #666;">Or copy and paste this link into your browser:</p>
+              <p style="font-size: 12px; color: #666; word-break: break-all;">${invitationUrl}</p>
+              <p style="font-size: 12px; color: #666; margin-top: 30px;">This invitation will expire in 7 days.</p>
+              <p style="font-size: 12px; color: #666;">If you didn't expect this invitation, you can safely ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+              <p style="font-size: 12px; color: #666; text-align: center;">
+                Need help? Contact us at <a href="mailto:${supportEmail}" style="color: #0C2243;">${supportEmail}</a>
+              </p>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const emailText = `
+You've been invited to join ${appName} as ${roleDisplayName}!
+
+Hello${name ? ` ${name}` : ''},
+
+Click this link to accept the invitation and create your account:
+${invitationUrl}
+
+This invitation will expire in 7 days.
+
+If you didn't expect this invitation, you can safely ignore this email.
+
+Need help? Contact us at ${supportEmail}
+        `.trim();
+
+        await sendEmail({
+          to: email.toLowerCase(),
+          subject: emailSubject,
+          html: emailHtml,
+          text: emailText,
+        });
+      } else {
+        console.warn('⚠️ Invitation URL missing from Edge Function response. Skipping email send.');
+      }
+    } catch (emailError: any) {
+      console.error('❌ Error sending invitation email:', emailError);
     }
 
     console.log('✅ Invitation sent successfully via Edge Function');

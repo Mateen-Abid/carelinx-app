@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { sendEmail } from '../utils/email';
 
 const router = Router();
 
@@ -452,7 +453,7 @@ router.post('/invitations', authenticate, async (req: AuthRequest, res) => {
     const invitationBaseUrl = app_url || process.env.FRONTEND_URL || 'http://localhost:8080';
     const invitationUrl = `${invitationBaseUrl}/invite/${invitationToken}`;
 
-    // Send email via RPC (uses SMTP configured in Supabase)
+    // Send email via SMTP (backend)
     const emailSubject = `You've been invited to join CareLinx as a Doctor`;
     const emailHtml = `
       <!DOCTYPE html>
@@ -495,15 +496,14 @@ ${invitationUrl}
 This invitation will expire in 7 days.
     `.trim();
 
-    const { error: emailError } = await supabaseAdmin.rpc('send_invitation_email', {
-      p_email: email.toLowerCase(),
-      p_subject: emailSubject,
-      p_html_content: emailHtml,
-      p_text_content: emailText,
-      p_invitation_url: invitationUrl,
-    });
-
-    if (emailError) {
+    try {
+      await sendEmail({
+        to: email.toLowerCase(),
+        subject: emailSubject,
+        html: emailHtml,
+        text: emailText,
+      });
+    } catch (emailError: any) {
       console.error('❌ Error sending invitation email:', emailError);
     }
 
