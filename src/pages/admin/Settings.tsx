@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
@@ -45,6 +46,7 @@ interface TeamMember {
 const AdminSettings = () => {
   const { user, signOut, updateProfile, changePassword } = useAuth();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   
   // Error boundary state
   const [hasError, setHasError] = useState(false);
@@ -121,7 +123,7 @@ const AdminSettings = () => {
       } catch (error: any) {
         console.error('❌ Error in Settings page useEffect:', error);
         setHasError(true);
-        setErrorMessage(error?.message || 'An error occurred loading the settings page');
+        setErrorMessage(error?.message || t('An error occurred loading the settings page'));
       }
     };
     fetchAllSettings();
@@ -136,7 +138,7 @@ const AdminSettings = () => {
           <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
             <div className="p-8">
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-                <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Error Loading Settings</h2>
+                <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">{t('Error Loading Settings')}</h2>
                 <p className="text-red-600 dark:text-red-300">{errorMessage}</p>
                 <Button
                   onClick={() => {
@@ -146,7 +148,7 @@ const AdminSettings = () => {
                   }}
                   className="mt-4 bg-red-600 hover:bg-red-700 text-white"
                 >
-                  Reload Page
+                  {t('Reload Page')}
                 </Button>
               </div>
             </div>
@@ -177,7 +179,7 @@ const AdminSettings = () => {
       console.error('❌ Error fetching team members:', error);
       console.error('❌ Error message:', error.message);
       console.error('❌ Error stack:', error.stack);
-      toast.error(error.message || 'Failed to load team members');
+      toast.error(error.message || t('Failed to load team members'));
       setTeamMembers([]);
     } finally {
       setLoadingTeamMembers(false);
@@ -192,10 +194,10 @@ const AdminSettings = () => {
       const { settings } = await api.adminSettings.getSettings();
 
       if (settings) {
-        setAppointmentDuration(settings.appointment_duration || '30 Minutes');
-        setTimezone(settings.timezone || 'UTC - 5');
-        setDateFormat(settings.date_format || 'DD/MM/YYYY');
-        setLanguage(settings.language || 'English (US)');
+        setAppointmentDuration(settings.appointment_duration || t('30 Minutes'));
+        setTimezone(settings.timezone || t('UTC - 5'));
+        setDateFormat(settings.date_format || t('DD/MM/YYYY'));
+        setLanguage(settings.language || t('English (US)'));
         setAppointmentAlerts(settings.appointment_alerts ?? true);
         setDoctorScheduleUpdates(settings.doctor_schedule_updates ?? false);
         setPatientReminders(settings.patient_reminders ?? true);
@@ -216,12 +218,12 @@ const AdminSettings = () => {
 
       if (profile) {
         setProfileData({
-          fullName: profile.fullName || 'Dr. Adebayo',
-          email: profile.email || user.email || 'admin@lushcare.com',
+          fullName: profile.fullName || t('Dr. Adebayo'),
+          email: profile.email || user.email || t('admin@lushcare.com'),
         });
 
         setJoinedDate(profile.joinedDate || '');
-        setUserRole(profile.role || 'Super Admin');
+        setUserRole(profile.role || t('Super Admin'));
         console.log('✅ Profile fetched from backend');
       }
     } catch (error) {
@@ -232,13 +234,13 @@ const AdminSettings = () => {
   const handleAddTeamMember = async () => {
     try {
       if (!newTeamMember.name || !newTeamMember.role || !newTeamMember.access_level) {
-        toast.error('Please fill in all required fields');
+        toast.error(t('Please fill in all required fields'));
         return;
       }
 
       // Email is required when access level is selected
       if (!newTeamMember.email) {
-        toast.error('Email is required for system access');
+        toast.error(t('Email is required for system access'));
         return;
       }
 
@@ -249,7 +251,7 @@ const AdminSettings = () => {
         try {
           // Only allow super_admin or clinic_admin roles for invitations
           if (newTeamMember.access_level !== 'super_admin' && newTeamMember.access_level !== 'clinic_admin') {
-            toast.error('Invitations can only be sent for Super Admin or Clinic Admin roles');
+            toast.error(t('Invitations can only be sent for Super Admin or Clinic Admin roles'));
             return;
           }
 
@@ -292,11 +294,11 @@ const AdminSettings = () => {
             setInvitedUserEmail(newTeamMember.email);
             setShowInvitationLinkModal(true);
             
-            toast.success(`Invitation sent to ${newTeamMember.email}!`);
+            toast.success(t('Invitation sent to {{email}}!', { email: newTeamMember.email }));
           } else {
             console.error('⚠️ No invitation URL found in response!');
             console.log('📦 Full response object:', response);
-            toast.warning(`Invitation created but URL not found. Check console for details.`);
+            toast.warning(t('Invitation created but URL not found. Check console for details.'));
           }
         } catch (error: any) {
           console.error('❌ Error sending invitation:', error);
@@ -305,13 +307,13 @@ const AdminSettings = () => {
           const errorMessage = error.message || String(error);
           
           if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-            toast.error('Session expired. Please sign in again.');
+            toast.error(t('Session expired. Please sign in again.'));
           } else if (errorMessage.includes('403') || errorMessage.includes('Only super admin')) {
-            toast.error('Access denied. Only super admin can send invitations.');
+            toast.error(t('Access denied. Only super admin can send invitations.'));
           } else if (errorMessage.includes('already exists')) {
-            toast.error('A user or invitation with this email already exists.');
+            toast.error(t('A user or invitation with this email already exists.'));
           } else {
-            toast.error(`Failed to send invitation: ${errorMessage}`);
+            toast.error(t('Failed to send invitation: {{message}}', { message: errorMessage }));
           }
           return;
         }
@@ -320,7 +322,7 @@ const AdminSettings = () => {
       // Reset form
       setNewTeamMember({
         name: '',
-        role: 'Admin', // Default to Admin
+        role: t('Admin'), // Default to Admin
         description: '',
         status: 'active',
         access_level: '' as const,
@@ -335,14 +337,14 @@ const AdminSettings = () => {
       }, 500); // Small delay to ensure database has updated
     } catch (error) {
       console.error('❌ Error adding team member:', error);
-      toast.error('Failed to add team member');
+      toast.error(t('Failed to add team member'));
     }
   };
 
   const handleSaveChanges = async () => {
     try {
       if (!user) {
-        toast.error('User not authenticated');
+        toast.error(t('User not authenticated'));
         return;
       }
 
@@ -361,17 +363,17 @@ const AdminSettings = () => {
       await api.adminSettings.saveSettings(settingsData);
 
       console.log('✅ Settings saved successfully');
-      toast.success('Settings saved successfully');
+      toast.success(t('Settings saved successfully'));
     } catch (error: any) {
       console.error('❌ Error saving settings:', error);
-      toast.error(error.message || 'Failed to save settings');
+      toast.error(error.message || t('Failed to save settings'));
     }
   };
 
   const handleEditProfile = async () => {
     try {
       if (!profileData.fullName.trim()) {
-        toast.error('Name cannot be empty');
+        toast.error(t('Name cannot be empty'));
         return;
       }
 
@@ -393,24 +395,24 @@ const AdminSettings = () => {
       console.log('✅ Profile updated and refreshed');
     } catch (error: any) {
       console.error('❌ Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('Failed to update profile'));
     }
   };
 
   const handleChangePassword = async () => {
     try {
       if (!passwordData.currentPassword || !passwordData.newPassword) {
-        toast.error('Please fill in all password fields');
+        toast.error(t('Please fill in all password fields'));
         return;
       }
 
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        toast.error('New passwords do not match');
+        toast.error(t('New passwords do not match'));
         return;
       }
 
       if (passwordData.newPassword.length < 6) {
-        toast.error('Password must be at least 6 characters');
+        toast.error(t('Password must be at least 6 characters'));
         return;
       }
 
@@ -432,7 +434,7 @@ const AdminSettings = () => {
       setShowChangePasswordModal(false);
     } catch (error: any) {
       console.error('❌ Error changing password:', error);
-      toast.error('Failed to change password');
+      toast.error(t('Failed to change password'));
     }
   };
 
@@ -451,12 +453,12 @@ const AdminSettings = () => {
          member.access_level === 'clinic_admin' ? 'Clinic Admin' : 
          'Public User') : 'No Access',
       'Permissions': member.permissions,
-      'Status': member.status,
+      [t('Status')]: member.status,
       'Created At': member.created_at ? new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
     }));
 
     exportToExcel(exportData, 'Team_Members');
-    toast.success('Team members data exported successfully!');
+    toast.success(t('Team members data exported successfully!'));
   };
 
   return (
@@ -468,12 +470,12 @@ const AdminSettings = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Settings')}</h1>
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium px-6"
               >
-                Save Changes
+                {t('Save Changes')}
               </Button>
             </div>
 
@@ -481,7 +483,7 @@ const AdminSettings = () => {
               {/* Account Settings Card */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Account Settings</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Account Settings')}</h2>
                   <div className="flex items-center gap-3">
                     <Button
                       variant="outline"
@@ -489,7 +491,7 @@ const AdminSettings = () => {
                       className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] border-[#00FFA2]"
                     >
                       <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
+                      {t('Edit Profile')}
                     </Button>
                     <Button
                       variant="outline"
@@ -497,7 +499,7 @@ const AdminSettings = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Key className="w-4 h-4 mr-2" />
-                      Change Password
+                      {t('Change Password')}
                     </Button>
                     <Button
                       variant="outline"
@@ -505,26 +507,26 @@ const AdminSettings = () => {
                       className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
                     >
                       <ArrowRight className="w-4 h-4 mr-2" />
-                      Logout
+                      {t('Logout')}
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Name - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Name')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{profileData.fullName}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Email - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Email')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{profileData.email}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Role - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Role')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{userRole}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Joined - </span>
-                    <span className="text-base font-semibold text-gray-900 dark:text-white">{joinedDate || 'N/A'}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Joined')} - </span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{joinedDate || t('N/A')}</span>
                   </div>
                 </div>
               </div>
@@ -532,7 +534,7 @@ const AdminSettings = () => {
               {/* Team Members Section */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Team members</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Team members')}</h2>
                   <div className="flex items-center gap-3">
                     <Button
                       onClick={handleExportToExcel}
@@ -540,7 +542,7 @@ const AdminSettings = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Export to Excel
+                      {t('Export to Excel')}
                     </Button>
                     <Button
                       variant="outline"
@@ -548,7 +550,7 @@ const AdminSettings = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Team member
+                      {t('Add Team member')}
                     </Button>
                   </div>
                 </div>
@@ -562,40 +564,40 @@ const AdminSettings = () => {
                           sortDirection={getSortDirection('name')}
                           onSort={() => handleSort('name')}
                         >
-                          Name
+                          {t('Name')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('email')}
                           onSort={() => handleSort('email')}
                         >
-                          Email
+                          {t('Email')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('role')}
                           onSort={() => handleSort('role')}
                         >
-                          Role
+                          {t('Role')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('access_level')}
                           onSort={() => handleSort('access_level')}
                         >
-                          Access Level
+                          {t('Access Level')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('permissions')}
                           onSort={() => handleSort('permissions')}
                         >
-                          Permissions
+                          {t('Permissions')}
                         </TableSortHeader>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loadingTeamMembers ? (
                         <tr>
                           <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                            Loading...
+                            {t('Loading...')}
                           </td>
                         </tr>
                       ) : sortedTeamMembers.length > 0 ? (
@@ -608,7 +610,7 @@ const AdminSettings = () => {
                               <span className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</span>
                             </td>
                             <td className="py-4 px-6">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.email || 'N/A'}</span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">{member.email || t('N/A')}</span>
                             </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">{member.role}</span>
@@ -627,7 +629,7 @@ const AdminSettings = () => {
                                  'Public User'}
                               </span>
                             ) : (
-                              <span className="text-sm text-gray-400 dark:text-gray-500">No Access</span>
+                              <span className="text-sm text-gray-400 dark:text-gray-500">{t('No Access')}</span>
                             )}
                           </td>
                           <td className="py-4 px-6">
@@ -636,7 +638,7 @@ const AdminSettings = () => {
                             <td className="py-4 px-6">
                               <button
                                 className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
-                                aria-label="View team member info"
+                                aria-label={t('View team member info')}
                               >
                                 <Info className="w-5 h-5" />
                               </button>
@@ -646,7 +648,7 @@ const AdminSettings = () => {
                       ) : (
                         <tr>
                           <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                            No team members found. Click "Add Team member" to add one.
+                            {t('No team members found. Click "Add Team member" to add one.')}
                           </td>
                         </tr>
                       )}
@@ -662,17 +664,17 @@ const AdminSettings = () => {
         <Dialog open={showAddTeamMemberModal} onOpenChange={setShowAddTeamMemberModal}>
           <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
             <DialogHeader className="flex-shrink-0">
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add Team member</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Add Team member')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4 overflow-y-auto flex-1 px-1 pb-4 min-h-0">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Team member Name
+                  {t('Team member Name')}
                 </Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Enter Team member Name"
+                  placeholder={t('Enter Team member Name')}
                   value={newTeamMember.name}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
@@ -681,25 +683,25 @@ const AdminSettings = () => {
 
               <div>
                 <Label htmlFor="role" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Role Name
+                  {t('Role Name')}
                 </Label>
                 <Select value={newTeamMember.role} onValueChange={(value) => setNewTeamMember({ ...newTeamMember, role: value })}>
                   <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue placeholder={t('Select a role')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Admin">{t('Admin')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="pb-2">
                 <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
+                  {t('Description')}
                 </Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe team member role"
+                  placeholder={t('Describe team member role')}
                   value={newTeamMember.description}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, description: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px] resize-y w-full focus:ring-2 focus:ring-[#0C2243] focus:border-[#0C2243]"
@@ -709,23 +711,23 @@ const AdminSettings = () => {
 
               <div>
                 <Label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Status
+                  {t('Status')}
                 </Label>
                 <Select value={newTeamMember.status} onValueChange={(value: any) => setNewTeamMember({ ...newTeamMember, status: value })}>
                   <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select team member status" />
+                    <SelectValue placeholder={t('Select team member status')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="on-leave">On Leave</SelectItem>
+                    <SelectItem value="active">{t('Active')}</SelectItem>
+                    <SelectItem value="inactive">{t('Inactive')}</SelectItem>
+                    <SelectItem value="on-leave">{t('On Leave')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label htmlFor="access_level" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  System Access Level <span className="text-red-500">*</span>
+                  {t('System Access Level')} <span className="text-red-500">*</span>
                 </Label>
                 <Select 
                   value={newTeamMember.access_level || ''} 
@@ -737,35 +739,35 @@ const AdminSettings = () => {
                   }}
                 >
                   <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder="Select access level" />
+                    <SelectValue placeholder={t('Select access level')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                    <SelectItem value="clinic_admin">Clinic Admin</SelectItem>
+                    <SelectItem value="super_admin">{t('Super Admin')}</SelectItem>
+                    <SelectItem value="clinic_admin">{t('Clinic Admin')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {newTeamMember.access_level === 'super_admin' && 'Full access to all admin pages and settings. An invitation email will be sent.'}
-                  {newTeamMember.access_level === 'clinic_admin' && 'Access to clinic admin pages. An invitation email will be sent.'}
-                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && 'Please select an access level'}
+                  {newTeamMember.access_level === 'super_admin' && t('Full access to all admin pages and settings. An invitation email will be sent.')}
+                  {newTeamMember.access_level === 'clinic_admin' && t('Access to clinic admin pages. An invitation email will be sent.')}
+                  {(!newTeamMember.access_level || newTeamMember.access_level === '') && t('Please select an access level')}
                 </p>
               </div>
 
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email <span className="text-red-500">*</span>
+                  {t('Email')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter email to send invitation"
+                  placeholder={t('Enter email to send invitation')}
                   value={newTeamMember.email}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
                   required
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  An invitation email will be sent to this address. User will create their password during signup.
+                  {t('An invitation email will be sent to this address. User will create their password during signup.')}
                 </p>
               </div>
             </div>
@@ -785,13 +787,13 @@ const AdminSettings = () => {
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleAddTeamMember}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Add Team member
+                {t('Add Team member')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -801,12 +803,12 @@ const AdminSettings = () => {
         <Dialog open={showEditProfileModal} onOpenChange={setShowEditProfileModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Edit Profile</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit Profile')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Full Name
+                  {t('Full Name')}
                 </Label>
                 <Input
                   id="fullName"
@@ -818,7 +820,7 @@ const AdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
@@ -827,7 +829,7 @@ const AdminSettings = () => {
                   disabled
                   className="mt-1 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('Email cannot be changed')}</p>
               </div>
             </div>
             <DialogFooter className="mt-6">
@@ -836,13 +838,13 @@ const AdminSettings = () => {
                 onClick={() => setShowEditProfileModal(false)}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleEditProfile}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Save Changes
+                {t('Save Changes')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -852,12 +854,12 @@ const AdminSettings = () => {
         <Dialog open={showChangePasswordModal} onOpenChange={setShowChangePasswordModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Change Password</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Change Password')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Current Password
+                  {t('Current Password')}
                 </Label>
                 <Input
                   id="currentPassword"
@@ -869,7 +871,7 @@ const AdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  New Password
+                  {t('New Password')}
                 </Label>
                 <Input
                   id="newPassword"
@@ -881,7 +883,7 @@ const AdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Confirm New Password
+                  {t('Confirm New Password')}
                 </Label>
                 <Input
                   id="confirmPassword"
@@ -901,13 +903,13 @@ const AdminSettings = () => {
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleChangePassword}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Change Password
+                {t('Change Password')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -917,12 +919,12 @@ const AdminSettings = () => {
         <Dialog open={showInvitationLinkModal} onOpenChange={setShowInvitationLinkModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Invitation Link</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Invitation Link')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Share this link with the team member:
+                  {t('Share this link with the team member:')}
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -937,7 +939,7 @@ const AdminSettings = () => {
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(invitationLink);
-                        toast.success('Link copied to clipboard!');
+                        toast.success(t('Link copied to clipboard!'));
                       } catch (err) {
                         // Fallback for older browsers
                         const textArea = document.createElement('textarea');
@@ -946,7 +948,7 @@ const AdminSettings = () => {
                         textArea.select();
                         document.execCommand('copy');
                         document.body.removeChild(textArea);
-                        toast.success('Link copied to clipboard!');
+                        toast.success(t('Link copied to clipboard!'));
                       }
                     }}
                     className="flex-shrink-0"
@@ -957,7 +959,7 @@ const AdminSettings = () => {
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-xs text-blue-800 dark:text-blue-200">
-                  <strong>Note:</strong> An invitation email has been sent to <strong>{invitedUserEmail}</strong>. 
+                  <strong>{t('Note')}:</strong> {t('An invitation email has been sent to {{email}}.', { email: invitedUserEmail })}
                   You can also share this link directly with the team member if they didn't receive the email.
                 </p>
               </div>

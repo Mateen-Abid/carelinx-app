@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Stethoscope } from 'lucide-react'; // removed User since not needed anymore
 import Image5 from '../assets/image 5.svg'; // adjust path based on your folder structure
 import { clinicsData } from '@/data/clinicsData';
+import { useTranslation } from 'react-i18next';
 
 interface ServiceSubcategory {
   id: string;
@@ -22,6 +23,7 @@ interface ServicesFilterProps {
 }
 
 const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory, superAdminSpecialties = [] }) => {
+  const { t } = useTranslation();
 
   // Custom Tooth Icon Component
   const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -29,7 +31,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
       src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png" 
       width={size} 
       height={size} 
-      alt="Tooth icon"
+      alt={t('Tooth icon')}
       className={className}
     />
   );
@@ -40,7 +42,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
       src={Image5}
       width={size}
       height={size}
-      alt="Dermatology icon"
+      alt={t('Dermatology icon')}
       className={className}
     />
   );
@@ -119,8 +121,8 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     
     // Add hardcoded categories first
     categories.push(
-      { id: 'dermatology', name: 'Dermatology', icon: DermatologyIcon },
-      { id: 'dentistry', name: 'Dental', icon: ToothIcon }
+      { id: 'dermatology', name: t('Dermatology'), icon: DermatologyIcon },
+      { id: 'dentistry', name: t('Dental'), icon: ToothIcon }
     );
     
     // Add super admin specialties that don't match hardcoded ones
@@ -141,10 +143,10 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     });
     
     // Add "Others" at the end
-    categories.push({ id: 'others', name: 'Others', icon: OthersIcon });
+    categories.push({ id: 'others', name: t('Others'), icon: OthersIcon });
     
     return categories;
-  }, [superAdminSpecialties]);
+  }, [superAdminSpecialties, t]);
 
   const handleCategorySelect = (categoryId: string) => {
     onCategoryChange(categoryId);

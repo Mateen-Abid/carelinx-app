@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
+import { useTranslation } from 'react-i18next';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   serviceSchedule = {},
   clinicServices = []
 }) => {
+  const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string, doctorId?: string} | null>(null);
@@ -150,15 +152,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div className="relative flex-shrink-0">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="text-xl font-semibold text-center">
-                  Select a Service
+                  {t('Select a Service')}
                 </DialogTitle>
                 <p className="text-center text-gray-600 mt-2">
-                  Choose a service from {clinicName}
+                  {t('Choose a service from {{clinicName}}', { clinicName })}
                 </p>
                 {!user && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
                     <p className="text-sm text-blue-800 text-center">
-                      🔒 You need to sign in to book an appointment
+                      {t('You need to sign in to book an appointment')}
                     </p>
                   </div>
                 )}
@@ -185,7 +187,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p>No services available for this clinic.</p>
+                    <p>{t('No services available for this clinic.')}</p>
                   </div>
                 )}
               </div>
@@ -199,7 +201,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             setIsAuthPromptOpen(false);
             handleClose();
           }}
-          message="Please sign in to book an appointment"
+          message={t('Please sign in to book an appointment')}
         />
       </>
     );
@@ -237,36 +239,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
               
               <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Booking Request Sent
+                {t('Booking Request Sent')}
               </h2>
               
               {selectedService && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-gray-900 mb-2">Appointment Details</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">{t('Appointment Details')}</h3>
                   <p className="text-sm text-gray-600">
-                    <strong>Service:</strong> {selectedService.name}
+                    <strong>{t('Service')}:</strong> {selectedService.name}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Category:</strong> {selectedService.category}
+                    <strong>{t('Category')}:</strong> {selectedService.category}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Clinic:</strong> {clinicName}
+                    <strong>{t('Clinic')}:</strong> {clinicName}
                   </p>
                   {selectedDate && (
                     <p className="text-sm text-gray-600">
-                      <strong>Date:</strong> {format(selectedDate, 'EEEE, MMM d, yyyy')}
+                      <strong>{t('Date')}:</strong> {format(selectedDate, 'EEEE, MMM d, yyyy')}
                     </p>
                   )}
                   {selectedTime && (
                     <p className="text-sm text-gray-600">
-                      <strong>Time:</strong> {selectedTime}
+                      <strong>{t('Time')}:</strong> {selectedTime}
                     </p>
                   )}
                 </div>
               )}
               
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Your appointment booking request has been sent. We'll get back to you shortly.
+                {t("Your appointment booking request has been sent. We'll get back to you shortly.")}
               </p>
               
               <div className="space-y-4">
@@ -274,7 +276,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-full py-4 text-lg font-medium"
                   onClick={handleBookAnother}
                 >
-                  View Booking
+                  {t('View Booking')}
                 </Button>
               </div>
             </div>
@@ -288,7 +290,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           setIsAuthPromptOpen(false);
           handleClose();
         }}
-        message="Please sign in to book an appointment"
+        message={t('Please sign in to book an appointment')}
       />
     </>
     );
@@ -308,14 +310,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <ChevronLeft size={20} className="text-gray-600" />
               </button>
               <DialogTitle className="text-xl font-semibold text-center flex-1">
-                Select a Date & Time
+                {t('Select a Date & Time')}
               </DialogTitle>
               <div className="w-10"></div> {/* Spacer for centering */}
             </div>
             {selectedService && (
               <div className="text-center mt-2">
                 <p className="text-sm text-gray-600">
-                  Booking: <span className="font-medium">{selectedService.name}</span>
+                  {t('Booking')}: <span className="font-medium">{selectedService.name}</span>
                 </p>
                 <p className="text-xs text-gray-500">{selectedService.category}</p>
               </div>
@@ -329,7 +331,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div className="flex flex-col items-center">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Select Date
+                  {t('Select Date')}
                 </h3>
               </div>
               
@@ -357,7 +359,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 {/* Day Headers */}
                 <div className="grid grid-cols-7 mb-4">
-                  {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
+                  {[t('MON'), t('TUE'), t('WED'), t('THU'), t('FRI'), t('SAT'), t('SUN')].map((day) => (
                     <div key={day} className="text-center py-3">
                       <span className="text-xs font-medium text-gray-500">{day}</span>
                     </div>
@@ -441,7 +443,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div className="sm:border-l sm:pl-8 flex flex-col min-h-0">
                 <div className="mb-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {selectedDate ? format(selectedDate, 'EEEE, MMM d') : 'Select a date to view available times'}
+                    {selectedDate ? format(selectedDate, 'EEEE, MMM d') : t('Select a date to view available times')}
                   </h3>
                 </div>
                 
@@ -495,7 +497,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </button>
                   )) : (
                     <div className="text-center py-8 text-gray-500">
-                      <p>Please select a date to view available time slots</p>
+                      <p>{t('Please select a date to view available time slots')}</p>
                     </div>
                   )}
                 </div>
@@ -512,7 +514,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setIsAuthPromptOpen(false);
         handleClose();
       }}
-      message="Please sign in to book an appointment"
+      message={t('Please sign in to book an appointment')}
     />
   </>
   );

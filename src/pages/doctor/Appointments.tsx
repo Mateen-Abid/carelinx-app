@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Check, Clock, X, ArrowUpDown, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Appointment {
   id: string;
@@ -50,6 +51,7 @@ interface Clinic {
 
 const DoctorAppointments = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
@@ -133,8 +135,8 @@ const DoctorAppointments = () => {
         return {
           id: booking.id,
           user_id: booking.user_id,
-          patientName: profile?.full_name || 'Unknown Patient',
-          doctorName: booking.doctor_name || 'Unknown Doctor',
+          patientName: profile?.full_name || t('Unknown Patient'),
+          doctorName: booking.doctor_name || t('Unknown Doctor'),
           service: booking.specialty || 'General Consultation',
           appointment_date: booking.appointment_date,
           appointment_time: booking.appointment_time,
@@ -171,31 +173,31 @@ const DoctorAppointments = () => {
         bg: 'bg-green-100',
         text: 'text-green-800',
         icon: Check,
-        label: 'Approved',
+        label: t('Approved'),
       },
       confirmed: {
         bg: 'bg-green-100',
         text: 'text-green-800',
         icon: Check,
-        label: 'Confirmed',
+        label: t('Confirmed'),
       },
       cancelled: {
         bg: 'bg-red-100',
         text: 'text-red-800',
         icon: X,
-        label: 'Cancelled',
+        label: t('Cancelled'),
       },
       pending: {
         bg: 'bg-orange-100',
         text: 'text-orange-800',
         icon: Clock,
-        label: 'Pending',
+        label: t('Pending'),
       },
       completed: {
         bg: 'bg-blue-100',
         text: 'text-blue-800',
         icon: Check,
-        label: 'Completed',
+        label: t('Completed'),
       },
     };
 
@@ -238,7 +240,7 @@ const DoctorAppointments = () => {
 
       if (bookingError) {
         console.error('Error fetching booking:', bookingError);
-        toast.error('Failed to load appointment details');
+        toast.error(t('Failed to load appointment details'));
         setIsDetailsModalOpen(false);
         return;
       }
@@ -265,13 +267,13 @@ const DoctorAppointments = () => {
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: (profileData as any)?.full_name || appointment.patientName || 'Unknown Patient',
+          name: (profileData as any)?.full_name || appointment.patientName || t('Unknown Patient'),
           gender: (profileData as any)?.gender || 'Not specified',
           contact: (profileData as any)?.phone || 'Not provided',
           email: (profileData as any)?.email || 'Not provided',
         },
         doctor: {
-          name: doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || 'Unknown Doctor',
+          name: doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || t('Unknown Doctor'),
           specialty: doctorData?.specialty || (bookingData as any).specialty || appointment.service || 'General',
           service: (bookingData as any).specialty || appointment.service || 'General Consultation',
           availability: doctorData?.availability || '9:00 AM - 5:00 PM',
@@ -284,7 +286,7 @@ const DoctorAppointments = () => {
       setSelectedAppointmentDetails(details);
     } catch (error) {
       console.error('Error loading appointment details:', error);
-      toast.error('Failed to load appointment details');
+      toast.error(t('Failed to load appointment details'));
     } finally {
       setLoadingDetails(false);
     }
@@ -306,7 +308,7 @@ const DoctorAppointments = () => {
 
       if (error) throw error;
 
-      toast.success('Appointment approved successfully');
+      toast.success(t('Appointment approved successfully'));
       setIsApproveConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -317,7 +319,7 @@ const DoctorAppointments = () => {
       }
     } catch (error) {
       console.error('Error approving appointment:', error);
-      toast.error('Failed to approve appointment');
+      toast.error(t('Failed to approve appointment'));
     }
   };
 
@@ -337,7 +339,7 @@ const DoctorAppointments = () => {
 
       if (error) throw error;
 
-      toast.success('Appointment cancelled successfully');
+      toast.success(t('Appointment cancelled successfully'));
       setIsCancelConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -348,7 +350,7 @@ const DoctorAppointments = () => {
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
-      toast.error('Failed to cancel appointment');
+      toast.error(t('Failed to cancel appointment'));
     }
   };
 
@@ -379,7 +381,7 @@ const DoctorAppointments = () => {
 
     // Validate inputs
     if (!newAppointmentDate || !newAppointmentTime) {
-      toast.error('Please select both date and time');
+      toast.error(t('Please select both date and time'));
       return;
     }
 
@@ -390,7 +392,7 @@ const DoctorAppointments = () => {
       // Validate date
       const dateObj = new Date(formattedDate);
       if (isNaN(dateObj.getTime())) {
-        toast.error('Invalid date. Please select a valid date');
+        toast.error(t('Invalid date. Please select a valid date'));
         return;
       }
 
@@ -407,7 +409,7 @@ const DoctorAppointments = () => {
 
       if (error) throw error;
 
-      toast.success('Appointment rescheduled successfully');
+      toast.success(t('Appointment rescheduled successfully'));
       setIsRescheduleModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -427,7 +429,7 @@ const DoctorAppointments = () => {
         details: error?.details,
         hint: error?.hint
       });
-      toast.error(`Failed to reschedule appointment: ${errorMessage}`);
+      toast.error(t('Failed to reschedule appointment: {{message}}', { message: errorMessage }));
     }
   };
 
@@ -461,7 +463,7 @@ const DoctorAppointments = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -479,7 +481,7 @@ const DoctorAppointments = () => {
             <div className="mb-6">
               {/* Title and Clinic Info Row */}
               <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Appointments</h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Appointments')}</h1>
                 
                 {/* Clinic Name and Logo */}
                 <div className="flex items-center gap-3">
@@ -504,7 +506,7 @@ const DoctorAppointments = () => {
                     </div>
                   )}
                   <span className="text-gray-900 dark:text-white font-medium text-base">
-                    {clinic?.name || 'Clinic'}
+                    {clinic?.name || t('Clinic')}
                   </span>
                 </div>
               </div>
@@ -523,7 +525,13 @@ const DoctorAppointments = () => {
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      {filter === 'all'
+                        ? t('All')
+                        : filter === 'pending'
+                        ? t('Pending')
+                        : filter === 'approved'
+                        ? t('Approved')
+                        : t('Cancelled')}
                     </button>
                   ))}
                 </div>
@@ -540,9 +548,13 @@ const DoctorAppointments = () => {
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      {filter === 'today' ? 'Today' : 
-                       filter === 'tomorrow' ? 'Tomorrow' : 
-                       filter === 'this-week' ? 'This week' : 'To date'}
+                      {filter === 'today'
+                        ? t('Today')
+                        : filter === 'tomorrow'
+                        ? t('Tomorrow')
+                        : filter === 'this-week'
+                        ? t('This week')
+                        : t('To date')}
                     </button>
                   ))}
                 </div>
@@ -554,7 +566,7 @@ const DoctorAppointments = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     type="text"
-                    placeholder="Search by patient, doctor, or service..."
+                    placeholder={t('Search by patient, doctor, or service...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
@@ -568,7 +580,7 @@ const DoctorAppointments = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading appointments...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading appointments...')}</p>
                 </div>
               ) : filteredAppointments.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -584,25 +596,25 @@ const DoctorAppointments = () => {
                           />
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Patient Name
+                          {t('Patient Name')}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Doctor's Name
+                          {t("Doctor's Name")}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Service
+                          {t('Service')}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           <div className="flex items-center gap-2">
-                            Date & Time
+                            {t('Date & Time')}
                             <ArrowUpDown className="w-4 h-4 text-gray-400" />
                           </div>
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Status
+                          {t('Status')}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
+                          {t('Action')}
                         </th>
                       </tr>
                     </thead>
@@ -651,7 +663,7 @@ const DoctorAppointments = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">No appointments found</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No appointments found')}</p>
                 </div>
               )}
             </div>
@@ -670,7 +682,7 @@ const DoctorAppointments = () => {
             {loadingDetails ? (
               <div className="p-12 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading appointment details...</p>
+                <p className="text-gray-500">{t('Loading appointment details...')}</p>
               </div>
             ) : selectedAppointmentDetails ? (
               <div className="px-6 py-6">
@@ -681,19 +693,19 @@ const DoctorAppointments = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Gender</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Gender')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Contact</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Contact')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Email</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Email')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.email}</p>
                     </div>
                   </div>
@@ -706,19 +718,19 @@ const DoctorAppointments = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Specialty</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Specialty')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.specialty}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Availability</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Availability')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.availability}</p>
                     </div>
                   </div>
@@ -782,26 +794,26 @@ const DoctorAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900">Pending Approval</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Status')}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t('Pending Approval')}</p>
                     </div>
                   </div>
                 </div>
@@ -862,26 +874,26 @@ const DoctorAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900">Pending Approval</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Status')}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t('Pending Approval')}</p>
                     </div>
                   </div>
                 </div>
@@ -948,7 +960,7 @@ const DoctorAppointments = () => {
                 {/* Date and Time Inputs */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">New date</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block">{t('New date')}</label>
                     <div className="relative">
                       <Calendar 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 
@@ -974,7 +986,7 @@ const DoctorAppointments = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">New time</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block">{t('New time')}</label>
                     <div className="relative">
                       <Clock 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer z-10" 

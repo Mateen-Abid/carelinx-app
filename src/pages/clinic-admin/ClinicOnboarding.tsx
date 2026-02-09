@@ -17,12 +17,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Upload, Mountain, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type OnboardingStep = 'clinic-info' | 'contact-details' | 'operating-hours';
 
 const ClinicOnboarding = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   // ALL HOOKS MUST BE DECLARED BEFORE ANY CONDITIONAL RETURNS
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('clinic-info');
@@ -202,8 +204,8 @@ const ClinicOnboarding = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Checking access...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">{t('Checking access...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -289,12 +291,12 @@ const ClinicOnboarding = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('Please upload an image file'));
         return;
       }
       
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('Image size must be less than 5MB'));
         return;
       }
 
@@ -342,20 +344,20 @@ const ClinicOnboarding = () => {
         
         // Provide more specific error messages
         if (error.message?.includes('Bucket not found') || error.message?.includes('does not exist')) {
-          toast.error('Storage bucket not found. Please create "clinic-assets" bucket in Supabase Storage.');
+          toast.error(t('Storage bucket not found. Please create "clinic-assets" bucket in Supabase Storage.'));
           console.error('💡 Solution: Create a storage bucket named "clinic-assets" in Supabase Dashboard → Storage');
         } else if (error.message?.includes('new row violates row-level security')) {
-          toast.error('Permission denied. Please check storage bucket policies.');
+          toast.error(t('Permission denied. Please check storage bucket policies.'));
           console.error('💡 Solution: Update storage bucket policies to allow authenticated users to upload');
         } else {
-          toast.error(`Failed to upload logo: ${error.message || 'Unknown error'}`);
+          toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
         }
         return null;
       }
 
       if (!data) {
         console.error('❌ No data returned from upload');
-        toast.error('Failed to upload logo: No data returned');
+        toast.error(t('Failed to upload logo: No data returned'));
         return null;
       }
 
@@ -367,7 +369,7 @@ const ClinicOnboarding = () => {
       return publicUrl;
     } catch (error: any) {
       console.error('❌ Error in uploadLogoToStorage:', error);
-      toast.error(`Failed to upload logo: ${error.message || 'Unknown error'}`);
+      toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
       return null;
     }
   };
@@ -376,15 +378,15 @@ const ClinicOnboarding = () => {
     if (currentStep === 'clinic-info') {
       // Validate Step 1
       if (!clinicInfo.name.trim()) {
-        toast.error('Please enter clinic name');
+        toast.error(t('Please enter clinic name'));
         return;
       }
       if (clinicInfo.specialties.length === 0) {
-        toast.error('Please select at least one specialty');
+        toast.error(t('Please select at least one specialty'));
         return;
       }
       if (!clinicInfo.description.trim()) {
-        toast.error('Please enter clinic description');
+        toast.error(t('Please enter clinic description'));
         return;
       }
 
@@ -399,7 +401,7 @@ const ClinicOnboarding = () => {
           if (!logoUrl) {
             // Logo upload failed, but allow user to continue without logo
             console.warn('⚠️ Logo upload failed, but continuing without logo');
-            toast.warning('Logo upload failed. You can continue without a logo or try again later.');
+            toast.warning(t('Logo upload failed. You can continue without a logo or try again later.'));
             // Don't return - allow them to proceed without logo
           }
         }
@@ -426,35 +428,35 @@ const ClinicOnboarding = () => {
           setClinicId(clinic.id);
         }
 
-        toast.success('Clinic information saved!');
+        toast.success(t('Clinic information saved!'));
         setCurrentStep('contact-details');
       } catch (error: any) {
         console.error('Error saving clinic info:', error);
-        toast.error('Failed to save clinic information: ' + error.message);
+        toast.error(t('Failed to save clinic information: {{message}}', { message: error.message }));
       } finally {
         setLoading(false);
       }
     } else if (currentStep === 'contact-details') {
       // Validate Step 2
       if (!contactDetails.email.trim()) {
-        toast.error('Please enter clinic email');
+        toast.error(t('Please enter clinic email'));
         return;
       }
       if (!contactDetails.phone.trim()) {
-        toast.error('Please enter phone number');
+        toast.error(t('Please enter phone number'));
         return;
       }
       if (!contactDetails.address.trim()) {
-        toast.error('Please enter clinic address');
+        toast.error(t('Please enter clinic address'));
         return;
       }
       if (!contactDetails.country) {
-        toast.error('Please select country');
+        toast.error(t('Please select country'));
         return;
       }
 
       if (!clinicId) {
-        toast.error('Clinic not found. Please go back and complete Step 1.');
+        toast.error(t('Clinic not found. Please go back and complete Step 1.'));
         return;
       }
 
@@ -468,11 +470,11 @@ const ClinicOnboarding = () => {
           country: contactDetails.country,
         });
 
-        toast.success('Contact details saved!');
+        toast.success(t('Contact details saved!'));
         setCurrentStep('operating-hours');
       } catch (error: any) {
         console.error('Error saving contact details:', error);
-        toast.error('Failed to save contact details: ' + error.message);
+        toast.error(t('Failed to save contact details: {{message}}', { message: error.message }));
       } finally {
         setLoading(false);
       }
@@ -483,12 +485,12 @@ const ClinicOnboarding = () => {
       );
 
       if (!hasHours) {
-        toast.error('Please set operating hours for at least one day');
+        toast.error(t('Please set operating hours for at least one day'));
         return;
       }
 
       if (!clinicId) {
-        toast.error('Clinic not found. Please start over.');
+        toast.error(t('Clinic not found. Please start over.'));
         return;
       }
 
@@ -512,7 +514,7 @@ const ClinicOnboarding = () => {
         // Activate clinic
         await api.clinicAdmin.updateClinic({ status: 'active' });
 
-        toast.success('Clinic onboarding completed successfully!');
+        toast.success(t('Clinic onboarding completed successfully!'));
         
         // Redirect to dashboard
         setTimeout(() => {
@@ -520,7 +522,7 @@ const ClinicOnboarding = () => {
         }, 1500);
       } catch (error: any) {
         console.error('Error saving operating hours:', error);
-        toast.error('Failed to save operating hours: ' + error.message);
+        toast.error(t('Failed to save operating hours: {{message}}', { message: error.message }));
         setLoading(false);
       }
     }
@@ -562,7 +564,7 @@ const ClinicOnboarding = () => {
 
           {/* Title */}
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
-            Clinic Onboarding
+            {t('Clinic Onboarding')}
           </h1>
 
           {/* Progress Indicator */}
@@ -589,20 +591,20 @@ const ClinicOnboarding = () => {
           {currentStep === 'clinic-info' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">
-                CLINIC INFORMATION
+                {t('CLINIC INFORMATION')}
               </h2>
 
               {/* Clinic Logo */}
               <div>
                 <Label htmlFor="logo" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Clinic Logo
+                  {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-700">
                     {clinicInfo.logoPreview ? (
                       <img
                         src={clinicInfo.logoPreview}
-                        alt="Clinic logo preview"
+                        alt={t('Clinic logo preview')}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -624,7 +626,7 @@ const ClinicOnboarding = () => {
                       className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      Upload logo
+                      {t('Upload logo')}
                     </Button>
                   </div>
                 </div>
@@ -633,11 +635,11 @@ const ClinicOnboarding = () => {
               {/* Clinic Name */}
               <div>
                 <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Clinic Name
+                  {t('Clinic Name')}
                 </Label>
                 <Input
                   id="name"
-                  placeholder="Enter clinic name"
+                  placeholder={t('Enter clinic name')}
                   value={clinicInfo.name}
                   onChange={(e) =>
                     setClinicInfo(prev => ({ ...prev, name: e.target.value }))
@@ -649,7 +651,7 @@ const ClinicOnboarding = () => {
               {/* Specialties */}
               <div>
                 <Label htmlFor="specialties" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Specialties
+                  {t('Specialties')}
                 </Label>
                 <Select
                   value=""
@@ -659,7 +661,7 @@ const ClinicOnboarding = () => {
                     id="specialties"
                     className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                   >
-                    <SelectValue placeholder="Select specialties" />
+                    <SelectValue placeholder={t('Select specialties')} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800">
                     {availableSpecialties
@@ -699,11 +701,11 @@ const ClinicOnboarding = () => {
               {/* Description */}
               <div>
                 <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Description
+                  {t('Description')}
                 </Label>
                 <Textarea
                   id="description"
-                  placeholder="Enter clinic description"
+                  placeholder={t('Enter clinic description')}
                   value={clinicInfo.description}
                   onChange={(e) =>
                     setClinicInfo(prev => ({ ...prev, description: e.target.value }))
@@ -719,18 +721,18 @@ const ClinicOnboarding = () => {
           {currentStep === 'contact-details' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">
-                CONTACT DETAILS
+                {t('CONTACT DETAILS')}
               </h2>
 
               {/* Email */}
               <div>
                 <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Email
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter clinic email"
+                  placeholder={t('Enter clinic email')}
                   value={contactDetails.email}
                   onChange={(e) =>
                     setContactDetails(prev => ({ ...prev, email: e.target.value }))
@@ -742,12 +744,12 @@ const ClinicOnboarding = () => {
               {/* Phone */}
               <div>
                 <Label htmlFor="phone" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Phone
+                  {t('Phone')}
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="Enter phone number"
+                  placeholder={t('Enter phone number')}
                   value={contactDetails.phone}
                   onChange={(e) =>
                     setContactDetails(prev => ({ ...prev, phone: e.target.value }))
@@ -759,11 +761,11 @@ const ClinicOnboarding = () => {
               {/* Address */}
               <div>
                 <Label htmlFor="address" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Address
+                  {t('Address')}
                 </Label>
                 <Input
                   id="address"
-                  placeholder="Enter clinic address"
+                  placeholder={t('Enter clinic address')}
                   value={contactDetails.address}
                   onChange={(e) =>
                     setContactDetails(prev => ({ ...prev, address: e.target.value }))
@@ -775,7 +777,7 @@ const ClinicOnboarding = () => {
               {/* Country */}
               <div>
                 <Label htmlFor="country" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  Country
+                  {t('Country')}
                 </Label>
                 <Select
                   value={contactDetails.country}
@@ -787,7 +789,7 @@ const ClinicOnboarding = () => {
                     id="country"
                     className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                   >
-                    <SelectValue placeholder="Select country" />
+                    <SelectValue placeholder={t('Select country')} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
                     {countries.map((country) => (
@@ -809,7 +811,7 @@ const ClinicOnboarding = () => {
           {currentStep === 'operating-hours' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">
-                OPERATING HOURS
+                {t('OPERATING HOURS')}
               </h2>
 
               <div className="space-y-4">
@@ -819,7 +821,7 @@ const ClinicOnboarding = () => {
                     className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
                     <div className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {day.label}
+                      {t(day.label)}
                     </div>
                     <div className="flex-1 grid grid-cols-2 gap-3">
                       <Select
@@ -833,7 +835,7 @@ const ClinicOnboarding = () => {
                         disabled={operatingHours[day.value].isClosed}
                       >
                         <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
-                          <SelectValue placeholder="Select time" />
+                          <SelectValue placeholder={t('Select time')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
                           {timeSlots.map((time) => (
@@ -858,7 +860,7 @@ const ClinicOnboarding = () => {
                         disabled={operatingHours[day.value].isClosed}
                       >
                         <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
-                          <SelectValue placeholder="Select time" />
+                          <SelectValue placeholder={t('Select time')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
                           {timeSlots.map((time) => (
@@ -893,7 +895,7 @@ const ClinicOnboarding = () => {
                           : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      {operatingHours[day.value].isClosed ? 'Closed' : 'Open'}
+                      {operatingHours[day.value].isClosed ? t('Closed') : t('Open')}
                     </Button>
                   </div>
                 ))}
@@ -910,14 +912,14 @@ const ClinicOnboarding = () => {
               className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
+              {t('Previous')}
             </Button>
             <Button
               onClick={handleNextStep}
               disabled={loading}
               className="bg-[#0C2243] dark:bg-[#00FFA2] text-white dark:text-[#0C2243] hover:bg-[#0a1a35] dark:hover:bg-[#00e68a] px-8 py-2 rounded-lg font-medium"
             >
-              {loading ? 'Saving...' : currentStep === 'operating-hours' ? 'Complete' : 'Next'}
+              {loading ? t('Saving...') : currentStep === 'operating-hours' ? t('Complete') : t('Next')}
               {!loading && currentStep !== 'operating-hours' && (
                 <ArrowRight className="w-4 h-4 ml-2" />
               )}

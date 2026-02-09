@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import FrameIcon from '../assets/Frame 2085662670.svg';
 import { AuthPromptModal } from '@/components/AuthPromptModal';
+import { useTranslation } from 'react-i18next';
 
 interface Profile {
   full_name: string;
@@ -28,6 +29,7 @@ interface Profile {
 const Profile = () => {
   const { user, signOut, updateProfile, changePassword, deleteAccount } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -98,7 +100,7 @@ const Profile = () => {
       setProfile(profileData);
     } catch (error: any) {
       console.error('❌ Error fetching profile:', error);
-      toast.error('Failed to load profile');
+      toast.error(t('Failed to load profile'));
       // Initialize with just email if fetch fails
       if (user) {
         setProfile({
@@ -120,12 +122,12 @@ const Profile = () => {
     e.preventDefault();
     
     if (!currentPassword || !newPassword) {
-      toast.error('Please fill in all password fields');
+      toast.error(t('Please fill in all password fields'));
       return;
     }
     
     if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
+      toast.error(t('New password must be at least 8 characters'));
       return;
     }
     
@@ -207,12 +209,12 @@ const Profile = () => {
       }
       
       setShowProfileUpdated(true);
-      toast.success('Profile updated successfully');
+      toast.success(t('Profile updated successfully'));
       // Refresh profile data
       fetchProfile();
     } catch (error: any) {
       console.error('❌ Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || t('Failed to update profile'));
     } finally {
       setLoading(false);
     }
@@ -223,7 +225,7 @@ const Profile = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="flex items-center justify-center h-96">
-          <div className="text-center">Loading profile...</div>
+          <div className="text-center">{t('Loading profile...')}</div>
         </div>
       </div>
     );
@@ -240,7 +242,7 @@ const Profile = () => {
             setShowAuthPrompt(false);
             navigate('/');
           }}
-          message="Please sign in to access your profile"
+          message={t('Please sign in to access your profile')}
         />
       </div>
     );
@@ -254,7 +256,7 @@ const Profile = () => {
       <section className="bg-[#0C2243] text-white py-4 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Your Profile</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">{t('Your Profile')}</h1>
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
               <User className="w-6 h-6 text-[#0C2243]" />
             </div>
@@ -269,7 +271,7 @@ const Profile = () => {
             {/* Full Name */}
             <div>
               <Label htmlFor="fullName" className="text-sm font-medium text-gray-900 mb-2 block">
-                Full Name*
+                {t('Full name')}*
               </Label>
               <Input
                 id="fullName"
@@ -277,14 +279,14 @@ const Profile = () => {
                 value={profile?.full_name || ''}
                 onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
                 className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-900"
-                placeholder="Muhammad Ali"
+                placeholder={t('Enter here')}
               />
             </div>
 
             {/* Phone Number */}
             <div>
               <Label htmlFor="phone" className="text-sm font-medium text-gray-900 mb-2 block">
-                Phone number*
+                {t('Phone number')}*
               </Label>
               <Input
                 id="phone"
@@ -292,14 +294,14 @@ const Profile = () => {
                 value={profile?.phone || ''}
                 onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
                 className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-600"
-                placeholder="966 - 5xxxxxxxxx"
+                placeholder={t('966 - 5xxxxxxxxx')}
               />
         </div>
 
             {/* Email */}
                   <div>
               <Label htmlFor="email" className="text-sm font-medium text-gray-900 mb-2 block">
-                      Your Email
+                      {t('Your Email')}
                     </Label>
                     <Input
                       id="email"
@@ -307,7 +309,7 @@ const Profile = () => {
                       value={profile?.email || ''}
                       disabled
                 className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-600"
-                placeholder="olivia@untitledui.com"
+                placeholder={t('Please enter your email')}
               />
             </div>
 
@@ -316,7 +318,7 @@ const Profile = () => {
               {/* Gender */}
               <div className="flex-1">
                 <Label htmlFor="gender" className="text-sm font-medium text-gray-900 mb-2 block">
-                  Gender
+                  {t('Gender')}
                 </Label>
                 <div className="relative">
                   <select
@@ -325,10 +327,10 @@ const Profile = () => {
                     onChange={(e) => setProfile(prev => prev ? { ...prev, gender: e.target.value } : null)}
                     className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-900 pr-10 appearance-none cursor-pointer w-full"
                   >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
+                    <option value="">{t('Select Gender')}</option>
+                    <option value="Male">{t('Male')}</option>
+                    <option value="Female">{t('Female')}</option>
+                    <option value="Prefer not to say">{t('Prefer not to say')}</option>
                   </select>
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                     <span className="text-gray-500">♂</span>
@@ -340,7 +342,7 @@ const Profile = () => {
               {/* Date of Birth */}
               <div className="flex-1">
                 <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-900 mb-2 block">
-                  Date of Birth
+                  {t('Date of Birth')}
                 </Label>
                 <div className="relative">
                   <Input
@@ -350,7 +352,7 @@ const Profile = () => {
                     readOnly
                     onClick={() => setShowDatePicker(true)}
                     className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-900 pr-10 cursor-pointer"
-                    placeholder="8 Jan 1998"
+                    placeholder={t('8 Jan 1998')}
                   />
                   <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
@@ -360,7 +362,7 @@ const Profile = () => {
             {/* Government ID */}
                   <div>
               <Label htmlFor="governmentId" className="text-sm font-medium text-gray-900 mb-2 block">
-                Government ID
+                {t('Government ID')}
                     </Label>
                     <Input
                 id="governmentId"
@@ -368,7 +370,7 @@ const Profile = () => {
                 value={profile?.government_id || ''}
                 onChange={(e) => setProfile(prev => prev ? { ...prev, government_id: e.target.value } : null)}
                 className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-600"
-                placeholder="XXXXXXXXXX"
+                placeholder={t('XXXXXXXXXX')}
                     />
                   </div>
 
@@ -380,7 +382,7 @@ const Profile = () => {
                 disabled={loading}
                 className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white rounded-lg py-3 text-sm font-medium"
               >
-                {loading ? 'Updating...' : 'Update'}
+                {loading ? t('Updating...') : t('Update')}
               </Button>
             </div>
 
@@ -392,7 +394,7 @@ const Profile = () => {
                 className="w-full bg-white border border-gray-300 text-[#0C2243] hover:bg-gray-50 rounded-full py-3"
                 onClick={() => setShowContactSupport(true)}
               >
-                Contact Support
+                {t('Contact Support')}
               </Button>
               
               <Button 
@@ -405,7 +407,7 @@ const Profile = () => {
                   setShowChangePassword(true);
                 }}
               >
-                Change Password
+                {t('Change Password')}
                   </Button>
             </div>
                 </form>
@@ -417,7 +419,7 @@ const Profile = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md mx-auto m-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Select Date of Birth</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('Select Date of Birth')}</h3>
               <button
                 onClick={() => setShowDatePicker(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -431,7 +433,7 @@ const Profile = () => {
             {/* Simple Date Picker */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Year')}</label>
                 <select 
                   className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getFullYear() || new Date().getFullYear() - 25}
@@ -448,7 +450,7 @@ const Profile = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Month')}</label>
                 <select 
                   className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getMonth() || 0}
@@ -467,7 +469,7 @@ const Profile = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Day</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Day')}</label>
                 <select 
                   className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   value={selectedDate?.getDate() || 1}
@@ -491,7 +493,7 @@ const Profile = () => {
                 onClick={() => setShowDatePicker(false)}
                 className="flex-1"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 type="button"
@@ -501,7 +503,7 @@ const Profile = () => {
                 }}
                 className="flex-1 bg-[#0C2243] hover:bg-[#0C2243]/90"
               >
-                Select Date
+                {t('Select Date')}
               </Button>
             </div>
           </div>
@@ -517,7 +519,7 @@ const Profile = () => {
               <div className="w-14 h-14">
                 <img
                   src={FrameIcon}
-                  alt="Help Icon"
+                  alt={t('Help Icon')}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -525,13 +527,13 @@ const Profile = () => {
             
             {/* Title */}
             <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
-              Need Help?
+              {t('Need Help?')}
             </h3>
             
             {/* Body Text */}
             <div className="text-center mb-8">
               <p className="text-sm text-gray-600 mb-2">
-                Our support team is here for you. Please reach out via email:
+                {t('Our support team is here for you. Please reach out via email:')}
               </p>
               <a 
                 href="mailto:support@domain.com"
@@ -540,7 +542,7 @@ const Profile = () => {
                 support@domain.com
               </a>
               <p className="text-sm text-gray-600 mt-2">
-                We'll get back to you as soon as possible.
+                {t("We'll get back to you as soon as possible.")}
               </p>
             </div>
             
@@ -552,7 +554,7 @@ const Profile = () => {
                 onClick={() => setShowContactSupport(false)}
                 className="bg-white border border-[#0C2243] text-[#0C2243] hover:bg-gray-50 rounded-lg px-8 py-2"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
             </div>
           </div>
@@ -565,7 +567,7 @@ const Profile = () => {
           <div className="bg-white rounded-lg p-8 max-w-md mx-auto m-4">
             {/* Title */}
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-8">
-              Change Password
+              {t('Change Password')}
             </h3>
             
             {/* Form */}
@@ -573,7 +575,7 @@ const Profile = () => {
               {/* Current Password */}
                   <div>
                 <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-900 mb-2 block">
-                      Current Password
+                      {t('Current Password')}
                     </Label>
                     <Input
                       id="currentPassword"
@@ -581,14 +583,14 @@ const Profile = () => {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
-                  placeholder="**********"
+                  placeholder={t('**********')}
                     />
                   </div>
                   
               {/* New Password */}
                   <div>
                 <Label htmlFor="newPassword" className="text-sm font-medium text-gray-900 mb-2 block">
-                      New Password
+                      {t('New Password')}
                     </Label>
                     <Input
                       id="newPassword"
@@ -596,7 +598,7 @@ const Profile = () => {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
-                  placeholder="***********"
+                  placeholder={t('***********')}
                     />
                   </div>
 
@@ -612,14 +614,14 @@ const Profile = () => {
                   }}
                   className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg py-3"
                 >
-                  Cancel
+                  {t('Cancel')}
                   </Button>
                 <Button
                   type="submit"
                   disabled={loading}
                   className="flex-1 bg-[#0C2243] hover:bg-[#0C2243]/90 text-white rounded-lg py-3"
                 >
-                  {loading ? 'Updating...' : 'Update Password'}
+                  {loading ? t('Updating...') : t('Update Password')}
                   </Button>
           </div>
                 </form>
@@ -633,13 +635,13 @@ const Profile = () => {
           <div className="bg-white rounded-lg p-8 max-w-md mx-auto m-4">
             {/* Title */}
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-6">
-              Profile Updated
+              {t('Profile Updated')}
             </h3>
             
             {/* Body Text */}
             <div className="text-center mb-8">
               <p className="text-gray-600">
-                Your profile has been successfully updated.
+                {t('Your profile has been successfully updated.')}
               </p>
             </div>
             
@@ -650,7 +652,7 @@ const Profile = () => {
                 onClick={() => setShowProfileUpdated(false)}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white rounded-lg px-8 py-2"
               >
-                OK
+                {t('OK')}
                     </Button>
           </div>
         </div>

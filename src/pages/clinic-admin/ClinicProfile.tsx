@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 interface Clinic {
@@ -64,6 +65,7 @@ const ClinicAdminClinicProfile = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [operatingHours, setOperatingHours] = useState<OperatingHours[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,12 +271,12 @@ const ClinicAdminClinicProfile = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('Please upload an image file'));
         return;
       }
       
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('Image size must be less than 5MB'));
         return;
       }
 
@@ -310,7 +312,7 @@ const ClinicAdminClinicProfile = () => {
       return logo_url;
     } catch (error: any) {
       console.error('Error in uploadLogoToStorage:', error);
-      toast.error(`Failed to upload logo: ${error.message || 'Unknown error'}`);
+      toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
       return null;
     }
   };
@@ -342,12 +344,12 @@ const ClinicAdminClinicProfile = () => {
         logo_url: logoUrl || undefined,
       });
 
-      toast.success('Clinic profile updated successfully');
+      toast.success(t('Clinic profile updated successfully'));
       setIsEditProfileModalOpen(false);
       await fetchClinicData();
     } catch (error: any) {
       console.error('Error updating clinic profile:', error);
-      toast.error('Failed to update clinic profile: ' + error.message);
+      toast.error(t('Failed to update clinic profile: {{message}}', { message: error.message }));
     } finally {
       setSavingProfile(false);
     }
@@ -404,12 +406,12 @@ const ClinicAdminClinicProfile = () => {
       // Update operating hours via backend
       await api.clinicAdmin.updateOperatingHours(hoursToInsert);
 
-      toast.success('Operating hours updated successfully');
+      toast.success(t('Operating hours updated successfully'));
       setIsEditHoursModalOpen(false);
       await fetchClinicData();
     } catch (error: any) {
       console.error('Error updating operating hours:', error);
-      toast.error('Failed to update operating hours: ' + error.message);
+      toast.error(t('Failed to update operating hours: {{message}}', { message: error.message }));
     } finally {
       setSavingHours(false);
     }
@@ -438,7 +440,7 @@ const ClinicAdminClinicProfile = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -454,13 +456,13 @@ const ClinicAdminClinicProfile = () => {
           <div className="p-8">
             {/* Header */}
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-              Clinic Profile
+              {t('Clinic Profile')}
             </h1>
 
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading clinic profile...</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('Loading clinic profile...')}</p>
               </div>
             ) : clinic ? (
               <>
@@ -484,7 +486,7 @@ const ClinicAdminClinicProfile = () => {
                           {clinic.name}
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400">
-                          {clinic.description || 'Healthcare & Diagnostics'}
+                          {clinic.description || t('Healthcare & Diagnostics')}
                         </p>
                       </div>
                     </div>
@@ -493,28 +495,28 @@ const ClinicAdminClinicProfile = () => {
                       className="bg-[#00FFA2] hover:bg-[#00e68f] text-[#0C2243] px-6 py-2.5 rounded-lg font-medium flex items-center gap-2"
                     >
                       <Pencil className="w-4 h-4" />
-                      Edit Profile
+                      {t('Edit Profile')}
                     </Button>
                   </div>
 
                   {/* Contact Information */}
                   <div className="flex flex-wrap gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Email:</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('Email')}:</span>
                       <span className="text-sm text-gray-900 dark:text-white ml-2">
                         {clinic.contact_email || clinic.email}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone:</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('Phone')}:</span>
                       <span className="text-sm text-gray-900 dark:text-white ml-2">
-                        {clinic.contact_phone || 'N/A'}
+                        {clinic.contact_phone || t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Address:</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('Address')}:</span>
                       <span className="text-sm text-gray-900 dark:text-white ml-2">
-                        {clinic.address || 'N/A'}
+                        {clinic.address || t('N/A')}
                       </span>
                     </div>
                   </div>
@@ -523,37 +525,37 @@ const ClinicAdminClinicProfile = () => {
                 {/* General Information Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    General Information
+                    {t('General Information')}
                   </h3>
                   <div className="space-y-3">
                     <div className="flex items-start">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">Clinic Name -</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Clinic Name')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {clinic.name}
                       </span>
                     </div>
                     <div className="flex items-start">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">Description -</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Description')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {clinic.description || 'N/A'}
+                        {clinic.description || t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-start">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">Specialties -</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Specialties')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {clinic.specialties && clinic.specialties.length > 0
                           ? clinic.specialties.join(', ')
-                          : 'N/A'}
+                          : t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-start">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">Registered Since -</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Registered Since')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {format(new Date(clinic.registration_date), 'MMMM yyyy')}
                       </span>
                     </div>
                     <div className="flex items-start">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">Clinic ID -</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Clinic ID')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {getClinicId()}
                       </span>
@@ -565,14 +567,14 @@ const ClinicAdminClinicProfile = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Working Hours
+                      {t('Working Hours')}
                     </h3>
                     <Button
                       onClick={handleOpenEditHours}
                       className="bg-[#00FFA2] hover:bg-[#00e68f] text-[#0C2243] px-6 py-2.5 rounded-lg font-medium flex items-center gap-2"
                     >
                       <Pencil className="w-4 h-4" />
-                      Edit Hours
+                      {t('Edit Hours')}
                     </Button>
                   </div>
 
@@ -581,13 +583,13 @@ const ClinicAdminClinicProfile = () => {
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                           <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Day
+                            {t('Day')}
                           </th>
                           <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Opening
+                            {t('Opening')}
                           </th>
                           <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Closing
+                            {t('Closing')}
                           </th>
                         </tr>
                       </thead>
@@ -600,7 +602,7 @@ const ClinicAdminClinicProfile = () => {
                               className="border-b border-gray-200 dark:border-gray-700"
                             >
                               <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                                {day.label}
+                                {t(day.label)}
                               </td>
                               <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                                 {hours.opening}
@@ -618,7 +620,7 @@ const ClinicAdminClinicProfile = () => {
               </>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400">No clinic data found</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('No clinic data found')}</p>
               </div>
             )}
           </div>
@@ -629,7 +631,7 @@ const ClinicAdminClinicProfile = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Edit Clinic Profile
+                {t('Edit Clinic Profile')}
               </DialogTitle>
             </DialogHeader>
 
@@ -637,14 +639,14 @@ const ClinicAdminClinicProfile = () => {
               {/* Clinic Logo */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Clinic Logo
+                  {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-[#0C2243] rounded-lg flex items-center justify-center flex-shrink-0">
                     {logoPreview ? (
                       <img
                         src={logoPreview}
-                        alt="Clinic logo"
+                        alt={t('Clinic logo')}
                         className="w-full h-full object-cover rounded-lg"
                       />
                     ) : (
@@ -665,7 +667,7 @@ const ClinicAdminClinicProfile = () => {
                       variant="outline"
                       className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-md text-sm font-medium"
                     >
-                      Change logo
+                      {t('Change logo')}
                     </Button>
                   </div>
                 </div>
@@ -674,7 +676,7 @@ const ClinicAdminClinicProfile = () => {
               {/* Clinic Name */}
               <div>
                 <Label htmlFor="clinic-name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Clinic Name
+                  {t('Clinic Name')}
                 </Label>
                 <Input
                   id="clinic-name"
@@ -682,14 +684,14 @@ const ClinicAdminClinicProfile = () => {
                   value={editProfileForm.name}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, name: e.target.value })}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Enter clinic name"
+                  placeholder={t('Enter clinic name')}
                 />
               </div>
 
               {/* Specialties */}
               <div>
                 <Label htmlFor="specialties" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Specialties
+                  {t('Specialties')}
                 </Label>
                 <div className="space-y-2">
                   {/* Selected Specialties as Tags */}
@@ -715,7 +717,7 @@ const ClinicAdminClinicProfile = () => {
                   {/* Specialty Selector */}
                   <Select onValueChange={handleSpecialtyAdd}>
                     <SelectTrigger className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder={t('Select a specialty')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableSpecialties
@@ -733,7 +735,7 @@ const ClinicAdminClinicProfile = () => {
               {/* Email */}
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Email
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
@@ -741,14 +743,14 @@ const ClinicAdminClinicProfile = () => {
                   value={editProfileForm.email}
                   disabled
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
-                  placeholder="Enter email"
+                  placeholder={t('Enter email')}
                 />
               </div>
 
               {/* Phone */}
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Phone
+                  {t('Phone')}
                 </Label>
                 <Input
                   id="phone"
@@ -756,14 +758,14 @@ const ClinicAdminClinicProfile = () => {
                   value={editProfileForm.phone}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, phone: e.target.value })}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Enter phone number"
+                  placeholder={t('Enter phone number')}
                 />
               </div>
 
               {/* Address */}
               <div>
                 <Label htmlFor="address" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Address
+                  {t('Address')}
                 </Label>
                 <Input
                   id="address"
@@ -771,21 +773,21 @@ const ClinicAdminClinicProfile = () => {
                   value={editProfileForm.address}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, address: e.target.value })}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Enter address"
+                  placeholder={t('Enter address')}
                 />
               </div>
 
               {/* Description */}
               <div>
                 <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Description
+                  {t('Description')}
                 </Label>
                 <Textarea
                   id="description"
                   value={editProfileForm.description}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, description: e.target.value })}
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder="Enter clinic description"
+                  placeholder={t('Enter clinic description')}
                   rows={3}
                 />
               </div>
@@ -798,14 +800,14 @@ const ClinicAdminClinicProfile = () => {
                 variant="outline"
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleSaveProfile}
                 disabled={savingProfile}
                 className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {savingProfile ? 'Saving...' : 'Save Changes'}
+                {savingProfile ? t('Saving...') : t('Save Changes')}
               </Button>
             </div>
           </DialogContent>
@@ -816,7 +818,7 @@ const ClinicAdminClinicProfile = () => {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Edit Hours
+                {t('Edit Hours')}
               </DialogTitle>
             </DialogHeader>
 
@@ -826,16 +828,16 @@ const ClinicAdminClinicProfile = () => {
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                        Days
+                        {t('Days')}
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                        Opening
+                        {t('Opening')}
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                        Closing
+                        {t('Closing')}
                       </th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                        Closed
+                        {t('Closed')}
                       </th>
                     </tr>
                   </thead>
@@ -845,7 +847,7 @@ const ClinicAdminClinicProfile = () => {
                       return (
                         <tr key={day.value} className="border-b border-gray-200 dark:border-gray-700">
                           <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                            {day.label}
+                            {t(day.label)}
                           </td>
                           <td className="py-3 px-4">
                             <Select
@@ -864,7 +866,7 @@ const ClinicAdminClinicProfile = () => {
                               }}
                             >
                               <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                                <SelectValue placeholder="Select time" />
+                                <SelectValue placeholder={t('Select time')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {timeSlots.map((time) => (
@@ -892,7 +894,7 @@ const ClinicAdminClinicProfile = () => {
                               }}
                             >
                               <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                                <SelectValue placeholder="Select time" />
+                                <SelectValue placeholder={t('Select time')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {timeSlots.map((time) => (
@@ -924,7 +926,7 @@ const ClinicAdminClinicProfile = () => {
                                 htmlFor={`closed-${day.value}`}
                                 className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
                               >
-                                Closed
+                                {t('Closed')}
                               </label>
                             </div>
                           </td>
@@ -943,14 +945,14 @@ const ClinicAdminClinicProfile = () => {
                 variant="outline"
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleSaveHours}
                 disabled={savingHours}
                 className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {savingHours ? 'Saving...' : 'Save Changes'}
+                {savingHours ? t('Saving...') : t('Save Changes')}
               </Button>
             </div>
           </DialogContent>

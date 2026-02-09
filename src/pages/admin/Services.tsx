@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
+import { useTranslation } from 'react-i18next';
 
 interface Specialty {
   id: string;
@@ -82,6 +83,7 @@ interface SpecialtyRequest {
 
 const AdminServices = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -145,7 +147,7 @@ const AdminServices = () => {
       setServices(transformedServices);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to fetch data');
+      toast.error(t('Failed to fetch data'));
     } finally {
       setLoading(false);
     }
@@ -154,7 +156,7 @@ const AdminServices = () => {
   // Add specialty
   const handleAddSpecialty = async () => {
     if (!newSpecialty.name.trim()) {
-      toast.error('Please enter a specialty name');
+      toast.error(t('Please enter a specialty name'));
       return;
     }
 
@@ -166,9 +168,9 @@ const AdminServices = () => {
       });
 
       if (result.reactivated) {
-        toast.success(`Specialty "${result.specialty.name}" has been reactivated`);
+        toast.success(t('Specialty "{{name}}" has been reactivated', { name: result.specialty.name }));
       } else {
-        toast.success('Specialty added successfully');
+        toast.success(t('Specialty added successfully'));
       }
 
       setShowAddSpecialtyModal(false);
@@ -177,9 +179,9 @@ const AdminServices = () => {
     } catch (error: any) {
       console.error('Error adding specialty:', error);
       if (error?.message?.includes('already exists')) {
-        toast.error(`Specialty "${newSpecialty.name.trim()}" already exists`);
+        toast.error(t('Specialty "{{name}}" already exists', { name: newSpecialty.name.trim() }));
       } else {
-        toast.error(`Failed to add specialty: ${error?.message || 'Unknown error'}`);
+        toast.error(t('Failed to add specialty: {{message}}', { message: error?.message || t('Unknown error') }));
       }
     }
   };
@@ -187,7 +189,7 @@ const AdminServices = () => {
   // Edit specialty
   const handleEditSpecialty = async () => {
     if (!editingSpecialty || !editingSpecialty.name.trim()) {
-      toast.error('Please enter a specialty name');
+      toast.error(t('Please enter a specialty name'));
       return;
     }
 
@@ -224,7 +226,7 @@ const AdminServices = () => {
         )
       );
 
-      toast.success('Specialty updated successfully. Changes will be reflected immediately.');
+      toast.success(t('Specialty updated successfully. Changes will be reflected immediately.'));
       setShowEditSpecialtyModal(false);
       setEditingSpecialty(null);
       
@@ -232,7 +234,7 @@ const AdminServices = () => {
       await fetchData();
     } catch (error: any) {
       console.error('❌ Error updating specialty:', error);
-      toast.error('Failed to update specialty: ' + (error?.message || 'Unknown error'));
+      toast.error(t('Failed to update specialty: {{message}}', { message: error?.message || t('Unknown error') }));
     }
   };
 
@@ -295,7 +297,7 @@ const AdminServices = () => {
   // Add service
   const handleAddService = async () => {
     if (!newService.specialty_id || !newService.name.trim()) {
-      toast.error('Please select a specialty and enter a service name');
+      toast.error(t('Please select a specialty and enter a service name'));
       return;
     }
 
@@ -306,7 +308,7 @@ const AdminServices = () => {
         description: newService.description.trim() || null,
       });
 
-      toast.success('Service added successfully');
+      toast.success(t('Service added successfully'));
       setShowAddServiceModal(false);
       setNewService({ specialty_id: '', name: '', description: '' });
       fetchData();
@@ -317,7 +319,7 @@ const AdminServices = () => {
       if (errorMessage.includes('already exists')) {
         toast.error(errorMessage);
       } else if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
-        toast.error('This service already exists for the selected specialty');
+        toast.error(t('This service already exists for the selected specialty'));
       } else {
         toast.error(errorMessage);
       }
@@ -327,7 +329,7 @@ const AdminServices = () => {
   // Edit service
   const handleEditService = async () => {
     if (!editingService || !editingService.name.trim()) {
-      toast.error('Please enter a service name');
+      toast.error(t('Please enter a service name'));
       return;
     }
 
@@ -355,7 +357,7 @@ const AdminServices = () => {
         )
       );
 
-      toast.success('Service updated successfully. Changes will be reflected immediately.');
+      toast.success(t('Service updated successfully. Changes will be reflected immediately.'));
       setShowEditServiceModal(false);
       setEditingService(null);
       
@@ -363,7 +365,7 @@ const AdminServices = () => {
       await fetchData();
     } catch (error: any) {
       console.error('❌ Error updating service:', error);
-      toast.error('Failed to update service: ' + (error?.message || 'Unknown error'));
+      toast.error(t('Failed to update service: {{message}}', { message: error?.message || t('Unknown error') }));
     }
   };
 
@@ -384,7 +386,7 @@ const AdminServices = () => {
         prevServices.filter(service => service.id !== deletingService.id)
       );
 
-      toast.success('Service deleted successfully. The service will no longer be visible to public users or clinic admins.');
+      toast.success(t('Service deleted successfully. The service will no longer be visible to public users or clinic admins.'));
       setShowDeleteServiceModal(false);
       setDeletingService(null);
       
@@ -415,7 +417,7 @@ const AdminServices = () => {
     } catch (error: any) {
       console.error('Error fetching service requests:', error);
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
-        toast.error('Failed to fetch service requests');
+        toast.error(t('Failed to fetch service requests'));
       }
       setServiceRequests([]);
     } finally {
@@ -440,7 +442,7 @@ const AdminServices = () => {
     } catch (error: any) {
       console.error('Error fetching specialty requests:', error);
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
-        toast.error('Failed to fetch specialty requests');
+        toast.error(t('Failed to fetch specialty requests'));
       }
       setSpecialtyRequests([]);
     } finally {
@@ -451,19 +453,19 @@ const AdminServices = () => {
   // Handle approve request
   const handleApproveRequest = async (request: ServiceRequest) => {
     if (!user) {
-      toast.error('User not authenticated');
+      toast.error(t('User not authenticated'));
       return;
     }
 
     try {
       await api.adminServices.approveServiceRequest(request.id);
 
-      toast.success('Service request approved and added successfully!');
+      toast.success(t('Service request approved and added successfully!'));
       fetchServiceRequests(); // Refresh requests list
       fetchData(); // Refresh services list
     } catch (error) {
       console.error('Error approving request:', error);
-      toast.error('Failed to approve request');
+      toast.error(t('Failed to approve request'));
     }
   };
 
@@ -474,40 +476,40 @@ const AdminServices = () => {
     }
 
     if (!rejectionReason.trim()) {
-      toast.error('Please provide a reason for rejection');
+      toast.error(t('Please provide a reason for rejection'));
       return;
     }
 
     try {
       await api.adminServices.rejectServiceRequest(selectedRequest.id, rejectionReason.trim());
 
-      toast.success('Service request rejected');
+      toast.success(t('Service request rejected'));
       setShowRejectModal(false);
       setRejectionReason('');
       setSelectedRequest(null);
       fetchServiceRequests(); // Refresh requests list
     } catch (error) {
       console.error('Error rejecting request:', error);
-      toast.error('Failed to reject request');
+      toast.error(t('Failed to reject request'));
     }
   };
 
   // Handle approve specialty request
   const handleApproveSpecialtyRequest = async (request: SpecialtyRequest) => {
     if (!user) {
-      toast.error('User not authenticated');
+      toast.error(t('User not authenticated'));
       return;
     }
 
     try {
       await api.adminServices.approveSpecialtyRequest(request.id);
 
-      toast.success('Specialty request approved and added successfully!');
+      toast.success(t('Specialty request approved and added successfully!'));
       fetchSpecialtyRequests(); // Refresh requests list
       fetchData(); // Refresh specialties list
     } catch (error) {
       console.error('Error approving specialty request:', error);
-      toast.error('Failed to approve request');
+      toast.error(t('Failed to approve request'));
     }
   };
 
@@ -518,21 +520,21 @@ const AdminServices = () => {
     }
 
     if (!rejectionReason.trim()) {
-      toast.error('Please provide a reason for rejection');
+      toast.error(t('Please provide a reason for rejection'));
       return;
     }
 
     try {
       await api.adminServices.rejectSpecialtyRequest(selectedSpecialtyRequest.id, rejectionReason.trim());
 
-      toast.success('Specialty request rejected');
+      toast.success(t('Specialty request rejected'));
       setShowRejectSpecialtyModal(false);
       setRejectionReason('');
       setSelectedSpecialtyRequest(null);
       fetchSpecialtyRequests(); // Refresh requests list
     } catch (error) {
       console.error('Error rejecting specialty request:', error);
-      toast.error('Failed to reject request');
+      toast.error(t('Failed to reject request'));
     }
   };
 
@@ -566,7 +568,7 @@ const AdminServices = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-start justify-between mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Specialties & Services</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Specialties & Services')}</h1>
               
               <div className="flex gap-3">
                 <Button
@@ -574,14 +576,14 @@ const AdminServices = () => {
                   className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Specialty
+                  {t('Add Specialty')}
                 </Button>
                 <Button
                   onClick={() => setShowAddServiceModal(true)}
                   className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Service
+                  {t('Add Service')}
                 </Button>
               </div>
             </div>
@@ -589,16 +591,16 @@ const AdminServices = () => {
             {/* Specialty Requests Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Specialty Requests</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Pending Specialty Requests')}</h2>
                 <span className="px-3 py-1 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium">
-                  {specialtyRequests.length} Pending
+                  {specialtyRequests.length} {t('Pending')}
                 </span>
               </div>
               
               {loadingSpecialtyRequests ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading requests...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading requests...')}</p>
                 </div>
               ) : specialtyRequests.length > 0 ? (
                 <div className="space-y-4">
@@ -614,14 +616,14 @@ const AdminServices = () => {
                               {request.specialty_name}
                             </h3>
                             <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium">
-                              Pending
+                              {t('Pending')}
                             </span>
                           </div>
                           <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                            <p><span className="font-medium">Clinic:</span> {request.clinic_name || 'N/A'}</p>
-                            <p><span className="font-medium">Requested:</span> {new Date(request.requested_at).toLocaleDateString()}</p>
+                            <p><span className="font-medium">{t('Clinic')}:</span> {request.clinic_name || t('N/A')}</p>
+                            <p><span className="font-medium">{t('Requested')}:</span> {new Date(request.requested_at).toLocaleDateString()}</p>
                             {request.description && (
-                              <p><span className="font-medium">Description:</span> {request.description}</p>
+                              <p><span className="font-medium">{t('Description')}:</span> {request.description}</p>
                             )}
                           </div>
                         </div>
@@ -632,7 +634,7 @@ const AdminServices = () => {
                             size="sm"
                           >
                             <Check className="w-4 h-4 mr-1" />
-                            Approve
+                            {t('Approve')}
                           </Button>
                           <Button
                             onClick={() => {
@@ -644,7 +646,7 @@ const AdminServices = () => {
                             size="sm"
                           >
                             <X className="w-4 h-4 mr-1" />
-                            Reject
+                            {t('Reject')}
                           </Button>
                         </div>
                       </div>
@@ -653,7 +655,7 @@ const AdminServices = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No pending specialty requests</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No pending specialty requests')}</p>
                 </div>
               )}
             </div>
@@ -661,16 +663,16 @@ const AdminServices = () => {
             {/* Service Requests Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Service Requests</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Pending Service Requests')}</h2>
                 <span className="px-3 py-1 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium">
-                  {serviceRequests.length} Pending
+                  {serviceRequests.length} {t('Pending')}
                 </span>
               </div>
               
               {loadingRequests ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading requests...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading requests...')}</p>
                 </div>
               ) : serviceRequests.length > 0 ? (
                 <div className="space-y-4">
@@ -686,15 +688,15 @@ const AdminServices = () => {
                               {request.service_name}
                             </h3>
                             <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium">
-                              Pending
+                              {t('Pending')}
                             </span>
                           </div>
                           <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                            <p><span className="font-medium">Specialty:</span> {request.specialty_name || 'N/A'}</p>
-                            <p><span className="font-medium">Clinic:</span> {request.clinic_name || 'N/A'}</p>
-                            <p><span className="font-medium">Requested:</span> {new Date(request.requested_at).toLocaleDateString()}</p>
+                            <p><span className="font-medium">{t('Specialty')}:</span> {request.specialty_name || t('N/A')}</p>
+                            <p><span className="font-medium">{t('Clinic')}:</span> {request.clinic_name || t('N/A')}</p>
+                            <p><span className="font-medium">{t('Requested')}:</span> {new Date(request.requested_at).toLocaleDateString()}</p>
                             {request.description && (
-                              <p><span className="font-medium">Description:</span> {request.description}</p>
+                              <p><span className="font-medium">{t('Description')}:</span> {request.description}</p>
                             )}
                           </div>
                         </div>
@@ -705,7 +707,7 @@ const AdminServices = () => {
                             size="sm"
                           >
                             <Check className="w-4 h-4 mr-1" />
-                            Approve
+                            {t('Approve')}
                           </Button>
                           <Button
                             onClick={() => {
@@ -717,7 +719,7 @@ const AdminServices = () => {
                             size="sm"
                           >
                             <X className="w-4 h-4 mr-1" />
-                            Reject
+                            {t('Reject')}
                           </Button>
                         </div>
                       </div>
@@ -726,18 +728,18 @@ const AdminServices = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No pending service requests</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No pending service requests')}</p>
                 </div>
               )}
             </div>
 
             {/* Specialties Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Specialties</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Specialties')}</h2>
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading specialties...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading specialties...')}</p>
                 </div>
               ) : specialties.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -779,7 +781,7 @@ const AdminServices = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No specialties found. Add your first specialty!</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No specialties found. Add your first specialty!')}</p>
                 </div>
               )}
             </div>
@@ -787,13 +789,13 @@ const AdminServices = () => {
             {/* Services Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Services</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Services')}</h2>
               </div>
               
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading services...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading services...')}</p>
                 </div>
               ) : Object.keys(groupedServices).length > 0 ? (
                 <div className="overflow-x-auto">
@@ -805,16 +807,16 @@ const AdminServices = () => {
                           onSort={() => handleSort('specialty_name')}
                           className="w-1/4"
                         >
-                          Specialty
+                          {t('Specialty')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('name')}
                           onSort={() => handleSort('name')}
                         >
-                          Service Name
+                          {t('Service Name')}
                         </TableSortHeader>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-24">
-                          Actions
+                          {t('Actions')}
                         </th>
                       </tr>
                     </thead>
@@ -868,7 +870,7 @@ const AdminServices = () => {
                                         className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-md"
                                       >
                                         <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                        <span className="text-sm text-gray-900 dark:text-gray-100">Edit</span>
+                                        <span className="text-sm text-gray-900 dark:text-gray-100">{t('Edit')}</span>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
                                         onClick={() => {
@@ -878,7 +880,7 @@ const AdminServices = () => {
                                         className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 rounded-md text-red-600 dark:text-red-400"
                                       >
                                         <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                        <span className="text-sm">Delete</span>
+                                        <span className="text-sm">{t('Delete')}</span>
                                       </DropdownMenuItem>
                                     </div>
                                   </div>
@@ -893,7 +895,7 @@ const AdminServices = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">No services found. Add your first service!</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No services found. Add your first service!')}</p>
                 </div>
               )}
             </div>
@@ -905,31 +907,31 @@ const AdminServices = () => {
       <Dialog open={showAddSpecialtyModal} onOpenChange={setShowAddSpecialtyModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Specialty</DialogTitle>
+            <DialogTitle>{t('Add New Specialty')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Specialty Name *</Label>
+              <Label>{t('Specialty Name')} *</Label>
               <Input
                 value={newSpecialty.name}
                 onChange={(e) => setNewSpecialty({ ...newSpecialty, name: e.target.value })}
-                placeholder="e.g., Cardiology"
+                placeholder={t('e.g., Cardiology')}
               />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>{t('Description')}</Label>
               <Textarea
                 value={newSpecialty.description}
                 onChange={(e) => setNewSpecialty({ ...newSpecialty, description: e.target.value })}
-                placeholder="Optional description"
+                placeholder={t('Optional description')}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSpecialtyModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowAddSpecialtyModal(false)}>{t('Cancel')}</Button>
             <Button onClick={handleAddSpecialty} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
-              Add Specialty
+              {t('Add Specialty')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -939,19 +941,19 @@ const AdminServices = () => {
       <Dialog open={showEditSpecialtyModal} onOpenChange={setShowEditSpecialtyModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Specialty</DialogTitle>
+            <DialogTitle>{t('Edit Specialty')}</DialogTitle>
           </DialogHeader>
           {editingSpecialty && (
             <div className="space-y-4">
               <div>
-                <Label>Specialty Name *</Label>
+                <Label>{t('Specialty Name')} *</Label>
                 <Input
                   value={editingSpecialty.name}
                   onChange={(e) => setEditingSpecialty({ ...editingSpecialty, name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Description</Label>
+                <Label>{t('Description')}</Label>
                 <Textarea
                   value={editingSpecialty.description || ''}
                   onChange={(e) => setEditingSpecialty({ ...editingSpecialty, description: e.target.value })}
@@ -961,9 +963,9 @@ const AdminServices = () => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditSpecialtyModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowEditSpecialtyModal(false)}>{t('Cancel')}</Button>
             <Button onClick={handleEditSpecialty} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
-              Save Changes
+              {t('Save Changes')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -973,17 +975,17 @@ const AdminServices = () => {
       <Dialog open={showDeleteSpecialtyModal} onOpenChange={setShowDeleteSpecialtyModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Specialty</DialogTitle>
+            <DialogTitle>{t('Delete Specialty')}</DialogTitle>
           </DialogHeader>
           {deletingSpecialty && (
             <p className="text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete "{deletingSpecialty.name}"? This will also delete all services under this specialty.
+              {t('Are you sure you want to delete "{{name}}"? This will also delete all services under this specialty.', { name: deletingSpecialty.name })}
             </p>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteSpecialtyModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowDeleteSpecialtyModal(false)}>{t('Cancel')}</Button>
             <Button onClick={handleDeleteSpecialty} className="bg-red-500 hover:bg-red-600 text-white">
-              Delete
+              {t('Delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -993,14 +995,14 @@ const AdminServices = () => {
       <Dialog open={showAddServiceModal} onOpenChange={setShowAddServiceModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Service</DialogTitle>
+            <DialogTitle>{t('Add New Service')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Specialty *</Label>
+              <Label>{t('Specialty')} *</Label>
               <Select value={newService.specialty_id} onValueChange={(value) => setNewService({ ...newService, specialty_id: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a specialty" />
+                  <SelectValue placeholder={t('Select a specialty')} />
                 </SelectTrigger>
                 <SelectContent>
                   {specialties.map((specialty) => (
@@ -1012,27 +1014,27 @@ const AdminServices = () => {
               </Select>
             </div>
             <div>
-              <Label>Service Name *</Label>
+              <Label>{t('Service Name')} *</Label>
               <Input
                 value={newService.name}
                 onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                placeholder="e.g., Consultation"
+                placeholder={t('e.g., Consultation')}
               />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>{t('Description')}</Label>
               <Textarea
                 value={newService.description}
                 onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                placeholder="Optional description"
+                placeholder={t('Optional description')}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddServiceModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowAddServiceModal(false)}>{t('Cancel')}</Button>
             <Button onClick={handleAddService} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
-              Add Service
+              {t('Add Service')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1047,12 +1049,12 @@ const AdminServices = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Service</DialogTitle>
+            <DialogTitle>{t('Edit Service')}</DialogTitle>
           </DialogHeader>
           {editingService && (
             <div className="space-y-4">
               <div>
-                <Label>Specialty *</Label>
+                <Label>{t('Specialty')} *</Label>
                 <Select value={editingService.specialty_id} onValueChange={(value) => setEditingService({ ...editingService, specialty_id: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1067,19 +1069,19 @@ const AdminServices = () => {
                 </Select>
               </div>
               <div>
-                <Label>Service Name *</Label>
+                <Label>{t('Service Name')} *</Label>
                 <Input
                   value={editingService.name}
                   onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
-                  placeholder="Enter service name"
+                  placeholder={t('Enter service name')}
                 />
               </div>
               <div>
-                <Label>Description</Label>
+                <Label>{t('Description')}</Label>
                 <Textarea
                   value={editingService.description || ''}
                   onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
-                  placeholder="Optional description"
+                  placeholder={t('Optional description')}
                   rows={3}
                 />
               </div>
@@ -1089,9 +1091,9 @@ const AdminServices = () => {
             <Button variant="outline" onClick={() => {
               setShowEditServiceModal(false);
               setEditingService(null);
-            }}>Cancel</Button>
+            }}>{t('Cancel')}</Button>
             <Button onClick={handleEditService} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
-              Save Changes
+              {t('Save Changes')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1106,15 +1108,15 @@ const AdminServices = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Service</DialogTitle>
+            <DialogTitle>{t('Delete Service')}</DialogTitle>
           </DialogHeader>
           {deletingService && (
             <div className="space-y-2">
               <p className="text-gray-600 dark:text-gray-400">
-                Are you sure you want to delete the service <strong>"{deletingService.name}"</strong>?
+                {t('Are you sure you want to delete the service "{{name}}"?', { name: deletingService.name })}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                This action cannot be undone. The service will be removed from the system.
+                {t('This action cannot be undone. The service will be removed from the system.')}
               </p>
             </div>
           )}
@@ -1122,9 +1124,9 @@ const AdminServices = () => {
             <Button variant="outline" onClick={() => {
               setShowDeleteServiceModal(false);
               setDeletingService(null);
-            }}>Cancel</Button>
+            }}>{t('Cancel')}</Button>
             <Button onClick={handleDeleteService} className="bg-red-500 hover:bg-red-600 text-white">
-              Delete
+              {t('Delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1134,24 +1136,24 @@ const AdminServices = () => {
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Reject Service Request</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Reject Service Request')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Service: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest?.service_name}</span>
+                {t('Service')}: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest?.service_name}</span>
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Clinic: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest?.clinic_name}</span>
+                {t('Clinic')}: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest?.clinic_name}</span>
               </p>
             </div>
             <div>
               <Label htmlFor="rejection-reason" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Reason for Rejection <span className="text-red-500">*</span>
+                {t('Reason for Rejection')} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="rejection-reason"
-                placeholder="Please provide a reason for rejecting this service request..."
+                placeholder={t('Please provide a reason for rejecting this service request...')}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px]"
@@ -1168,13 +1170,13 @@ const AdminServices = () => {
               }}
               className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleRejectRequest}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Reject Request
+              {t('Reject Request')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1184,24 +1186,24 @@ const AdminServices = () => {
       <Dialog open={showRejectSpecialtyModal} onOpenChange={setShowRejectSpecialtyModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Reject Specialty Request</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Reject Specialty Request')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Specialty: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.specialty_name}</span>
+                {t('Specialty')}: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.specialty_name}</span>
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Clinic: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.clinic_name}</span>
+                {t('Clinic')}: <span className="font-semibold text-gray-900 dark:text-white">{selectedSpecialtyRequest?.clinic_name}</span>
               </p>
             </div>
             <div>
               <Label htmlFor="rejection-reason-specialty" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Reason for Rejection <span className="text-red-500">*</span>
+                {t('Reason for Rejection')} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="rejection-reason-specialty"
-                placeholder="Please provide a reason for rejecting this specialty request..."
+                placeholder={t('Please provide a reason for rejecting this specialty request...')}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg min-h-[100px]"
@@ -1218,13 +1220,13 @@ const AdminServices = () => {
               }}
               className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleRejectSpecialtyRequest}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Reject Request
+              {t('Reject Request')}
             </Button>
           </DialogFooter>
         </DialogContent>

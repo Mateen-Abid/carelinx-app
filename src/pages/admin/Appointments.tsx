@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
+import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useDarkMode } from '@/contexts/DarkModeContext';
@@ -59,14 +60,16 @@ interface DoctorDetails {
 
 const AdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [selectedClinic, setSelectedClinic] = useState('All Clinics');
+  const ALL_CLINICS = 'all-clinics';
+  const [selectedClinic, setSelectedClinic] = useState(ALL_CLINICS);
   const [appointmentsData, setAppointmentsData] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clinics, setClinics] = useState<string[]>(['All Clinics']);
+  const [clinics, setClinics] = useState<string[]>([ALL_CLINICS]);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);
@@ -105,7 +108,7 @@ const AdminAppointments = () => {
       if (bookingsData && bookingsData.length > 0) {
         const clinicCounts = new Map<string, number>();
         bookingsData.forEach((booking: any) => {
-          const clinicName = booking.clinic || (booking.clinic_id ? `clinic_id:${booking.clinic_id}` : 'Unknown');
+      const clinicName = booking.clinic || (booking.clinic_id ? `clinic_id:${booking.clinic_id}` : t('Unknown'));
           clinicCounts.set(clinicName, (clinicCounts.get(clinicName) || 0) + 1);
         });
         console.log('📊 Appointments by clinic:', Object.fromEntries(clinicCounts));
@@ -149,7 +152,7 @@ const AdminAppointments = () => {
       });
 
       // Extract unique clinics - only from active clinics
-      const uniqueClinics = new Set<string>(['All Clinics']);
+      const uniqueClinics = new Set<string>([ALL_CLINICS]);
       
       // Add only active clinics from clinics table
       clinicsData?.forEach(clinic => {
@@ -244,10 +247,10 @@ const AdminAppointments = () => {
 
       const appointments: Appointment[] = bookingsWithProfiles.map((booking: any) => {
         const profile = profileMap.get(booking.user_id);
-        const patientName = profile?.full_name || profile?.email || 'Unknown Patient';
+        const patientName = profile?.full_name || profile?.email || t('Unknown Patient');
         
         // Get clinic name - prefer from clinic_id mapping, fallback to clinic field
-        let clinicName = booking.clinic || 'Unknown Clinic';
+        let clinicName = booking.clinic || t('Unknown Clinic');
         if (booking.clinic_id && clinicMap.has(booking.clinic_id)) {
           clinicName = clinicMap.get(booking.clinic_id)!;
         }
@@ -284,10 +287,10 @@ const AdminAppointments = () => {
           user_id: booking.user_id,
           patientName: patientName,
           patientEmail: profile?.email || '',
-          patientGender: profile?.gender || profile?.sex || 'N/A',
-          patientContact: profile?.phone || profile?.contact || profile?.phone_number || 'N/A',
-          doctorName: booking.doctor_name || 'Unknown Doctor',
-          service: booking.specialty || 'Unknown Service',
+          patientGender: profile?.gender || profile?.sex || t('N/A'),
+          patientContact: profile?.phone || profile?.contact || profile?.phone_number || t('N/A'),
+          doctorName: booking.doctor_name || t('Unknown Doctor'),
+          service: booking.specialty || t('Unknown Service'),
           clinic: clinicName,
           date: formattedDate,
           time: formattedTime,
@@ -327,7 +330,7 @@ const AdminAppointments = () => {
         appointment.clinic.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Clinic filter
-      const matchesClinic = selectedClinic === 'All Clinics' || appointment.clinic === selectedClinic;
+      const matchesClinic = selectedClinic === ALL_CLINICS || appointment.clinic === selectedClinic;
       
       // Date filter from filter modal
       let matchesDate = true;
@@ -398,25 +401,25 @@ const AdminAppointments = () => {
         bg: 'bg-green-100',
         text: 'text-green-800',
         icon: Check,
-        label: 'Approved',
+        label: t('Approved'),
       },
       cancelled: {
         bg: 'bg-red-100',
         text: 'text-red-800',
         icon: X,
-        label: 'Cancelled',
+        label: t('Cancelled'),
       },
       pending: {
         bg: 'bg-orange-100',
         text: 'text-orange-800',
         icon: Clock,
-        label: 'Pending',
+        label: t('Pending'),
       },
       completed: {
         bg: 'bg-blue-100',
         text: 'text-blue-800',
         icon: Check,
-        label: 'Completed',
+        label: t('Completed'),
       },
     };
 
@@ -435,13 +438,13 @@ const AdminAppointments = () => {
 
   const handleExportToExcel = () => {
     const exportData = filteredAppointments.map((appointment) => ({
-      'Patient Name': appointment.patientName,
-      'Patient Email': appointment.patientEmail || 'N/A',
-      'Patient Contact': appointment.patientContact || 'N/A',
-      'Doctor Name': appointment.doctorName,
-      'Service': appointment.service,
-      'Clinic': appointment.clinic,
-      'Requested Date/Time': new Date(appointment.created_at).toLocaleString('en-US', { 
+      [t('Patient Name')]: appointment.patientName,
+      [t('Patient Email')]: appointment.patientEmail || t('N/A'),
+      [t('Patient Contact')]: appointment.patientContact || t('N/A'),
+      [t('Doctor Name')]: appointment.doctorName,
+      [t('Service')]: appointment.service,
+      [t('Clinic')]: appointment.clinic,
+      [t('Requested Date/Time')]: new Date(appointment.created_at).toLocaleString('en-US', { 
         month: 'short', 
         day: 'numeric', 
         year: 'numeric',
@@ -449,14 +452,14 @@ const AdminAppointments = () => {
         minute: '2-digit',
         hour12: true 
       }),
-      'Appointment Date': appointment.date,
-      'Appointment Time': appointment.time,
-      'Status': appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1),
-      'Note': appointment.note || 'N/A',
+      [t('Appointment Date')]: appointment.date,
+      [t('Appointment Time')]: appointment.time,
+      [t('Status')]: appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1),
+      [t('Note')]: appointment.note || t('N/A'),
     }));
 
-    exportToExcel(exportData, 'Appointments');
-    toast.success('Appointments data exported successfully!');
+    exportToExcel(exportData, t('Appointments'));
+    toast.success(t('Appointments data exported successfully!'));
   };
 
   const fetchDoctorDetails = async (appointment: Appointment) => {
@@ -466,7 +469,7 @@ const AdminAppointments = () => {
         name: appointment.doctorName,
         specialty: appointment.service,
         service: appointment.service,
-        availability: 'N/A',
+        availability: t('N/A'),
       });
       return;
     }
@@ -484,7 +487,7 @@ const AdminAppointments = () => {
           name: doctorData.name || appointment.doctorName,
           specialty: doctorData.specialty || appointment.service,
           service: doctorData.services || appointment.service,
-          availability: doctorData.availability || 'N/A',
+          availability: doctorData.availability || t('N/A'),
         });
       } else {
         // No doctor found, use appointment data
@@ -492,7 +495,7 @@ const AdminAppointments = () => {
           name: appointment.doctorName,
           specialty: appointment.service,
           service: appointment.service,
-          availability: 'N/A',
+          availability: t('N/A'),
         });
       }
     } catch (error) {
@@ -502,7 +505,7 @@ const AdminAppointments = () => {
         name: appointment.doctorName,
         specialty: appointment.service,
         service: appointment.service,
-        availability: 'N/A',
+        availability: t('N/A'),
       });
     } finally {
       setLoadingDoctorDetails(false);
@@ -519,17 +522,17 @@ const AdminAppointments = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Appointments</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Appointments')}</h1>
               <div className="flex items-center gap-3">
                 {/* Clinic Selection Dropdown */}
                 <Select value={selectedClinic} onValueChange={setSelectedClinic}>
                   <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="All Clinics" />
+                    <SelectValue placeholder={t('All Clinics')} />
                   </SelectTrigger>
                   <SelectContent>
                     {clinics.map((clinic) => (
                       <SelectItem key={clinic} value={clinic}>
-                        {clinic}
+                        {clinic === ALL_CLINICS ? t('All Clinics') : clinic}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -541,7 +544,7 @@ const AdminAppointments = () => {
                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export to Excel
+                  {t('Export to Excel')}
                 </Button>
                 
                 <Button
@@ -550,7 +553,7 @@ const AdminAppointments = () => {
                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <Filter className="w-4 h-4 mr-2" />
-                  Filter
+                  {t('Filter')}
                 </Button>
               </div>
             </div>
@@ -561,7 +564,7 @@ const AdminAppointments = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  placeholder="Search by patient, doctor, or service..."
+                  placeholder={t('Search by patient, doctor, or service...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-full h-10"
@@ -581,7 +584,7 @@ const AdminAppointments = () => {
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {t(status === 'all' ? 'All' : status === 'pending' ? 'Pending' : status === 'approved' ? 'Approved' : 'Cancelled')}
                 </button>
               ))}
             </div>
@@ -610,13 +613,13 @@ const AdminAppointments = () => {
                         sortDirection={getSortDirection('patientName')}
                         onSort={() => handleSort('patientName')}
                       >
-                        Patient Name
+                        {t('Patient Name')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('doctorName')}
                         onSort={() => handleSort('doctorName')}
                       >
-                        Doctor's Name
+                        {t("Doctor's Name")}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('service')}
@@ -640,15 +643,15 @@ const AdminAppointments = () => {
                         sortDirection={getSortDirection('appointment_date')}
                         onSort={() => handleSort('appointment_date')}
                       >
-                        Date & Time
+                        {t('Date & Time')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('status')}
                         onSort={() => handleSort('status')}
                       >
-                        Status
+                        {t('Status')}
                       </TableSortHeader>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Action')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -709,7 +712,7 @@ const AdminAppointments = () => {
                             size="sm"
                             className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white border-0 text-xs px-4 py-2 rounded-lg"
                           >
-                            View Details
+                            {t('View Details')}
                           </Button>
                         </td>
                       </tr>
@@ -717,7 +720,7 @@ const AdminAppointments = () => {
                   ) : (
                     <tr>
                       <td colSpan={9} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                        No appointments found
+                        {t('No appointments found')}
                       </td>
                     </tr>
                   )}
@@ -732,15 +735,15 @@ const AdminAppointments = () => {
         <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Filter</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Filter')}</DialogTitle>
               <DialogDescription className="sr-only">
-                Filter appointments by date, doctor, or specialty
+                {t('Filter appointments by date, doctor, or specialty')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               {/* Date Input */}
               <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Date :</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('Date')} :</label>
                 <div className="relative flex-1">
                   <Calendar 
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10 hover:text-gray-600 dark:hover:text-gray-400" 
@@ -763,13 +766,13 @@ const AdminAppointments = () => {
 
               {/* Doctor Dropdown */}
               <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Doctor :</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('Doctor')} :</label>
                 <Select value={filterDoctor || 'all'} onValueChange={(value) => setFilterDoctor(value === 'all' ? '' : value)}>
                   <SelectTrigger className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="Select a doctor's name" />
+                    <SelectValue placeholder={t("Select a doctor's name")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Doctors</SelectItem>
+                    <SelectItem value="all">{t('All Doctors')}</SelectItem>
                     {doctors.map((doctor) => (
                       <SelectItem key={doctor} value={doctor}>
                         {doctor}
@@ -781,13 +784,13 @@ const AdminAppointments = () => {
 
               {/* Specialty Dropdown */}
               <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Specialty :</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('Specialty')} :</label>
                 <Select value={filterSpecialty || 'all'} onValueChange={(value) => setFilterSpecialty(value === 'all' ? '' : value)}>
                   <SelectTrigger className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="Select specialty" />
+                    <SelectValue placeholder={t('Select specialty')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Specialties</SelectItem>
+                    <SelectItem value="all">{t('All Specialties')}</SelectItem>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
                         {specialty}
@@ -809,13 +812,13 @@ const AdminAppointments = () => {
                   }}
                   className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
                 >
-                  Clear filters
+                  {t('Clear filters')}
                 </Button>
                 <Button
                   onClick={() => setIsFilterModalOpen(false)}
                   className="flex-1 bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
                 >
-                  Apply filters
+                  {t('Apply filters')}
                 </Button>
               </div>
             </div>
@@ -826,29 +829,29 @@ const AdminAppointments = () => {
         <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Appointment Details</DialogTitle>
+              <DialogTitle>{t('Appointment Details')}</DialogTitle>
             </DialogHeader>
             {selectedAppointment && (
               <div className="space-y-6 py-4">
                 {/* Patient Information */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">Patient Information</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">{t('Patient Information')}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-500 text-xs">Name</Label>
+                      <Label className="text-gray-500 text-xs">{t('Name')}</Label>
                       <p className="mt-1 text-sm font-medium">{selectedAppointment.patientName}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Gender</Label>
-                      <p className="mt-1 text-sm">{selectedAppointment.patientGender || 'N/A'}</p>
+                      <Label className="text-gray-500 text-xs">{t('Gender')}</Label>
+                      <p className="mt-1 text-sm">{selectedAppointment.patientGender || t('N/A')}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Contact</Label>
-                      <p className="mt-1 text-sm">{selectedAppointment.patientContact || 'N/A'}</p>
+                      <Label className="text-gray-500 text-xs">{t('Contact')}</Label>
+                      <p className="mt-1 text-sm">{selectedAppointment.patientContact || t('N/A')}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Email</Label>
-                      <p className="mt-1 text-sm">{selectedAppointment.patientEmail || 'N/A'}</p>
+                      <Label className="text-gray-500 text-xs">{t('Email')}</Label>
+                      <p className="mt-1 text-sm">{selectedAppointment.patientEmail || t('N/A')}</p>
                     </div>
                   </div>
                 </div>
@@ -856,48 +859,48 @@ const AdminAppointments = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    DOCTOR'S / TREATMENT INFORMATION
+                    {t("Doctor's / Treatment Information")}
                   </h3>
                   {loadingDoctorDetails ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Loading doctor details...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('Loading doctor details...')}</p>
                     </div>
                   ) : doctorDetails ? (
                     <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.name}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.specialty}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.service || selectedAppointment.service}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.availability}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.doctorName}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">N/A</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('N/A')}</p>
                       </div>
                     </div>
                   )}
@@ -905,10 +908,10 @@ const AdminAppointments = () => {
 
                 {/* Appointment Information */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">Appointment Information</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">{t('Appointment Information')}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-500 text-xs">Date & Time</Label>
+                      <Label className="text-gray-500 text-xs">{t('Date & Time')}</Label>
                       <p className="mt-1 text-sm font-medium">
                         {new Date(selectedAppointment.appointment_date).toLocaleDateString('en-US', { 
                           month: 'short', 
@@ -918,21 +921,21 @@ const AdminAppointments = () => {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Status</Label>
+                      <Label className="text-gray-500 text-xs">{t('Status')}</Label>
                       <div className="mt-1">
                         {getStatusBadge(selectedAppointment.status)}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Duration</Label>
-                      <p className="mt-1 text-sm">30 minutes</p>
+                      <Label className="text-gray-500 text-xs">{t('Duration')}</Label>
+                      <p className="mt-1 text-sm">{t('30 minutes')}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Clinic</Label>
+                      <Label className="text-gray-500 text-xs">{t('Clinic')}</Label>
                       <p className="mt-1 text-sm">{selectedAppointment.clinic}</p>
                     </div>
                     <div>
-                      <Label className="text-gray-500 text-xs">Created At</Label>
+                      <Label className="text-gray-500 text-xs">{t('Created At')}</Label>
                       <p className="mt-1 text-sm">
                         {new Date(selectedAppointment.created_at).toLocaleString('en-US', {
                           month: 'short',
@@ -945,7 +948,7 @@ const AdminAppointments = () => {
                     </div>
                     {selectedAppointment.confirmed_at && (
                       <div>
-                        <Label className="text-gray-500 text-xs">Confirmed At</Label>
+                        <Label className="text-gray-500 text-xs">{t('Confirmed At')}</Label>
                         <p className="mt-1 text-sm">
                           {new Date(selectedAppointment.confirmed_at).toLocaleString('en-US', {
                             month: 'short',
@@ -962,12 +965,12 @@ const AdminAppointments = () => {
 
                 {/* Note Section */}
                 <div>
-                  <Label className="text-gray-500 text-xs mb-2 block">Note</Label>
+                  <Label className="text-gray-500 text-xs mb-2 block">{t('Note')}</Label>
                   <Textarea
-                    value={selectedAppointment.note || 'No notes available'}
+                    value={selectedAppointment.note || t('No notes available')}
                     readOnly
                     className="bg-gray-50 border-gray-200 min-h-[80px]"
-                    placeholder="No notes available"
+                    placeholder={t('No notes available')}
                   />
                 </div>
               </div>
@@ -981,7 +984,7 @@ const AdminAppointments = () => {
                 className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
               >
                 <Ban className="w-4 h-4 mr-2" />
-                Cancel Appointment
+                {t('Cancel Appointment')}
               </Button>
               <Button
                 variant="outline"
@@ -996,7 +999,7 @@ const AdminAppointments = () => {
                 className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Reschedule
+                {t('Reschedule')}
               </Button>
               <Button
                 onClick={() => {
@@ -1005,7 +1008,7 @@ const AdminAppointments = () => {
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 <Check className="w-4 h-4 mr-2" />
-                Approve Appointment
+                {t('Approve Appointment')}
               </Button>
             </div>
           </DialogContent>
@@ -1015,7 +1018,7 @@ const AdminAppointments = () => {
         <Dialog open={isApproveConfirmModalOpen} onOpenChange={setIsApproveConfirmModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Approve Appointment</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Approve Appointment')}</DialogTitle>
               <DialogDescription className="sr-only">
                 Confirm approval of this appointment
               </DialogDescription>
@@ -1046,14 +1049,14 @@ const AdminAppointments = () => {
                     });
 
                     console.log('✅ Appointment approved successfully');
-                    toast.success('Appointment approved successfully. Patient will see it in upcoming appointments.');
+                    toast.success(t('Appointment approved successfully. Patient will see it in upcoming appointments.'));
                     setIsApproveConfirmModalOpen(false);
                     setShowDetailsModal(false);
                     setSelectedAppointment(null);
                     await fetchAppointments(); // Refresh the list
                   } catch (error: any) {
                     console.error('❌ Error approving appointment:', error);
-                    toast.error(error.message || 'Error approving appointment');
+                    toast.error(error.message || t('Error approving appointment'));
                   }
                 }}
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -1068,7 +1071,7 @@ const AdminAppointments = () => {
         <Dialog open={isCancelConfirmModalOpen} onOpenChange={setIsCancelConfirmModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Cancel Appointment</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Cancel Appointment')}</DialogTitle>
               <DialogDescription className="sr-only">
                 Confirm cancellation of this appointment
               </DialogDescription>
@@ -1098,19 +1101,19 @@ const AdminAppointments = () => {
                     });
 
                     console.log('✅ Appointment cancelled successfully');
-                    toast.success('Appointment cancelled successfully. Patient will see it as cancelled.');
+                    toast.success(t('Appointment cancelled successfully. Patient will see it as cancelled.'));
                     setIsCancelConfirmModalOpen(false);
                     setShowDetailsModal(false);
                     setSelectedAppointment(null);
                     await fetchAppointments(); // Refresh the list
                   } catch (error: any) {
                     console.error('❌ Error cancelling appointment:', error);
-                    toast.error(error.message || 'Error cancelling appointment');
+                    toast.error(error.message || t('Error cancelling appointment'));
                   }
                 }}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
-                Yes, Cancel
+                {t('Yes, Cancel')}
               </Button>
             </div>
           </DialogContent>
@@ -1120,7 +1123,7 @@ const AdminAppointments = () => {
         <Dialog open={isRescheduleModalOpen} onOpenChange={setIsRescheduleModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Reschedule Appointment</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Reschedule Appointment')}</DialogTitle>
               <DialogDescription className="sr-only">
                 Select new date and time for this appointment
               </DialogDescription>
@@ -1172,7 +1175,7 @@ const AdminAppointments = () => {
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Note:</strong> The appointment will be marked as "rescheduled" and the patient will need to approve the new date and time.
+                    <strong>{t('Note')}:</strong> {t('The appointment will be marked as "rescheduled" and the patient will need to approve the new date and time.')}
                   </p>
                 </div>
               </div>
@@ -1194,7 +1197,7 @@ const AdminAppointments = () => {
                   if (!selectedAppointment) return;
 
                   if (!newAppointmentDate || !newAppointmentTime) {
-                    toast.error('Please select both date and time');
+                    toast.error(t('Please select both date and time'));
                     return;
                   }
 
@@ -1208,7 +1211,7 @@ const AdminAppointments = () => {
                     });
 
                     console.log('✅ Appointment rescheduled successfully');
-                    toast.success('Appointment rescheduled successfully. Patient will see it in pending appointments.');
+                    toast.success(t('Appointment rescheduled successfully. Patient will see it in pending appointments.'));
                     setIsRescheduleModalOpen(false);
                     setShowDetailsModal(false);
                     setNewAppointmentDate('');
@@ -1217,7 +1220,7 @@ const AdminAppointments = () => {
                     await fetchAppointments(); // Refresh the list
                   } catch (error: any) {
                     console.error('❌ Error rescheduling appointment:', error);
-                    toast.error(error.message || 'Error rescheduling appointment');
+                    toast.error(error.message || t('Error rescheduling appointment'));
                   }
                 }}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"

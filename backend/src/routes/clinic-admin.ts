@@ -502,7 +502,7 @@ This invitation will expire in 7 days.
         subject: emailSubject,
         html: emailHtml,
         text: emailText,
-      });
+    });
     } catch (emailError: any) {
       console.error('❌ Error sending invitation email:', emailError);
     }

@@ -7,6 +7,7 @@ import { Stethoscope, User } from 'lucide-react';
 import { clinicsData, Clinic } from '@/data/clinicsData';
 import { api } from '@/services/api';
 import Image5 from '../assets/image 5.svg';
+import { useTranslation } from 'react-i18next';
 
 // Custom Tooth Icon Component
 const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -72,6 +73,7 @@ interface ServiceCard {
 const ClinicDetails = () => {
   const { clinicId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
@@ -440,7 +442,10 @@ const ClinicDetails = () => {
           
           {/* Specialty Selection */}
           <div className="mb-3">
-            <h2 className="text-sm sm:text-base font-normal text-white mb-3 tracking-[-0.32px]"><span className="text-[#00FFA2] font-medium">Step 01</span> <span className="text-white/90">Please choose a specialty:</span></h2>
+            <h2 className="text-sm sm:text-base font-normal text-white mb-3 tracking-[-0.32px]">
+              <span className="text-[#00FFA2] font-medium">{t('Step 01')}</span>{' '}
+              <span className="text-white/90">{t('Please choose a specialty')}:</span>
+            </h2>
             
             {/* Service Filter Buttons */}
             <div className="flex justify-center gap-2 sm:gap-3">
@@ -473,7 +478,7 @@ const ClinicDetails = () => {
                     {isOthers && (
                       <div className="absolute top-1 -right-1 z-10">
                         <div className="bg-[#00FFA2] text-black px-2 py-1 text-[7px] sm:text-[8px] font-bold whitespace-nowrap shadow-sm transform rotate-45 rounded">
-                          SOON
+                          {t('SOON')}
                         </div>
                       </div>
                     )}
@@ -490,11 +495,14 @@ const ClinicDetails = () => {
         <div className="max-w-4xl mx-auto">
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg font-medium">Loading clinic information...</p>
+              <p className="text-gray-500 text-lg font-medium">{t('Loading clinic information...')}</p>
             </div>
           ) : selectedCategory ? (
             <>
-              <h2 className="text-sm font-medium text-gray-700 mb-4"><span className="text-[#0C2243] font-medium">Step 02</span> <span className="text-gray-500 font-normal">Please choose a service:</span></h2>
+              <h2 className="text-sm font-medium text-gray-700 mb-4">
+                <span className="text-[#0C2243] font-medium">{t('Step 02')}</span>{' '}
+                <span className="text-gray-500 font-normal">{t('Please choose a service')}:</span>
+              </h2>
 
               {/* Search Bar */}
               <div className="mb-4 w-full">
@@ -525,14 +533,14 @@ const ClinicDetails = () => {
 
               {filteredServiceCards.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <p>No services found for the selected category.</p>
+                  <p>{t('No services found for the selected category.')}</p>
                 </div>
               )}
             </>
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg font-medium">
-                Pick a specialty first
+                {t('Pick a specialty first')}
               </p>
             </div>
           )}

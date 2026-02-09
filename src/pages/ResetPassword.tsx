@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
@@ -23,6 +24,7 @@ const ResetPassword = () => {
   const { user, updatePassword } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const checkAuthAndHandleReset = async () => {
@@ -145,17 +147,17 @@ const ResetPassword = () => {
   // Show loading state while checking authentication
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-[#1A202C] flex items-center justify-center p-4 relative overflow-hidden">
         <div className="w-full max-w-md relative z-10">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-8 bg-[#00FFA2] rounded-full flex items-center justify-center animate-spin">
               <div className="w-8 h-8 border-4 border-[#1A202C] border-t-transparent rounded-full"></div>
             </div>
             <h1 className="text-white text-xl font-bold mb-4">
-              Verifying Reset Link...
+              {t('Verifying Reset Link...')}
             </h1>
             <p className="text-gray-300">
-              Please wait while we verify your password reset link.
+              {t('Please wait while we verify your password reset link.')}
             </p>
           </div>
         </div>
@@ -173,16 +175,16 @@ const ResetPassword = () => {
               <X className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-white text-xl font-bold mb-4">
-              Invalid Reset Link
+              {t('Invalid Reset Link')}
             </h1>
             <p className="text-gray-300 mb-8">
-              {error || 'This password reset link is invalid or has expired. Please request a new one.'}
+              {error || t('This password reset link is invalid or has expired. Please request a new one.')}
             </p>
             <Button
               onClick={() => navigate('/auth?mode=login')}
               className="w-full h-12 bg-[#00FFC2] hover:bg-[#00FFC2]/90 text-[#1A202C] font-bold text-base rounded-full"
             >
-              Go to Login
+              {t('Go to Login')}
             </Button>
           </div>
         </div>
@@ -209,18 +211,18 @@ const ResetPassword = () => {
             </div>
             
             <h1 className="text-white text-2xl font-bold mb-4">
-              Password Updated Successfully!
+              {t('Password Updated Successfully!')}
             </h1>
             
             <p className="text-gray-300 mb-8">
-              Your password has been changed successfully. You will be redirected to the home page shortly.
+              {t('Your password has been changed successfully. You will be redirected to the home page shortly.')}
             </p>
             
             <Button
               onClick={() => navigate('/')}
               className="w-full h-12 bg-[#00FFC2] hover:bg-[#00FFC2]/90 text-[#1A202C] font-bold text-base rounded-full"
             >
-              Go to Home
+              {t('Go to Home')}
             </Button>
           </div>
         </div>
@@ -261,10 +263,10 @@ const ResetPassword = () => {
         {/* Welcome Message */}
         <div className="text-left mb-8">
           <h1 className="text-white text-2xl font-bold">
-            Reset Your Password
+            {t('Reset Your Password')}
           </h1>
           <p className="text-gray-300 text-sm mt-2">
-            Enter your new password below
+            {t('Enter your new password below')}
           </p>
         </div>
 
@@ -279,7 +281,7 @@ const ResetPassword = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="password" className="text-white text-sm font-medium block mb-2">
-              New Password
+              {t('New Password')}
             </Label>
             <div className="relative">
               <Input
@@ -288,7 +290,7 @@ const ResetPassword = () => {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Enter your new password"
+                placeholder={t('Enter your new password')}
                 className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                 required
               />
@@ -304,7 +306,7 @@ const ResetPassword = () => {
 
           <div>
             <Label htmlFor="confirmPassword" className="text-white text-sm font-medium block mb-2">
-              Confirm New Password
+              {t('Confirm New Password')}
             </Label>
             <div className="relative">
               <Input
@@ -313,7 +315,7 @@ const ResetPassword = () => {
                 type={showConfirmPassword ? "text" : "password"}
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                placeholder="Confirm your new password"
+                placeholder={t('Confirm your new password')}
                 className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                 required
               />
@@ -331,19 +333,19 @@ const ResetPassword = () => {
           <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-1">
             <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
               {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
-              <span>8+ characters</span>
+              <span>{t('8+ characters')}</span>
             </div>
             <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
               {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
-              <span>Number</span>
+              <span>{t('Number')}</span>
             </div>
             <div className={`flex items-center gap-1 ${passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
               {passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? <Check size={12} /> : <X size={12} />}
-              <span>Uppercase and lowercase letters</span>
+              <span>{t('Uppercase and lowercase letters')}</span>
             </div>
             <div className={`flex items-center gap-1 ${passwordValidation.hasSpecialChar ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
               {passwordValidation.hasSpecialChar ? <Check size={12} /> : <X size={12} />}
-              <span>Special character</span>
+              <span>{t('Special character')}</span>
             </div>
           </div>
 
@@ -353,7 +355,7 @@ const ResetPassword = () => {
             disabled={loading || !isPasswordValid || formData.password !== formData.confirmPassword}
             className="w-full h-12 bg-[#00FFC2] hover:bg-[#00FFC2]/90 text-[#1A202C] font-bold text-base rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-[#00FFC2] focus:ring-offset-2 focus:ring-offset-[#1A202C]"
           >
-            {loading ? 'Updating Password...' : 'Update Password'}
+            {loading ? t('Updating Password...') : t('Update Password')}
           </Button>
         </form>
       </div>

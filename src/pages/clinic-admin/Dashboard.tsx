@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Clinic {
   id: string;
@@ -54,6 +55,7 @@ const ClinicAdminDashboard = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [checkingClinic, setCheckingClinic] = useState(true);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,7 @@ const ClinicAdminDashboard = () => {
       const formatAppointments = (bookings: any[]): Appointment[] => {
         return bookings.map((booking: any) => ({
           id: booking.id,
-          patient_name: booking.profile?.full_name || 'Unknown Patient',
+          patient_name: booking.profile?.full_name || t('Unknown Patient'),
           doctor_name: booking.doctor_name,
           specialty: booking.specialty,
           appointment_date: booking.appointment_date,
@@ -431,7 +433,7 @@ const ClinicAdminDashboard = () => {
 
       setUpcomingAppointments(upcoming.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profile?.full_name || 'Unknown Patient',
+        patient_name: booking.profile?.full_name || t('Unknown Patient'),
         doctor_name: booking.doctor_name,
         specialty: booking.specialty,
         appointment_date: booking.appointment_date,
@@ -500,7 +502,7 @@ const ClinicAdminDashboard = () => {
 
       setPendingRequests(pending.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profile?.full_name || 'Unknown Patient',
+        patient_name: booking.profile?.full_name || t('Unknown Patient'),
         doctor_name: booking.doctor_name,
         specialty: booking.specialty,
         appointment_date: booking.appointment_date,
@@ -541,7 +543,7 @@ const ClinicAdminDashboard = () => {
 
       if (!bookingData) {
         console.error('Booking not found');
-        toast.error('Failed to load appointment details');
+        toast.error(t('Failed to load appointment details'));
         setIsDetailsModalOpen(false);
         return;
       }
@@ -560,15 +562,15 @@ const ClinicAdminDashboard = () => {
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: profileData?.full_name || appointment.patient_name || 'Unknown Patient',
-          gender: profileData?.gender || 'Not specified',
-          contact: profileData?.phone || 'Not provided',
-          email: profileData?.email || 'Not provided',
+          name: profileData?.full_name || appointment.patient_name || t('Unknown Patient'),
+          gender: profileData?.gender || t('Not specified'),
+          contact: profileData?.phone || t('Not provided'),
+          email: profileData?.email || t('Not provided'),
         },
         doctor: {
-          name: doctorData?.name || bookingData.doctor_name || appointment.doctor_name || 'Unknown Doctor',
-          specialty: doctorData?.specialty || bookingData.specialty || appointment.specialty || 'General',
-          service: bookingData.specialty || appointment.specialty || 'General Consultation',
+          name: doctorData?.name || bookingData.doctor_name || appointment.doctor_name || t('Unknown Doctor'),
+          specialty: doctorData?.specialty || bookingData.specialty || appointment.specialty || t('General'),
+          service: bookingData.specialty || appointment.specialty || t('General Consultation'),
           availability: doctorData?.availability || '9:00 AM - 5:00 PM',
         },
         appointment_date: appointment.appointment_date,
@@ -579,7 +581,7 @@ const ClinicAdminDashboard = () => {
       setSelectedAppointmentDetails(details);
     } catch (error) {
       console.error('Error loading appointment details:', error);
-      toast.error('Failed to load appointment details');
+      toast.error(t('Failed to load appointment details'));
     } finally {
       setLoadingDetails(false);
     }
@@ -598,7 +600,7 @@ const ClinicAdminDashboard = () => {
         confirmed_at: new Date().toISOString()
       });
 
-      toast.success('Appointment approved successfully');
+      toast.success(t('Appointment approved successfully'));
       setIsApproveConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -609,7 +611,7 @@ const ClinicAdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error approving appointment:', error);
-      toast.error('Failed to approve appointment');
+      toast.error(t('Failed to approve appointment'));
     }
   };
 
@@ -625,7 +627,7 @@ const ClinicAdminDashboard = () => {
         status: 'cancelled'
       });
 
-      toast.success('Appointment cancelled successfully');
+      toast.success(t('Appointment cancelled successfully'));
       setIsCancelConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -636,7 +638,7 @@ const ClinicAdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
-      toast.error('Failed to cancel appointment');
+      toast.error(t('Failed to cancel appointment'));
     }
   };
 
@@ -651,7 +653,7 @@ const ClinicAdminDashboard = () => {
 
   const handleConfirmReschedule = async () => {
     if (!selectedAppointmentDetails || !newAppointmentDate || !newAppointmentTime) {
-      toast.error('Please select a new date and time');
+      toast.error(t('Please select a new date and time'));
       return;
     }
 
@@ -662,7 +664,7 @@ const ClinicAdminDashboard = () => {
         status: 'rescheduled',
       });
 
-      toast.success('Appointment rescheduled successfully');
+      toast.success(t('Appointment rescheduled successfully'));
       setIsRescheduleModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -675,7 +677,7 @@ const ClinicAdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error rescheduling appointment:', error);
-      toast.error('Failed to reschedule appointment');
+      toast.error(t('Failed to reschedule appointment'));
     }
   };
 
@@ -690,7 +692,7 @@ const ClinicAdminDashboard = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -706,7 +708,7 @@ const ClinicAdminDashboard = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-start justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Dashboard')}</h1>
               
               <div className="flex items-center gap-3">
                 {/* Clinic Name and Logo */}
@@ -732,7 +734,7 @@ const ClinicAdminDashboard = () => {
                   </div>
                 )}
                 <span className="text-gray-900 dark:text-white font-medium text-base">
-                  {clinic?.name || 'Clinic'}
+                  {clinic?.name || t('Clinic')}
                 </span>
               </div>
             </div>
@@ -741,56 +743,56 @@ const ClinicAdminDashboard = () => {
               {/* Today's Appointments */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Today's Appointments
+                  {t("Today's Appointments")}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.todayAppointments}
                 </p>
                 <div className="flex items-center gap-1 text-sm text-[#00FFA2]">
                   <ArrowUp className="w-3 h-3" />
-                  <span>{stats.todayAppointmentsChange}% since yesterday</span>
+                  <span>{t('{{value}}% since yesterday', { value: stats.todayAppointmentsChange })}</span>
                 </div>
               </div>
 
               {/* Pending Approvals */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Pending Approvals
+                  {t('Pending Approvals')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.pendingApprovals}
                 </p>
                 <div className="flex items-center gap-1 text-sm text-[#00FFA2]">
                   <ArrowUp className="w-3 h-3" />
-                  <span>{stats.pendingChange} than last since yesterday</span>
+                  <span>{t('{{value}} than last since yesterday', { value: stats.pendingChange })}</span>
                 </div>
               </div>
 
               {/* New Patients */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  New Patients
+                  {t('New Patients')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.newPatients}
                 </p>
                 <div className="flex items-center gap-1 text-sm text-[#00FFA2]">
                   <ArrowUp className="w-3 h-3" />
-                  <span>Last 7 days</span>
+                  <span>{t('Last 7 days')}</span>
                 </div>
               </div>
 
               {/* Completed Appointments */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Completed Appointments
+                  {t('Completed Appointments')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.completedAppointments}
                 </p>
                 <div className="flex items-center gap-1 text-sm text-[#00FFA2]">
                   <ArrowUp className="w-3 h-3" />
-                  <span>To date</span>
+                  <span>{t('To date')}</span>
                 </div>
               </div>
             </div>
@@ -801,7 +803,7 @@ const ClinicAdminDashboard = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Upcoming Appointments
+                    {t('Upcoming Appointments')}
                   </h2>
                   <div className="flex items-center gap-2">
                     {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
@@ -814,7 +816,7 @@ const ClinicAdminDashboard = () => {
                             : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                         }`}
                       >
-                        {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+                        {filter === 'today' ? t('Today') : filter === 'tomorrow' ? t('Tomorrow') : t('This Week')}
                       </button>
                     ))}
                   </div>
@@ -823,7 +825,7 @@ const ClinicAdminDashboard = () => {
                 {loadingUpcoming ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                    <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('Loading...')}</p>
                   </div>
                 ) : upcomingAppointments.length > 0 ? (
                   <div className="overflow-x-auto">
@@ -831,16 +833,16 @@ const ClinicAdminDashboard = () => {
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Patient Name
+                            {t('Patient Name')}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Doctor's / Treatment
+                            {t("Doctor's / Treatment")}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Date & Time
+                            {t('Date & Time')}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Action
+                            {t('Action')}
                           </th>
                         </tr>
                       </thead>
@@ -857,7 +859,7 @@ const ClinicAdminDashboard = () => {
                               {appointment.doctor_name} / {appointment.specialty}
                             </td>
                             <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                              {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
+                              {formatDate(appointment.appointment_date)} {t('at')} {formatTime(appointment.appointment_time)}
                             </td>
                             <td className="py-4 px-4">
                               <Button
@@ -865,7 +867,7 @@ const ClinicAdminDashboard = () => {
                                 className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
                                 onClick={() => handleViewDetails(appointment)}
                               >
-                                View Details
+                                {t('View Details')}
                               </Button>
                             </td>
                           </tr>
@@ -878,7 +880,7 @@ const ClinicAdminDashboard = () => {
                     <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
                       <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">No upcoming appointments</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('No upcoming appointments')}</p>
                   </div>
                 )}
               </div>
@@ -887,7 +889,7 @@ const ClinicAdminDashboard = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Pending Request
+                    {t('Pending Request')}
                   </h2>
                   <div className="flex items-center gap-2">
                     {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
@@ -900,7 +902,7 @@ const ClinicAdminDashboard = () => {
                             : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                         }`}
                       >
-                        {filter === 'today' ? 'Today' : filter === 'tomorrow' ? 'Tomorrow' : 'This Week'}
+                        {filter === 'today' ? t('Today') : filter === 'tomorrow' ? t('Tomorrow') : t('This Week')}
                       </button>
                     ))}
                   </div>
@@ -909,7 +911,7 @@ const ClinicAdminDashboard = () => {
                 {loadingPending ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                    <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('Loading...')}</p>
                   </div>
                 ) : pendingRequests.length > 0 ? (
                   <div className="overflow-x-auto">
@@ -917,16 +919,16 @@ const ClinicAdminDashboard = () => {
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Patient Name
+                            {t('Patient Name')}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Specialty
+                            {t('Specialty')}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Date & Time
+                            {t('Date & Time')}
                           </th>
                           <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                            Action
+                            {t('Action')}
                           </th>
                         </tr>
                       </thead>
@@ -943,7 +945,7 @@ const ClinicAdminDashboard = () => {
                               {request.specialty}
                             </td>
                             <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                              {formatDate(request.appointment_date)} at {formatTime(request.appointment_time)}
+                              {formatDate(request.appointment_date)} {t('at')} {formatTime(request.appointment_time)}
                             </td>
                             <td className="py-4 px-4">
                               <Button
@@ -951,7 +953,7 @@ const ClinicAdminDashboard = () => {
                                 className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                View Details
+                                {t('View Details')}
                               </Button>
                             </td>
                           </tr>
@@ -964,7 +966,7 @@ const ClinicAdminDashboard = () => {
                     <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
                       <X className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">No pending request</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('No pending request')}</p>
                   </div>
                 )}
               </div>
@@ -984,7 +986,7 @@ const ClinicAdminDashboard = () => {
             {loadingDetails ? (
               <div className="p-12 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading appointment details...</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('Loading appointment details...')}</p>
               </div>
             ) : selectedAppointmentDetails ? (
               <div className="px-6 py-6">
@@ -995,19 +997,19 @@ const ClinicAdminDashboard = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Gender</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Gender')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Contact</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Contact')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Email</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Email')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.email}</p>
                     </div>
                   </div>
@@ -1020,19 +1022,19 @@ const ClinicAdminDashboard = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.specialty}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.availability}</p>
                     </div>
                   </div>
@@ -1047,21 +1049,21 @@ const ClinicAdminDashboard = () => {
                       className="border-red-600 text-red-600 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                     >
                       <X className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      Cancel Appointment
+                      {t('Cancel Appointment')}
                     </Button>
                     <Button
                       onClick={handleRescheduleAppointment}
                       className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                     >
                       <Clock className="w-4 h-4" />
-                      Reschedule
+                      {t('Reschedule')}
                     </Button>
                     <Button
                       onClick={handleApproveAppointment}
                       className="bg-[#00FFA2] hover:bg-[#00e692] text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                     >
                       <Check className="w-4 h-4 text-white" />
-                      Approve Appointment
+                      {t('Approve Appointment')}
                     </Button>
                   </div>
                 )}
@@ -1075,7 +1077,7 @@ const ClinicAdminDashboard = () => {
           <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Approve Appointment
+                {t('Approve Appointment')}
               </DialogTitle>
             </DialogHeader>
 
@@ -1094,21 +1096,21 @@ const ClinicAdminDashboard = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                   </div>
@@ -1166,21 +1168,21 @@ const ClinicAdminDashboard = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                   </div>
@@ -1200,13 +1202,13 @@ const ClinicAdminDashboard = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Discard
+                    {t('Discard')}
                   </Button>
                   <Button
                     onClick={handleConfirmCancel}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Cancellation
+                    {t('Confirm Cancellation')}
                   </Button>
                 </div>
               </div>
@@ -1219,7 +1221,7 @@ const ClinicAdminDashboard = () => {
           <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Confirmation
+                {t('Confirmation')}
               </DialogTitle>
             </DialogHeader>
 
@@ -1238,17 +1240,21 @@ const ClinicAdminDashboard = () => {
                 {/* Question */}
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    Reschedule Appointment?
+                    {t('Reschedule Appointment?')}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                    Are you sure you want to reschedule this appointment? Previous: {formatDateForReschedule(selectedAppointmentDetails.appointment_date)} - {formatTime(selectedAppointmentDetails.appointment_time)} with {selectedAppointmentDetails.doctor.name}
+                    {t('Are you sure you want to reschedule this appointment? Previous: {{date}} - {{time}} with {{doctor}}', {
+                      date: formatDateForReschedule(selectedAppointmentDetails.appointment_date),
+                      time: formatTime(selectedAppointmentDetails.appointment_time),
+                      doctor: selectedAppointmentDetails.doctor.name,
+                    })}
                   </p>
                 </div>
 
                 {/* Date and Time Inputs */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New date</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">{t('New date')}</label>
                     <div className="relative">
                       <Calendar 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
@@ -1267,7 +1273,7 @@ const ClinicAdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New time</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">{t('New time')}</label>
                     <div className="relative">
                       <Clock 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
@@ -1304,7 +1310,7 @@ const ClinicAdminDashboard = () => {
                     onClick={handleConfirmReschedule}
                     className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Reschedule
+                    {t('Confirm Reschedule')}
                   </Button>
                 </div>
               </div>

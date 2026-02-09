@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ const ClinicAdminInsights = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [checkingClinic, setCheckingClinic] = useState(true);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   
@@ -130,7 +132,20 @@ const ClinicAdminInsights = () => {
       const trendsMap = new Map<string, number>();
       
       // Initialize all months with 0
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthNames = [
+        t('Jan'),
+        t('Feb'),
+        t('Mar'),
+        t('Apr'),
+        t('May'),
+        t('Jun'),
+        t('Jul'),
+        t('Aug'),
+        t('Sep'),
+        t('Oct'),
+        t('Nov'),
+        t('Dec'),
+      ];
       
       if (trendPeriod === 'yearly') {
         // Initialize last 12 months
@@ -310,7 +325,7 @@ const ClinicAdminInsights = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -327,9 +342,9 @@ const ClinicAdminInsights = () => {
             {/* Page Header */}
             <div className="flex items-start justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Insights</h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('Insights')}</h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Analyze appointment trends and specialty distribution
+                  {t('Analyze appointment trends and specialty distribution')}
                 </p>
               </div>
               
@@ -357,7 +372,7 @@ const ClinicAdminInsights = () => {
                   </div>
                 )}
                 <span className="text-gray-900 dark:text-white font-medium text-base">
-                  {clinic?.name || 'Clinic'}
+                  {clinic?.name || t('Clinic')}
                 </span>
               </div>
             </div>
@@ -369,10 +384,10 @@ const ClinicAdminInsights = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-                      Appointment Trend
+                      {t('Appointment Trend')}
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Monitor how appointments fluctuate across selected periods
+                      {t('Monitor how appointments fluctuate across selected periods')}
                     </p>
                   </div>
                   <Select value={trendPeriod} onValueChange={(value: 'yearly' | 'monthly') => setTrendPeriod(value)}>
@@ -380,8 +395,8 @@ const ClinicAdminInsights = () => {
                       <SelectValue className="text-gray-900 dark:text-white" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <SelectItem value="yearly" className="text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-700">Yearly</SelectItem>
-                      <SelectItem value="monthly" className="text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-700">Monthly</SelectItem>
+                      <SelectItem value="yearly" className="text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-700">{t('Yearly')}</SelectItem>
+                      <SelectItem value="monthly" className="text-gray-900 dark:text-white focus:bg-gray-100 dark:focus:bg-gray-700">{t('Monthly')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -424,7 +439,7 @@ const ClinicAdminInsights = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-                    <p>No appointment data available for the selected period</p>
+                    <p>{t('No appointment data available for the selected period')}</p>
                   </div>
                 )}
               </div>
@@ -433,10 +448,10 @@ const ClinicAdminInsights = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-                    Appointments by Specialty
+                    {t('Appointments by Specialty')}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Distribution of appointments across medical specialties
+                    {t('Distribution of appointments across medical specialties')}
                   </p>
                 </div>
                 
@@ -488,7 +503,7 @@ const ClinicAdminInsights = () => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-                    <p>No specialty data available</p>
+                    <p>{t('No specialty data available')}</p>
                   </div>
                 )}
               </div>

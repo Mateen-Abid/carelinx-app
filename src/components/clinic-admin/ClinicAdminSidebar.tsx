@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calendar, Stethoscope, Users, Settings, Moon, Sun, ChevronLeft, ClipboardList, Building, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from '@/components/LanguageToggle';
 
 interface ClinicAdminSidebarProps {
   isDarkMode?: boolean;
@@ -14,15 +16,16 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
   const location = useLocation();
   const { signOut } = useAuth();
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { t } = useTranslation();
 
   const navItems = [
-    { path: '/clinic-admin/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/clinic-admin/appointments', label: 'Appointments', icon: Calendar },
-    { path: '/clinic-admin/services', label: 'Services', icon: ClipboardList },
-    { path: '/clinic-admin/doctors', label: 'Doctors & Treatment', icon: Stethoscope },
-    { path: '/clinic-admin/patients', label: 'Patients', icon: Users },
-    { path: '/clinic-admin/clinic-profile', label: 'Clinic Profile', icon: Building },
-    { path: '/clinic-admin/insights', label: 'Insights', icon: BarChart3 },
+    { path: '/clinic-admin/dashboard', label: t('Dashboard'), icon: Home },
+    { path: '/clinic-admin/appointments', label: t('Appointments'), icon: Calendar },
+    { path: '/clinic-admin/services', label: t('Services'), icon: ClipboardList },
+    { path: '/clinic-admin/doctors', label: t('Doctors & Treatment'), icon: Stethoscope },
+    { path: '/clinic-admin/patients', label: t('Patients'), icon: Users },
+    { path: '/clinic-admin/clinic-profile', label: t('Clinic Profile'), icon: Building },
+    { path: '/clinic-admin/insights', label: t('Insights'), icon: BarChart3 },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -49,7 +52,7 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="text-white/60 hover:text-white transition-colors p-1.5 rounded hover:bg-white/10 flex-shrink-0"
-              aria-label="Toggle sidebar"
+            aria-label={t('Toggle sidebar')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -59,7 +62,7 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="absolute top-1/2 -right-3 transform -translate-y-1/2 bg-[#0C2243] border border-white/20 rounded-full p-1.5 text-white/60 hover:text-white hover:bg-white/10 transition-colors z-10"
-            aria-label="Expand sidebar"
+            aria-label={t('Expand sidebar')}
           >
             <ChevronLeft className="w-4 h-4 rotate-180" />
           </button>
@@ -71,7 +74,7 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
         <div>
           {!isCollapsed && (
             <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-3 px-3">
-              General
+              {t('General')}
             </p>
           )}
           <div className="space-y-1">
@@ -100,6 +103,9 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
 
       {/* Bottom Section - Settings, Dark mode, and Sign Out */}
       <div className="p-4 border-t border-white/10 space-y-1">
+        <div className={`${isCollapsed ? 'flex justify-center' : ''}`}>
+          <LanguageToggle />
+        </div>
         <button
           onClick={() => navigate('/clinic-admin/settings')}
           className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-3 px-3 py-2.5 rounded-lg transition-colors ${
@@ -107,20 +113,20 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
               ? 'bg-[#00FFA2] text-[#0C2243]'
               : 'text-white/80 hover:bg-white/10 hover:text-white'
           }`}
-          title={isCollapsed ? 'Settings' : undefined}
+          title={isCollapsed ? t('Settings') : undefined}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span className="font-medium">Settings</span>}
+          {!isCollapsed && <span className="font-medium">{t('Settings')}</span>}
         </button>
         
         <button
           onClick={onDarkModeToggle}
           className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors`}
-          title={isCollapsed ? 'Dark mode' : undefined}
+          title={isCollapsed ? t('Dark mode') : undefined}
         >
           <div className="flex items-center gap-3">
             {isDarkMode ? <Sun className="w-5 h-5 flex-shrink-0" /> : <Moon className="w-5 h-5 flex-shrink-0" />}
-            {!isCollapsed && <span className="font-medium">Dark mode</span>}
+            {!isCollapsed && <span className="font-medium">{t('Dark mode')}</span>}
           </div>
           {!isCollapsed && (
             <div
@@ -140,9 +146,9 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
         <button
           onClick={signOut}
           className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-3 px-3 py-2.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors`}
-          title={isCollapsed ? 'Sign Out' : undefined}
+          title={isCollapsed ? t('Sign Out') : undefined}
         >
-          {!isCollapsed && <span className="font-medium">Sign Out</span>}
+          {!isCollapsed && <span className="font-medium">{t('Sign Out')}</span>}
         </button>
       </div>
     </aside>

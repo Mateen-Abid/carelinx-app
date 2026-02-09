@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface TeamMember {
   id: string;
@@ -37,6 +38,7 @@ interface TeamMember {
 const ClinicAdminSettings = () => {
   const { user, signOut, updateProfile, changePassword } = useAuth();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   
   // Error boundary state
   const [hasError, setHasError] = useState(false);
@@ -144,7 +146,7 @@ const ClinicAdminSettings = () => {
     } catch (error: any) {
       console.error('❌ Error fetching team members:', error);
       if (error?.code !== '42P01' && !error?.message?.includes('does not exist')) {
-        toast.error('Failed to load doctors');
+        toast.error(t('Failed to load doctors'));
       }
       setTeamMembers([]);
     } finally {
@@ -199,7 +201,7 @@ const ClinicAdminSettings = () => {
       } catch (error: any) {
         console.error('❌ Error in Settings page useEffect:', error);
         setHasError(true);
-        setErrorMessage(error?.message || 'An error occurred loading the settings page');
+        setErrorMessage(error?.message || t('An error occurred loading the settings page'));
       }
     };
     fetchSettingsData();
@@ -214,7 +216,7 @@ const ClinicAdminSettings = () => {
           <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
             <div className="p-8">
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-                <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Error Loading Settings</h2>
+                <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">{t('Error Loading Settings')}</h2>
                 <p className="text-red-600 dark:text-red-300">{errorMessage}</p>
                 <Button
                   onClick={() => {
@@ -224,7 +226,7 @@ const ClinicAdminSettings = () => {
                   }}
                   className="mt-4 bg-red-600 hover:bg-red-700 text-white"
                 >
-                  Reload Page
+                  {t('Reload Page')}
                 </Button>
               </div>
             </div>
@@ -248,8 +250,8 @@ const ClinicAdminSettings = () => {
         if (profileData) {
           const profile = profileData as any;
           setProfileData({
-            fullName: profile.full_name || 'Dr. Adebayo',
-            email: profile.email || user.email || 'admin@lushcare.com',
+            fullName: profile.full_name || t('Dr. Adebayo'),
+            email: profile.email || user.email || t('admin@lushcare.com'),
           });
 
           // Format joined date
@@ -302,24 +304,24 @@ const ClinicAdminSettings = () => {
         
         // Map role_type to display name
         const roleDisplayName = 
-          roleType === 'super_admin' ? 'Super Admin' :
-          roleType === 'clinic_admin' ? 'Clinic Administrator' :
-          roleType === 'public_user' ? 'Public User' :
-          roleType === 'patient' ? 'Patient' :
-          'User';
+          roleType === 'super_admin' ? t('Super Admin') :
+          roleType === 'clinic_admin' ? t('Clinic Administrator') :
+          roleType === 'public_user' ? t('Public User') :
+          roleType === 'patient' ? t('Patient') :
+          t('User');
         setUserRole(roleDisplayName);
       } catch (roleError) {
         // Fallback: Check profile data
         if (profileData && 'role' in profileData && profileData.role) {
           const roleDisplayName = 
-            profileData.role === 'super_admin' ? 'Super Admin' :
-            profileData.role === 'clinic_admin' ? 'Clinic Administrator' :
-            profileData.role === 'patient' ? 'Patient' :
-            'User';
+            profileData.role === 'super_admin' ? t('Super Admin') :
+            profileData.role === 'clinic_admin' ? t('Clinic Administrator') :
+            profileData.role === 'patient' ? t('Patient') :
+            t('User');
           setUserRole(roleDisplayName);
         } else {
           // Default to Clinic Administrator if no role found
-          setUserRole('Clinic Administrator');
+          setUserRole(t('Clinic Administrator'));
         }
       }
     } catch (error) {
@@ -331,24 +333,24 @@ const ClinicAdminSettings = () => {
     try {
       // Validate fields
       if (!selectedDoctorId || !newTeamMember.doctor_id) {
-        toast.error('Please select a doctor from the dropdown');
+        toast.error(t('Please select a doctor from the dropdown'));
         return;
       }
 
       if (!newTeamMember.email || !newTeamMember.email.trim()) {
-        toast.error('Please enter email address for the doctor');
+        toast.error(t('Please enter email address for the doctor'));
         return;
       }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(newTeamMember.email.trim())) {
-        toast.error('Please enter a valid email address');
+        toast.error(t('Please enter a valid email address'));
         return;
       }
 
       if (!clinicId) {
-        toast.error('Clinic not found. Please refresh the page.');
+        toast.error(t('Clinic not found. Please refresh the page.'));
         return;
       }
 
@@ -359,7 +361,7 @@ const ClinicAdminSettings = () => {
       });
 
       console.log('✅ Doctor invitation sent successfully:', result);
-      toast.success(`Invitation sent to ${newTeamMember.email}!`);
+      toast.success(t('Invitation sent to {{email}}!', { email: newTeamMember.email }));
       
       // Show invitation link in modal
       const invitationUrl = result?.invitation_url || result?.test_url;
@@ -383,14 +385,14 @@ const ClinicAdminSettings = () => {
       fetchTeamMembers();
     } catch (error: any) {
       console.error('❌ Error adding team member:', error);
-      toast.error('Failed to send invitation. Please try again.');
+      toast.error(t('Failed to send invitation. Please try again.'));
     }
   };
 
   const handleSaveChanges = async () => {
     try {
       if (!user) {
-        toast.error('User not authenticated');
+        toast.error(t('User not authenticated'));
         return;
       }
 
@@ -431,22 +433,22 @@ const ClinicAdminSettings = () => {
 
       if (error) {
         console.error('❌ Error saving settings:', error);
-        toast.error('Failed to save settings');
+        toast.error(t('Failed to save settings'));
         return;
       }
 
       console.log('✅ Settings saved successfully');
-      toast.success('Settings saved successfully');
+      toast.success(t('Settings saved successfully'));
     } catch (error) {
       console.error('❌ Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(t('Failed to save settings'));
     }
   };
 
   const handleEditProfile = async () => {
     try {
       if (!profileData.fullName.trim()) {
-        toast.error('Name cannot be empty');
+        toast.error(t('Name cannot be empty'));
         return;
       }
 
@@ -460,24 +462,24 @@ const ClinicAdminSettings = () => {
       fetchProfile();
     } catch (error: any) {
       console.error('❌ Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('Failed to update profile'));
     }
   };
 
   const handleChangePassword = async () => {
     try {
       if (!passwordData.currentPassword || !passwordData.newPassword) {
-        toast.error('Please fill in all password fields');
+        toast.error(t('Please fill in all password fields'));
         return;
       }
 
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        toast.error('New passwords do not match');
+        toast.error(t('New passwords do not match'));
         return;
       }
 
       if (passwordData.newPassword.length < 6) {
-        toast.error('Password must be at least 6 characters');
+        toast.error(t('Password must be at least 6 characters'));
         return;
       }
 
@@ -499,7 +501,7 @@ const ClinicAdminSettings = () => {
       setShowChangePasswordModal(false);
     } catch (error: any) {
       console.error('❌ Error changing password:', error);
-      toast.error('Failed to change password');
+      toast.error(t('Failed to change password'));
     }
   };
 
@@ -512,12 +514,12 @@ const ClinicAdminSettings = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Settings')}</h1>
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium px-6"
               >
-                Save Changes
+                {t('Save Changes')}
               </Button>
             </div>
 
@@ -525,7 +527,7 @@ const ClinicAdminSettings = () => {
               {/* Account Settings Card */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Account Settings</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Account Settings')}</h2>
                   <div className="flex items-center gap-3">
                     <Button
                       variant="outline"
@@ -533,7 +535,7 @@ const ClinicAdminSettings = () => {
                       className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] border-[#00FFA2]"
                     >
                       <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
+                      {t('Edit Profile')}
                     </Button>
                     <Button
                       variant="outline"
@@ -541,7 +543,7 @@ const ClinicAdminSettings = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Key className="w-4 h-4 mr-2" />
-                      Change Password
+                      {t('Change Password')}
                     </Button>
                     <Button
                       variant="outline"
@@ -549,25 +551,25 @@ const ClinicAdminSettings = () => {
                       className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
                     >
                       <ArrowRight className="w-4 h-4 mr-2" />
-                      Logout
+                      {t('Logout')}
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Name - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Name')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{profileData.fullName}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Email - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Email')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{profileData.email}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Role - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Role')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{userRole}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Joined - </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Joined')} - </span>
                     <span className="text-base font-semibold text-gray-900 dark:text-white">{joinedDate}</span>
                   </div>
                 </div>
@@ -576,7 +578,7 @@ const ClinicAdminSettings = () => {
               {/* Team Members Section */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Team members</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Team members')}</h2>
                   <div className="flex items-center gap-3">
                     <Button
                       variant="outline"
@@ -584,7 +586,7 @@ const ClinicAdminSettings = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Team member
+                      {t('Add Team member')}
                     </Button>
                   </div>
                 </div>
@@ -594,17 +596,17 @@ const ClinicAdminSettings = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                       <tr>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Name')}</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Email')}</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Status')}</th>
+                        <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loadingTeamMembers ? (
                         <tr>
                           <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                            Loading...
+                            {t('Loading...')}
                           </td>
                         </tr>
                       ) : teamMembers.length > 0 ? (
@@ -629,16 +631,16 @@ const ClinicAdminSettings = () => {
                                   ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                   : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                               }`}>
-                                {member.status === 'accepted' ? 'Accepted' : 
-                                 member.status === 'pending' ? 'Pending' : 
-                                 member.status === 'expired' ? 'Expired' : 
-                                 'Cancelled'}
+                                {member.status === 'accepted' ? t('Accepted') : 
+                                 member.status === 'pending' ? t('Pending') : 
+                                 member.status === 'expired' ? t('Expired') : 
+                                 t('Cancelled')}
                               </span>
                             </td>
                             <td className="py-4 px-6">
                               <button
                                 className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
-                                aria-label="View team member info"
+                                aria-label={t('View team member info')}
                               >
                                 <Info className="w-5 h-5" />
                               </button>
@@ -648,7 +650,7 @@ const ClinicAdminSettings = () => {
                       ) : (
                         <tr>
                           <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                            No doctors found. Click "Add Team member" to invite a doctor.
+                            {t('No doctors found. Click "Add Team member" to invite a doctor.')}
                           </td>
                         </tr>
                       )}
@@ -665,12 +667,12 @@ const ClinicAdminSettings = () => {
         <Dialog open={showEditProfileModal} onOpenChange={setShowEditProfileModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Edit Profile</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit Profile')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Full Name
+                  {t('Full Name')}
                 </Label>
                 <Input
                   id="fullName"
@@ -682,7 +684,7 @@ const ClinicAdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
@@ -691,7 +693,7 @@ const ClinicAdminSettings = () => {
                   disabled
                   className="mt-1 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('Email cannot be changed')}</p>
               </div>
             </div>
             <DialogFooter className="mt-6">
@@ -700,13 +702,13 @@ const ClinicAdminSettings = () => {
                 onClick={() => setShowEditProfileModal(false)}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleEditProfile}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Save Changes
+                {t('Save Changes')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -716,12 +718,12 @@ const ClinicAdminSettings = () => {
         <Dialog open={showChangePasswordModal} onOpenChange={setShowChangePasswordModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Change Password</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Change Password')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Current Password
+                  {t('Current Password')}
                 </Label>
                 <Input
                   id="currentPassword"
@@ -733,7 +735,7 @@ const ClinicAdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  New Password
+                  {t('New Password')}
                 </Label>
                 <Input
                   id="newPassword"
@@ -745,7 +747,7 @@ const ClinicAdminSettings = () => {
               </div>
               <div>
                 <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Confirm New Password
+                  {t('Confirm New Password')}
                 </Label>
                 <Input
                   id="confirmPassword"
@@ -765,13 +767,13 @@ const ClinicAdminSettings = () => {
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleChangePassword}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Change Password
+                {t('Change Password')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -781,12 +783,12 @@ const ClinicAdminSettings = () => {
         <Dialog open={showAddTeamMemberModal} onOpenChange={setShowAddTeamMemberModal}>
           <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
             <DialogHeader className="flex-shrink-0">
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add Team member</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Add Team member')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4 overflow-y-auto flex-1 px-1 pb-4 min-h-0">
               <div>
                 <Label htmlFor="doctor" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select Doctor <span className="text-red-500">*</span>
+                  {t('Select Doctor')} <span className="text-red-500">*</span>
                 </Label>
                 <Select 
                   value={selectedDoctorId} 
@@ -794,12 +796,12 @@ const ClinicAdminSettings = () => {
                   disabled={loadingDoctors}
                 >
                   <SelectTrigger className="mt-1 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg">
-                    <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor from your clinic"} />
+                    <SelectValue placeholder={loadingDoctors ? t('Loading doctors...') : t('Select a doctor from your clinic')} />
                   </SelectTrigger>
                   <SelectContent>
                     {clinicDoctors.length === 0 ? (
                       <SelectItem value="no-doctors" disabled>
-                        No doctors found in your clinic
+                        {t('No doctors found in your clinic')}
                       </SelectItem>
                     ) : (
                       clinicDoctors.map((doctor) => (
@@ -811,18 +813,18 @@ const ClinicAdminSettings = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Select a doctor from your clinic to send invitation
+                  {t('Select a doctor from your clinic to send invitation')}
                 </p>
               </div>
 
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Doctor Name <span className="text-red-500">*</span>
+                  {t('Doctor Name')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Doctor name will be auto-filled"
+                  placeholder={t('Doctor name will be auto-filled')}
                   value={newTeamMember.name}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
@@ -833,12 +835,12 @@ const ClinicAdminSettings = () => {
 
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email <span className="text-red-500">*</span>
+                  {t('Email')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter email to send invitation"
+                  placeholder={t('Enter email to send invitation')}
                   value={newTeamMember.email}
                   onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
                   className="mt-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg"
@@ -846,8 +848,8 @@ const ClinicAdminSettings = () => {
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {selectedDoctorId && !newTeamMember.email 
-                    ? '⚠️ Please enter email address for this doctor'
-                    : 'An invitation email will be sent to this address. Doctor will create their password during signup.'}
+                    ? t('⚠️ Please enter email address for this doctor')
+                    : t('An invitation email will be sent to this address. Doctor will create their password during signup.')}
                 </p>
               </div>
             </div>
@@ -865,13 +867,13 @@ const ClinicAdminSettings = () => {
                 }}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleAddTeamMember}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Send Invitation
+                {t('Send Invitation')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -881,12 +883,12 @@ const ClinicAdminSettings = () => {
         <Dialog open={showInvitationLinkModal} onOpenChange={setShowInvitationLinkModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Invitation Link</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Invitation Link')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Share this link with the doctor:
+                  {t('Share this link with the doctor:')}
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -901,7 +903,7 @@ const ClinicAdminSettings = () => {
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(invitationLink);
-                        toast.success('Link copied to clipboard!');
+                        toast.success(t('Link copied to clipboard!'));
                       } catch (err) {
                         // Fallback for older browsers
                         const textArea = document.createElement('textarea');
@@ -910,7 +912,7 @@ const ClinicAdminSettings = () => {
                         textArea.select();
                         document.execCommand('copy');
                         document.body.removeChild(textArea);
-                        toast.success('Link copied to clipboard!');
+                        toast.success(t('Link copied to clipboard!'));
                       }
                     }}
                     className="flex-shrink-0"
@@ -921,8 +923,8 @@ const ClinicAdminSettings = () => {
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-xs text-blue-800 dark:text-blue-200">
-                  <strong>Note:</strong> An invitation email has been sent to <strong>{invitedDoctorEmail}</strong>. 
-                  You can also share this link directly with the doctor.
+                  <strong>{t('Note')}:</strong> {t('An invitation email has been sent to {{email}}.', { email: invitedDoctorEmail })}
+                  {t('You can also share this link directly with the doctor.')}
                 </p>
               </div>
             </div>
@@ -935,7 +937,7 @@ const ClinicAdminSettings = () => {
                 }}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                Done
+                {t('Done')}
               </Button>
             </DialogFooter>
           </DialogContent>

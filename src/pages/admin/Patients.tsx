@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -49,23 +50,34 @@ interface Patient {
 
 const AdminPatients = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const { t } = useTranslation();
+  const ALL_CLINICS = 'all-clinics';
+  const ALL_OPTION = 'all';
+  const DATE_TO_DATE = 'to-date';
+  const DATE_TODAY = 'today';
+  const DATE_YESTERDAY = 'yesterday';
+  const DATE_THIS_WEEK = 'this-week';
+  const DATE_THIS_MONTH = 'this-month';
+  const DATE_LAST_MONTH = 'last-month';
+  const NO_APPOINTMENTS = 'no-appointments';
+
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>(ALL_OPTION);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatients, setSelectedPatients] = useState<string[]>([]);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [selectedClinic, setSelectedClinic] = useState('All Clinics');
-  const [selectedDate, setSelectedDate] = useState('To date');
+  const [selectedClinic, setSelectedClinic] = useState(ALL_CLINICS);
+  const [selectedDate, setSelectedDate] = useState(DATE_TO_DATE);
   const [patientsData, setPatientsData] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clinics, setClinics] = useState<string[]>(['All Clinics']);
+  const [clinics, setClinics] = useState<string[]>([ALL_CLINICS]);
   
   // Filter modal states
   const [filterDateFrom, setFilterDateFrom] = useState<string>('');
   const [filterDateTo, setFilterDateTo] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDoctor, setFilterDoctor] = useState<string>('all');
-  const [filterGender, setFilterGender] = useState<string>('all');
-  const [filterAgeRange, setFilterAgeRange] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>(ALL_OPTION);
+  const [filterDoctor, setFilterDoctor] = useState<string>(ALL_OPTION);
+  const [filterGender, setFilterGender] = useState<string>(ALL_OPTION);
+  const [filterAgeRange, setFilterAgeRange] = useState<string>(ALL_OPTION);
   const [doctors, setDoctors] = useState<string[]>([]);
   
   // Modal states
@@ -87,7 +99,14 @@ const AdminPatients = () => {
   const [deletingPatient, setDeletingPatient] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
 
-  const dateOptions = ['To date', 'Today', 'Yesterday', 'This Week', 'This Month', 'Last Month'];
+  const dateOptions = [
+    { value: DATE_TO_DATE, label: t('To date') },
+    { value: DATE_TODAY, label: t('Today') },
+    { value: DATE_YESTERDAY, label: t('Yesterday') },
+    { value: DATE_THIS_WEEK, label: t('This Week') },
+    { value: DATE_THIS_MONTH, label: t('This Month') },
+    { value: DATE_LAST_MONTH, label: t('Last Month') },
+  ];
 
   useEffect(() => {
     fetchPatients();
@@ -99,15 +118,33 @@ const AdminPatients = () => {
       console.log('🔍 Fetching patients from backend...');
 
       const response = await api.patients.getPatients();
-      
-      setPatientsData(response.patients || []);
-      setClinics(response.clinics || ['All Clinics']);
-      setDoctors(response.doctors || ['all']);
+
+      const normalizedPatients = (response.patients || []).map((patient: Patient) => ({
+        ...patient,
+        lastAppointment:
+          !patient.lastAppointment ||
+          patient.lastAppointment === NO_APPOINTMENTS ||
+          patient.lastAppointment === 'No appointments'
+            ? NO_APPOINTMENTS
+            : patient.lastAppointment,
+      }));
+
+      const clinicOptions = (response.clinics || [])
+        .map((clinic: string) => (clinic === 'All Clinics' ? ALL_CLINICS : clinic))
+        .filter(Boolean);
+
+      const doctorOptions = (response.doctors || []).map((doctor: string) =>
+        doctor === ALL_OPTION ? ALL_OPTION : doctor
+      );
+
+      setPatientsData(normalizedPatients);
+      setClinics([ALL_CLINICS, ...clinicOptions.filter((c) => c !== ALL_CLINICS)]);
+      setDoctors([ALL_OPTION, ...doctorOptions.filter((d) => d !== ALL_OPTION)]);
 
       console.log('✅ Patients fetched:', response.patients?.length || 0);
     } catch (error) {
       console.error('❌ Error fetching patients:', error);
-      toast.error('Failed to fetch patients');
+      toast.error(t('Failed to fetch patients'));
       setPatientsData([]);
     } finally {
       setLoading(false);
@@ -125,12 +162,12 @@ const AdminPatients = () => {
         patient.contact.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Clinic filter (from dropdown)
-      const matchesClinic = selectedClinic === 'All Clinics' || 
+      const matchesClinic = selectedClinic === ALL_CLINICS || 
         (patient.clinicNames && patient.clinicNames.some(clinic => clinic === selectedClinic));
       
       // Date filter (from dropdown)
       let matchesDate = true;
-      if (selectedDate !== 'To date' && patient.lastAppointment !== 'No appointments') {
+      if (selectedDate !== DATE_TO_DATE && patient.lastAppointment !== NO_APPOINTMENTS) {
         try {
           const lastApptDate = new Date(patient.lastAppointment);
           if (isNaN(lastApptDate.getTime())) {
@@ -149,19 +186,19 @@ const AdminPatients = () => {
             lastApptDate.setHours(0, 0, 0, 0);
             
             switch (selectedDate) {
-              case 'Today':
+              case DATE_TODAY:
                 matchesDate = lastApptDate.getTime() === today.getTime();
                 break;
-              case 'Yesterday':
+              case DATE_YESTERDAY:
                 matchesDate = lastApptDate.getTime() === yesterday.getTime();
                 break;
-              case 'This Week':
+              case DATE_THIS_WEEK:
                 matchesDate = lastApptDate >= thisWeekStart && lastApptDate <= today;
                 break;
-              case 'This Month':
+              case DATE_THIS_MONTH:
                 matchesDate = lastApptDate >= thisMonthStart && lastApptDate <= today;
                 break;
-              case 'Last Month':
+              case DATE_LAST_MONTH:
                 matchesDate = lastApptDate >= lastMonthStart && lastApptDate <= lastMonthEnd;
                 break;
               default:
@@ -171,17 +208,17 @@ const AdminPatients = () => {
         } catch (e) {
           matchesDate = false;
         }
-      } else if (selectedDate !== 'To date' && patient.lastAppointment === 'No appointments') {
+      } else if (selectedDate !== DATE_TO_DATE && patient.lastAppointment === NO_APPOINTMENTS) {
         // If date filter is set but patient has no appointments, exclude them
         matchesDate = false;
       }
       
       // Filter modal: Gender
-      const matchesFilterGender = filterGender === 'all' || patient.gender.toLowerCase() === filterGender.toLowerCase();
+      const matchesFilterGender = filterGender === ALL_OPTION || patient.gender.toLowerCase() === filterGender.toLowerCase();
       
       // Filter modal: Age Range
       let matchesFilterAge = true;
-      if (filterAgeRange !== 'all') {
+      if (filterAgeRange !== ALL_OPTION) {
         const age = patient.age;
         if (filterAgeRange === '0-18') {
           matchesFilterAge = age >= 0 && age <= 18;
@@ -199,7 +236,7 @@ const AdminPatients = () => {
       // Filter modal: Date Range
       let matchesFilterDate = true;
       if (filterDateFrom || filterDateTo) {
-        const lastApptDate = patient.lastAppointment !== 'No appointments' 
+        const lastApptDate = patient.lastAppointment !== NO_APPOINTMENTS 
           ? new Date(patient.lastAppointment) 
           : null;
         
@@ -225,7 +262,7 @@ const AdminPatients = () => {
       }
       
       // Filter modal: Doctor
-      const matchesFilterDoctor = filterDoctor === 'all' || 
+      const matchesFilterDoctor = filterDoctor === ALL_OPTION || 
         (patient.doctorNames && patient.doctorNames.some(name => name.toLowerCase() === filterDoctor.toLowerCase()));
       
       return matchesSearch && matchesClinic && matchesDate && matchesFilterGender && matchesFilterAge && matchesFilterDate && matchesFilterDoctor;
@@ -285,7 +322,7 @@ const AdminPatients = () => {
       setPatientAppointments(response.appointments || []);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      toast.error('Failed to load appointment history');
+      toast.error(t('Failed to load appointment history'));
       setPatientAppointments([]);
     } finally {
       setLoadingAppointments(false);
@@ -322,7 +359,7 @@ const AdminPatients = () => {
       setIsEditPatientModalOpen(true);
     } catch (error) {
       console.error('❌ Error fetching patient data:', error);
-      toast.error('Failed to load patient data');
+      toast.error(t('Failed to load patient data'));
     }
   };
 
@@ -330,7 +367,7 @@ const AdminPatients = () => {
     if (!selectedPatient) return;
 
     if (!editFormData.fullName.trim()) {
-      toast.error('Full name is required');
+      toast.error(t('Full name is required'));
       return;
     }
 
@@ -413,7 +450,7 @@ const AdminPatients = () => {
         });
       }
 
-      toast.success('Patient information updated successfully. Changes will be reflected in the patient profile page.');
+      toast.success(t('Patient information updated successfully. Changes will be reflected in the patient profile page.'));
 
       // Close modal
       setIsEditPatientModalOpen(false);
@@ -423,7 +460,7 @@ const AdminPatients = () => {
       await fetchPatients();
     } catch (error: any) {
       console.error('❌ Error saving patient changes:', error);
-      const errorMessage = error?.message || error?.error || 'Failed to update patient information. Please try again.';
+      const errorMessage = error?.message || error?.error || t('Failed to update patient information. Please try again.');
       toast.error(errorMessage);
     } finally {
       setSavingPatient(false);
@@ -444,7 +481,7 @@ const AdminPatients = () => {
     const patientName = patientToDelete.name.trim();
     
     if (enteredName.toLowerCase() !== patientName.toLowerCase()) {
-      toast.error('Patient name does not match. Please enter the exact patient name.');
+      toast.error(t('Patient name does not match. Please enter the exact patient name.'));
       return;
     }
 
@@ -454,7 +491,7 @@ const AdminPatients = () => {
       await api.patients.deletePatient(patientToDelete.user_id);
 
       console.log('✅ Patient bookings deleted successfully');
-      toast.success('Patient deleted successfully');
+      toast.success(t('Patient deleted successfully'));
       
       // Close modal and reset state
       setIsDeleteConfirmModalOpen(false);
@@ -465,7 +502,7 @@ const AdminPatients = () => {
       await fetchPatients();
     } catch (error) {
       console.error('❌ Error deleting patient:', error);
-      toast.error('Failed to delete patient. Please try again.');
+      toast.error(t('Failed to delete patient. Please try again.'));
     } finally {
       setDeletingPatient(false);
     }
@@ -473,18 +510,18 @@ const AdminPatients = () => {
 
   const handleExportToExcel = () => {
     const exportData = filteredPatients.map((patient) => ({
-      'Patient Name': patient.name,
-      'Email': patient.email,
-      'Gender': patient.gender,
-      'Age': patient.age,
-      'Contact': patient.contact,
-      'Last Appointment': patient.lastAppointment,
-      'Status': patient.status.charAt(0).toUpperCase() + patient.status.slice(1),
-      'Doctors': patient.doctorNames?.join(', ') || 'N/A',
+      [t('Patient Name')]: patient.name,
+      [t('Email')]: patient.email,
+      [t('Gender')]: patient.gender,
+      [t('Age')]: patient.age,
+      [t('Contact')]: patient.contact,
+      [t('Last Appointment')]: patient.lastAppointment === NO_APPOINTMENTS ? t('No appointments') : patient.lastAppointment,
+      [t('Status')]: patient.status.charAt(0).toUpperCase() + patient.status.slice(1),
+      [t('Doctors')]: patient.doctorNames?.join(', ') || t('N/A'),
     }));
 
-    exportToExcel(exportData, 'Patients');
-    toast.success('Patients data exported successfully!');
+    exportToExcel(exportData, t('Patients'));
+    toast.success(t('Patients data exported successfully!'));
   };
 
   return (
@@ -498,7 +535,7 @@ const AdminPatients = () => {
             <div className="mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Patients</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('Patients')}</h1>
                   
                 </div>
 
@@ -517,7 +554,7 @@ const AdminPatients = () => {
                       <SelectContent>
                         {clinics.map((clinic) => (
                           <SelectItem key={clinic} value={clinic}>
-                            {clinic}
+                            {clinic === ALL_CLINICS ? t('All Clinics') : clinic}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -533,8 +570,8 @@ const AdminPatients = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {dateOptions.map((date) => (
-                          <SelectItem key={date} value={date}>
-                            {date}
+                          <SelectItem key={date.value} value={date.value}>
+                            {date.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -549,7 +586,7 @@ const AdminPatients = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Export to Excel
+                      {t('Export to Excel')}
                     </Button>
                     <Button
                       variant="outline"
@@ -557,7 +594,7 @@ const AdminPatients = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Filter className="w-4 h-4 mr-2" />
-                      Filter
+                      {t('Filter')}
                     </Button>
                   </div>
                 </div>
@@ -570,7 +607,7 @@ const AdminPatients = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  placeholder="Search by patient name, email, or contact..."
+                  placeholder={t('Search by patient name, email, or contact...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-full h-10"
@@ -602,39 +639,39 @@ const AdminPatients = () => {
                         sortDirection={getSortDirection('name')}
                         onSort={() => handleSort('name')}
                       >
-                        Patient Name
+                        {t('Patient Name')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('gender')}
                         onSort={() => handleSort('gender')}
                       >
-                        Gender
+                        {t('Gender')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('age')}
                         onSort={() => handleSort('age')}
                       >
-                        Age
+                        {t('Age')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('contact')}
                         onSort={() => handleSort('contact')}
                       >
-                        Contact
+                        {t('Contact')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('lastAppointment')}
                         onSort={() => handleSort('lastAppointment')}
                       >
-                        Last Appointment
+                        {t('Last Appointment')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('status')}
                         onSort={() => handleSort('status')}
                       >
-                        Status
+                        {t('Status')}
                       </TableSortHeader>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Action')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -656,7 +693,7 @@ const AdminPatients = () => {
                             <span className="text-sm font-medium text-gray-900 dark:text-white">{patient.name}</span>
                           </td>
                           <td className="py-4 px-6">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{patient.gender}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{t(patient.gender)}</span>
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">{patient.age}</span>
@@ -665,7 +702,9 @@ const AdminPatients = () => {
                             <span className="text-sm text-gray-600 dark:text-gray-400">{patient.contact}</span>
                           </td>
                           <td className="py-4 px-6">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{patient.lastAppointment}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {patient.lastAppointment === NO_APPOINTMENTS ? t('No appointments') : patient.lastAppointment}
+                            </span>
                           </td>
                           <td className="py-4 px-6">
                             {getStatusBadge(patient.status)}
@@ -675,7 +714,7 @@ const AdminPatients = () => {
                               <DropdownMenuTrigger asChild>
                                 <button
                                   className="text-gray-600 dark:text-gray-400 hover:text-[#0C2243] dark:hover:text-[#00FFA2] transition-colors"
-                                  aria-label="View patient actions"
+                                  aria-label={t('View patient actions')}
                                 >
                                   <MoreVertical className="w-5 h-5" />
                                 </button>
@@ -686,21 +725,21 @@ const AdminPatients = () => {
                                   onClick={() => handleViewPatientDetails(patient)}
                                 >
                                   <Eye className="w-4 h-4" />
-                                  View Details
+                                  {t('View Details')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   className="flex items-center gap-2 cursor-pointer"
                                   onClick={() => handleOpenEditPatient(patient)}
                                 >
                                   <Edit className="w-4 h-4" />
-                                  Edit Patient Info
+                                  {t('Edit Patient Info')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   className="flex items-center gap-2 cursor-pointer text-red-600"
                                   onClick={() => handleDeletePatient(patient)}
                                 >
                                   <Trash2 className="w-4 h-4" />
-                                  Delete Patient
+                                  {t('Delete Patient')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -710,7 +749,7 @@ const AdminPatients = () => {
                     ) : (
                       <tr>
                         <td colSpan={7} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                          No patients found
+                          {t('No patients found')}
                         </td>
                       </tr>
                     )}
@@ -725,58 +764,58 @@ const AdminPatients = () => {
         <Dialog open={isPatientDetailsModalOpen} onOpenChange={setIsPatientDetailsModalOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Patient Details</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Patient Details')}</DialogTitle>
               <DialogDescription className="sr-only">
-                View detailed information about the patient
+                {t('View detailed information about the patient')}
               </DialogDescription>
             </DialogHeader>
             {selectedPatient && (
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Name</Label>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Name')}</Label>
                     <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedPatient.name}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Gender</Label>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedPatient.gender}</p>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Gender')}</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{t(selectedPatient.gender)}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Age</Label>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Age')}</Label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedPatient.age}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Contact</Label>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Contact')}</Label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedPatient.contact}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Email</Label>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedPatient.email || 'N/A'}</p>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Email')}</Label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedPatient.email || t('N/A')}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500 dark:text-gray-400 text-xs">Status</Label>
+                    <Label className="text-gray-500 dark:text-gray-400 text-xs">{t('Status')}</Label>
                     <div className="mt-1">{getStatusBadge(selectedPatient.status)}</div>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-gray-500 dark:text-gray-400 text-xs mb-2 block">Appointment History</Label>
+                  <Label className="text-gray-500 dark:text-gray-400 text-xs mb-2 block">{t('Appointment History')}</Label>
                   {loadingAppointments ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('Loading...')}</p>
                   ) : patientAppointments.length > 0 ? (
                     <div className="space-y-2">
                       {patientAppointments.map((apt) => (
                         <div key={apt.id} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{apt.clinic || apt.clinics?.name || 'Unknown Clinic'}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{apt.clinic || apt.clinics?.name || t('Unknown Clinic')}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(apt.appointment_date).toLocaleDateString()} at {apt.appointment_time}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Status: {apt.status}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{t('Status')}: {apt.status}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No appointment history</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('No appointment history found')}</p>
                   )}
                 </div>
               </div>
@@ -788,14 +827,14 @@ const AdminPatients = () => {
         <Dialog open={isEditPatientModalOpen} onOpenChange={setIsEditPatientModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Edit Patient Information</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit Patient Information')}</DialogTitle>
               <DialogDescription className="sr-only">
-                Update patient information
+                {t('Update patient information')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">{t('Full Name')}</Label>
                 <Input
                   id="fullName"
                   value={editFormData.fullName}
@@ -804,7 +843,7 @@ const AdminPatients = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="gender">Gender</Label>
+                <Label htmlFor="gender">{t('Gender')}</Label>
                 <Select
                   value={editFormData.gender}
                   onValueChange={(value) => setEditFormData({ ...editFormData, gender: value as 'Male' | 'Female' | 'Other' })}
@@ -813,14 +852,14 @@ const AdminPatients = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Male">{t('Male')}</SelectItem>
+                    <SelectItem value="Female">{t('Female')}</SelectItem>
+                    <SelectItem value="Other">{t('Other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Label htmlFor="dateOfBirth">{t('Date of Birth')}</Label>
                 <Input
                   id="dateOfBirth"
                   type="date"
@@ -830,7 +869,7 @@ const AdminPatients = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('Email')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -841,7 +880,7 @@ const AdminPatients = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t('Phone')}</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -857,14 +896,14 @@ const AdminPatients = () => {
                 onClick={() => setIsEditPatientModalOpen(false)}
                 className="border-gray-300 dark:border-gray-600"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleSavePatientChanges}
                 disabled={savingPatient || !editFormData.fullName.trim()}
                 className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {savingPatient ? 'Saving...' : 'Save Changes'}
+                {savingPatient ? t('Saving...') : t('Save Changes')}
               </Button>
             </div>
           </DialogContent>
@@ -884,9 +923,9 @@ const AdminPatients = () => {
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Warning</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Warning')}</DialogTitle>
               <DialogDescription className="sr-only">
-                Confirm deletion of patient by typing their name
+                {t('Confirm deletion of patient by typing their name')}
               </DialogDescription>
             </DialogHeader>
             <div className="py-6 text-center">
@@ -899,17 +938,17 @@ const AdminPatients = () => {
 
               {/* Heading */}
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                Delete Patient Record
+                {t('Delete Patient Record')}
               </h3>
 
               {/* Description */}
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                This will permanently remove <strong>{patientToDelete?.name}</strong> and all associated appointments from your clinic records.
+                {t('This will permanently remove {{name}} and all associated appointments from your clinic records.', { name: patientToDelete?.name || '' })}
               </p>
 
               {/* Confirmation Instruction */}
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                To confirm, type the patient's name below :
+                {t("To confirm, type the patient's name below :")}
               </p>
 
               {/* Name Input */}
@@ -925,7 +964,7 @@ const AdminPatients = () => {
                     handleConfirmDeletePatient();
                   }
                 }}
-                placeholder="Enter patient's name"
+                placeholder={t("Enter patient's name")}
                 className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10 mb-6"
                 autoFocus
               />
@@ -941,7 +980,7 @@ const AdminPatients = () => {
                 disabled={deletingPatient}
                 className="bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleConfirmDeletePatient}
@@ -952,7 +991,7 @@ const AdminPatients = () => {
                 }
                 className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deletingPatient ? 'Deleting...' : 'Delete Patient'}
+                {deletingPatient ? t('Deleting...') : t('Delete Patient')}
               </Button>
             </div>
           </DialogContent>
@@ -962,22 +1001,22 @@ const AdminPatients = () => {
         <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Filter</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Filter')}</DialogTitle>
               <DialogDescription className="sr-only">
-                Filter patients by date range, status, doctor, gender, and age range
+                {t('Filter patients by date range, status, doctor, gender, and age range')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               {/* Date Range */}
               <div>
-                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</Label>
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Date Range')}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Input
                       type="date"
                       value={filterDateFrom}
                       onChange={(e) => setFilterDateFrom(e.target.value)}
-                      placeholder="From"
+                      placeholder={t('From')}
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10"
                     />
                   </div>
@@ -986,7 +1025,7 @@ const AdminPatients = () => {
                       type="date"
                       value={filterDateTo}
                       onChange={(e) => setFilterDateTo(e.target.value)}
-                      placeholder="To"
+                      placeholder={t('To')}
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10"
                     />
                   </div>
@@ -995,14 +1034,14 @@ const AdminPatients = () => {
 
               {/* Doctor Dropdown */}
               <div>
-                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Doctor</Label>
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Doctor')}</Label>
                 <Select value={filterDoctor} onValueChange={setFilterDoctor}>
                   <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10">
-                    <SelectValue placeholder="Select a doctor's name" />
+                    <SelectValue placeholder={t("Select a doctor's name")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Doctors</SelectItem>
-                    {doctors.filter(d => d !== 'all').map((doctor) => (
+                    <SelectItem value="all">{t('All Doctors')}</SelectItem>
+                    {doctors.filter(d => d !== ALL_OPTION).map((doctor) => (
                       <SelectItem key={doctor} value={doctor}>
                         {doctor}
                       </SelectItem>
@@ -1013,7 +1052,7 @@ const AdminPatients = () => {
 
               {/* Gender Radio Buttons */}
               <div>
-                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gender</Label>
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Gender')}</Label>
                 <div className="flex items-center gap-2">
                   {['All', 'Male', 'Female'].map((gender) => (
                     <button
@@ -1025,7 +1064,7 @@ const AdminPatients = () => {
                           : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
-                      {gender}
+                      {t(gender)}
                     </button>
                   ))}
                 </div>
@@ -1033,13 +1072,13 @@ const AdminPatients = () => {
 
               {/* Age Range Dropdown */}
               <div>
-                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Age Range</Label>
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Age Range')}</Label>
                 <Select value={filterAgeRange} onValueChange={setFilterAgeRange}>
                   <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-lg h-10">
-                    <SelectValue placeholder="Select an age range" />
+                    <SelectValue placeholder={t('Select an age range')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Ages</SelectItem>
+                    <SelectItem value="all">{t('All Ages')}</SelectItem>
                     <SelectItem value="0-18">0-18</SelectItem>
                     <SelectItem value="19-30">19-30</SelectItem>
                     <SelectItem value="31-45">31-45</SelectItem>
@@ -1056,19 +1095,19 @@ const AdminPatients = () => {
                   onClick={() => {
                     setFilterDateFrom('');
                     setFilterDateTo('');
-                    setFilterDoctor('all');
-                    setFilterGender('all');
-                    setFilterAgeRange('all');
+                    setFilterDoctor(ALL_OPTION);
+                    setFilterGender(ALL_OPTION);
+                    setFilterAgeRange(ALL_OPTION);
                   }}
                   className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
                 >
-                  Clear filters
+                  {t('Clear filters')}
                 </Button>
                 <Button
                   onClick={() => setIsFilterModalOpen(false)}
                   className="flex-1 bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243]"
                 >
-                  Apply filters
+                  {t('Apply filters')}
                 </Button>
               </div>
             </div>

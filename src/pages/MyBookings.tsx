@@ -14,11 +14,13 @@ import { toast } from 'sonner';
 import { clinicsData } from '@/data/clinicsData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { api } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment, confirmAppointment, fetchAppointments } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   // Function to find service ID by specialty name and optionally clinic name
   const findServiceIdBySpecialty = (specialty: string, clinicName?: string): string => {
@@ -107,7 +109,7 @@ const MyBookings = () => {
             setShowAuthPrompt(false);
             navigate('/');
           }}
-          message="Please sign in to view your bookings"
+          message={t('Please sign in to view your bookings')}
         />
       </div>
     );
@@ -132,7 +134,7 @@ const MyBookings = () => {
         console.log('Appointment cancelled successfully');
       } catch (error) {
         console.error('Failed to cancel appointment:', error);
-        toast.error('Failed to cancel appointment. Please try again.');
+        toast.error(t('Failed to cancel appointment. Please try again.'));
       }
     }
   };
@@ -143,12 +145,12 @@ const MyBookings = () => {
       // Use the context method which handles refetching automatically
       await confirmAppointment(appointment.id);
 
-      toast.success('Appointment approved successfully');
+      toast.success(t('Appointment approved successfully'));
       // The context method already refreshes appointments, but ensure it's called
       await fetchAppointments();
     } catch (error: any) {
       console.error('❌ Error approving rescheduled appointment:', error);
-      toast.error(error.message || 'Failed to approve appointment. Please try again.');
+      toast.error(error.message || t('Failed to approve appointment. Please try again.'));
     }
   };
 
@@ -184,7 +186,7 @@ const MyBookings = () => {
       navigate(`/service/${serviceId}`);
     } catch (error) {
       console.error('Error rescheduling appointment:', error);
-      toast.error('Failed to reschedule appointment. Please try again.');
+      toast.error(t('Failed to reschedule appointment. Please try again.'));
     }
   };
 
@@ -274,7 +276,7 @@ const MyBookings = () => {
       navigate(`/service/${serviceId}`);
     } catch (error) {
       console.error('❌ Error rescheduling appointment:', error);
-      toast.error('Failed to reschedule appointment. Please try again.');
+      toast.error(t('Failed to reschedule appointment. Please try again.'));
       // Don't close modal on error so user can try again
     }
   };
@@ -302,7 +304,7 @@ const MyBookings = () => {
       {/* Blue Header Section with Filter Buttons */}
       <section className="bg-[#0C2243] text-white py-6 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">Booking</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">{t('Booking')}</h1>
           
           {/* Filter Buttons - Circular Panel */}
           <div className="flex justify-center">
@@ -316,7 +318,7 @@ const MyBookings = () => {
                 }`}
               >
                 <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Upcoming</span>
+                <span>{t('Upcoming')}</span>
               </button>
               
               <button
@@ -328,7 +330,7 @@ const MyBookings = () => {
                 }`}
               >
                 <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Pending</span>
+                <span>{t('Pending')}</span>
               </button>
               
               <button
@@ -340,7 +342,7 @@ const MyBookings = () => {
                 }`}
               >
                 <History className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>History</span>
+                <span>{t('History')}</span>
               </button>
             </div>
           </div>
@@ -360,7 +362,7 @@ const MyBookings = () => {
                       {appointment.clinicLogo && !failedLogos.has(appointment.id) ? (
                         <img
                           src={appointment.clinicLogo}
-                          alt={`${appointment.clinic} logo`}
+                          alt={t('Clinic logo', { clinic: appointment.clinic })}
                           className="w-full h-full object-cover rounded-full"
                           onError={() => {
                             // If image fails to load, add to failed set
@@ -384,12 +386,12 @@ const MyBookings = () => {
                         {/* Status Badge */}
                         {selectedFilter === 'pending' && appointment.status === 'rescheduled' && (
                           <div className="bg-[#0C2243] text-white px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
-                            Rescheduled
+                            {t('Rescheduled')}
                           </div>
                         )}
                         {selectedFilter === 'pending' && appointment.status !== 'rescheduled' && (
                           <div className="bg-[#0C2243] text-white px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
-                            Pending
+                            {t('Pending')}
                           </div>
                         )}
                         
@@ -401,7 +403,7 @@ const MyBookings = () => {
                               onClick={() => handleReschedule(appointment)}
                               className="text-xs px-2 py-1 h-auto"
                             >
-                              Reschedule
+                              {t('Reschedule')}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -409,14 +411,14 @@ const MyBookings = () => {
                               onClick={() => handleCancelAppointment(appointment)}
                               className="text-red-600 border-red-200 hover:bg-red-50 text-xs px-2 py-1 h-auto"
                             >
-                              Cancel
+                              {t('Cancel')}
                             </Button>
                           </div>
                         )}
                         
                         {selectedFilter === 'history' && (
                           <div className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
-                            Completed
+                            {t('Completed')}
                           </div>
                         )}
                       </div>
@@ -425,7 +427,7 @@ const MyBookings = () => {
                       <div className="flex items-start gap-1 text-sm text-gray-600 mb-2">
                         <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <span className="line-clamp-3 leading-relaxed">
-                          {appointment.clinicAddress || 'Location not specified'}
+                          {appointment.clinicAddress || t('Location not specified')}
                         </span>
                       </div>
                       
@@ -450,21 +452,21 @@ const MyBookings = () => {
                             onClick={() => handleApproveRescheduled(appointment)}
                             className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white px-4 py-2 rounded-lg font-medium text-sm"
                           >
-                            Approve
+                            {t('Approve')}
                           </Button>
                           <Button 
                             variant="outline" 
                             onClick={() => handleReschedule(appointment)}
                             className="flex-1 border-[#0C2243] text-[#0C2243] hover:bg-[#0C2243]/10 px-4 py-2 rounded-lg font-medium text-sm"
                           >
-                            Reschedule
+                            {t('Reschedule')}
                           </Button>
                           <Button 
                             variant="outline" 
                             onClick={() => handleCancelAppointment(appointment)}
                             className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium text-sm"
                           >
-                            Cancel
+                            {t('Cancel')}
                           </Button>
                         </div>
                       )}
@@ -478,21 +480,21 @@ const MyBookings = () => {
               <div className="w-32 h-32 mx-auto mb-6">
                 <img
                   src={EnablePushNotifications}
-                  alt="No appointments"
+                  alt={t('No appointments')}
                   className="w-full h-full object-contain"
                 />
               </div>
               <p className="text-gray-500 text-lg font-medium mb-4">
-                {selectedFilter === 'upcoming' && 'No upcoming appointments scheduled.'}
-                {selectedFilter === 'pending' && 'No pending appointments.'}
-                {selectedFilter === 'history' && 'No past appointments.'}
+                {selectedFilter === 'upcoming' && t('No upcoming appointments scheduled.')}
+                {selectedFilter === 'pending' && t('No pending appointments.')}
+                {selectedFilter === 'history' && t('No past appointments.')}
               </p>
               {(selectedFilter === 'upcoming' || selectedFilter === 'pending') && (
                 <Button 
                   onClick={() => navigate('/')}
                   className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white rounded-full px-8 py-3 font-medium"
                 >
-                  Book New Appointment
+                  {t('Book New Appointment')}
                 </Button>
               )}
             </div>
@@ -528,10 +530,10 @@ const MyBookings = () => {
               </div>
             </div>
             <DialogTitle className="text-center text-xl font-bold text-gray-900">
-              Event Rescheduled
+              {t('Event Rescheduled')}
             </DialogTitle>
             <DialogDescription className="text-center text-gray-600 mt-2">
-              The clinic has rescheduled your appointment. Please review the new date and time below and confirm if it works for you.
+              {t('The clinic has rescheduled your appointment. Please review the new date and time below and confirm if it works for you.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -545,13 +547,13 @@ const MyBookings = () => {
               {/* Location */}
               <div className="flex items-start gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{appointmentToReschedule.clinicAddress || 'Location not specified'}</span>
+                <span>{appointmentToReschedule.clinicAddress || t('Location not specified')}</span>
               </div>
 
               {/* Treatment Type */}
               <div>
                 <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
-                  {appointmentToReschedule.specialty || 'General Consultation'}
+                  {appointmentToReschedule.specialty || t('General Consultation')}
                 </span>
               </div>
 
@@ -574,7 +576,7 @@ const MyBookings = () => {
                   variant="outline"
                   className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
                 >
-                  Reschedule
+                  {t('Reschedule')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -586,7 +588,7 @@ const MyBookings = () => {
                   }}
                   className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6 py-2.5 rounded-lg font-medium"
                 >
-                  Approve
+                  {t('Approve')}
                 </Button>
               </div>
             </div>

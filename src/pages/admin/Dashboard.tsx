@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 
 interface Clinic {
   id: string;
@@ -39,6 +40,7 @@ interface Clinic {
 
 const AdminDashboard = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'this-week' | 'all-time'>('all-time');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'pending' | 'suspended' | null>(null);
@@ -258,7 +260,7 @@ const AdminDashboard = () => {
     if (!selectedClinic) return;
 
     if (!editClinicForm.name || !editClinicForm.address) {
-      alert('Please fill in clinic name and address');
+      alert(t('Please fill in clinic name and address'));
       return;
     }
 
@@ -287,10 +289,10 @@ const AdminDashboard = () => {
       setShowEditModal(false);
       // Refresh the dashboard data to show updated data
       await fetchDashboardData();
-      alert('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
+      alert(t('Clinic updated successfully. Changes will be reflected in the clinic admin profile.'));
     } catch (error: any) {
       console.error('Error updating clinic:', error);
-      alert('Error updating clinic: ' + (error.message || 'Unknown error'));
+      alert(t('Error updating clinic: {{message}}', { message: error.message || t('Unknown error') }));
     } finally {
       setSavingEdit(false);
     }
@@ -307,9 +309,9 @@ const AdminDashboard = () => {
   };
 
   const timeFilters = [
-    { id: 'today', label: 'Today' },
-    { id: 'this-week', label: 'This week' },
-    { id: 'all-time', label: 'To date' },
+    { id: 'today', label: t('Today') },
+    { id: 'this-week', label: t('This week') },
+    { id: 'all-time', label: t('To date') },
   ];
 
   return (
@@ -323,7 +325,7 @@ const AdminDashboard = () => {
         <main className="flex-1 bg-[#F7F7F7] dark:bg-gray-900 min-h-screen overflow-y-auto">
           <div className="p-8">
             {/* Page Title */}
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">{t('Dashboard')}</h1>
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -333,7 +335,7 @@ const AdminDashboard = () => {
               <>
                 {/* Quick Stats Section */}
                 <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Stats</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('Quick Stats')}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Total Clinics Card */}
                     <div 
@@ -342,9 +344,9 @@ const AdminDashboard = () => {
                         selectedStatusFilter === 'all' ? 'ring-2 ring-[#00FFA2] cursor-pointer' : 'cursor-pointer hover:shadow-md transition-shadow'
                       }`}
                     >
-                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Clinics</h3>
+                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('Total Clinics')}</h3>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stats.totalClinics}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">All registered clinics across the platform.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('All registered clinics across the platform.')}</p>
                     </div>
 
                     {/* Active Clinics Card */}
@@ -354,9 +356,9 @@ const AdminDashboard = () => {
                         selectedStatusFilter === 'active' ? 'ring-2 ring-[#00FFA2] cursor-pointer' : 'cursor-pointer hover:shadow-md transition-shadow'
                       }`}
                     >
-                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Active Clinics</h3>
+                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('Active Clinics')}</h3>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stats.activeClinics}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Currently operational and visible to patients.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('Currently operational and visible to patients.')}</p>
                     </div>
 
                     {/* Pending Approval Card */}
@@ -366,9 +368,9 @@ const AdminDashboard = () => {
                         selectedStatusFilter === 'pending' ? 'ring-2 ring-[#00FFA2] cursor-pointer' : 'cursor-pointer hover:shadow-md transition-shadow'
                       }`}
                     >
-                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Pending Approval</h3>
+                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('Pending Approval')}</h3>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stats.pendingApproval}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Awaiting verification or setup completion.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('Awaiting verification or setup completion.')}</p>
                     </div>
 
                     {/* Suspended Clinics Card */}
@@ -378,9 +380,9 @@ const AdminDashboard = () => {
                         selectedStatusFilter === 'suspended' ? 'ring-2 ring-[#00FFA2] cursor-pointer' : 'cursor-pointer hover:shadow-md transition-shadow'
                       }`}
                     >
-                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Suspended Clinics</h3>
+                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('Suspended Clinics')}</h3>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stats.suspendedClinics}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Temporarily deactivated by Carelinx admin.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('Temporarily deactivated by Carelinx admin.')}</p>
                     </div>
                   </div>
                 </div>
@@ -389,13 +391,13 @@ const AdminDashboard = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recently Added Clinics</h2>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Recently Added Clinics')}</h2>
                       {selectedStatusFilter && (
                         <button
                           onClick={handleClearStatusFilter}
                           className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
                         >
-                          Clear filter
+                          {t('Clear filter')}
                         </button>
                       )}
                     </div>
@@ -424,16 +426,16 @@ const AdminDashboard = () => {
                       <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                         <tr>
                           <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Clinics Name
+                            {t('Clinics Name')}
                           </th>
                           <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Locations
+                            {t('Locations')}
                           </th>
                           <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Date & Time
+                            {t('Date & Time')}
                           </th>
                           <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Action
+                            {t('Action')}
                           </th>
                         </tr>
                       </thead>
@@ -445,7 +447,7 @@ const AdminDashboard = () => {
                                 {clinic.name}
                               </td>
                               <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
-                                {clinic.address || 'N/A'}
+                                {clinic.address || t('N/A')}
                               </td>
                               <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
                                 {formatDateTime(clinic.created_at)}
@@ -455,7 +457,7 @@ const AdminDashboard = () => {
                                   onClick={() => handleViewDetails(clinic)}
                                   className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white text-sm px-4 py-2 rounded-lg"
                                 >
-                                  View Details
+                                  {t('View Details')}
                                 </Button>
                               </td>
                             </tr>
@@ -463,7 +465,7 @@ const AdminDashboard = () => {
                         ) : (
                           <tr>
                             <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                              No clinics found
+                              {t('No clinics found')}
                             </td>
                           </tr>
                         )}
@@ -495,7 +497,7 @@ const AdminDashboard = () => {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-800 [&>button]:hidden">
             {/* Custom Header with Close Button */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
-              <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Clinic Details</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">{t('Clinic Details')}</DialogTitle>
               <button
                 onClick={() => setShowDetailsModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -508,7 +510,7 @@ const AdminDashboard = () => {
               <div className="px-6 pb-6 space-y-6">
                 {/* CLINIC OVERVIEW Section */}
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">CLINIC OVERVIEW</h3>
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('CLINIC OVERVIEW')}</h3>
                   <div className="flex items-start gap-4">
                     {/* Logo */}
                     <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
@@ -558,13 +560,13 @@ const AdminDashboard = () => {
                       
                       {/* Registration Date */}
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Registration Date:</span> {formatDate(selectedClinic.registration_date)}
+                        <span className="font-medium">{t('Registration Date')}:</span> {formatDate(selectedClinic.registration_date)}
                       </p>
                       
                       {/* Specialties as tags */}
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          <span className="font-medium">Specialties:</span>
+                          <span className="font-medium">{t('Specialties')}:</span>
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {selectedClinic.specialties && selectedClinic.specialties.length > 0 ? (
@@ -574,14 +576,14 @@ const AdminDashboard = () => {
                               </span>
                             ))
                           ) : (
-                            <span className="text-sm text-gray-400 dark:text-gray-500">No specialties listed</span>
+                            <span className="text-sm text-gray-400 dark:text-gray-500">{t('No specialties listed')}</span>
                           )}
                         </div>
                       </div>
                       
                       {/* Description */}
                       <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {selectedClinic.description || 'No description provided'}
+                        {selectedClinic.description || t('No description provided')}
                       </p>
                     </div>
                   </div>
@@ -589,30 +591,30 @@ const AdminDashboard = () => {
 
                 {/* CONTACT INFO Section */}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">CONTACT INFO</h3>
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('CONTACT INFO')}</h3>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Address</Label>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Address')}</Label>
                       <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.address}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Contact</Label>
-                      <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_phone || 'N/A'}</p>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Contact')}</Label>
+                      <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_phone || t('N/A')}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Email</Label>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Email')}</Label>
                       <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_email || selectedClinic.email}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Website</Label>
-                      <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.website || 'N/A'}</p>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Website')}</Label>
+                      <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.website || t('N/A')}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* STATS OVERVIEW Section */}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">STATS OVERVIEW</h3>
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('STATS OVERVIEW')}</h3>
                   {loadingStats ? (
                     <div className="flex items-center justify-center py-4">
                       <div className="w-8 h-8 border-4 border-[#0C2243] border-t-transparent rounded-full animate-spin"></div>
@@ -620,15 +622,15 @@ const AdminDashboard = () => {
                   ) : (
                     <div className="grid grid-cols-3 gap-6">
                       <div>
-                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Doctors</Label>
+                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Doctors')}</Label>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalDoctors}</p>
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Patients</Label>
+                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Patients')}</Label>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalPatients}</p>
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Appointments</Label>
+                        <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Appointments')}</Label>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalAppointments}</p>
                       </div>
                     </div>
@@ -649,7 +651,7 @@ const AdminDashboard = () => {
                 className="bg-red-600 border-2 border-white text-white hover:bg-red-700 flex items-center gap-2 px-4 py-2 rounded-lg"
               >
                 <X className="w-4 h-4 text-white" />
-                <span className="text-white">Suspend Clinic</span>
+                <span className="text-white">{t('Suspend Clinic')}</span>
               </Button>
               <Button
                 onClick={() => {
@@ -662,7 +664,7 @@ const AdminDashboard = () => {
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 px-4 py-2 rounded-lg"
               >
                 <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span>Edit Clinic Info</span>
+                <span>{t('Edit Clinic Info')}</span>
               </Button>
             </div>
           </DialogContent>
@@ -672,68 +674,68 @@ const AdminDashboard = () => {
         <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Edit Clinic Information</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit Clinic Information')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="edit-name">Clinic Name *</Label>
+                <Label htmlFor="edit-name">{t('Clinic Name')} *</Label>
                 <Input
                   id="edit-name"
                   value={editClinicForm.name}
                   onChange={(e) => setEditClinicForm({ ...editClinicForm, name: e.target.value })}
                   className="mt-1"
-                  placeholder="Enter clinic name"
+                  placeholder={t('Enter clinic name')}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-address">Address *</Label>
+                <Label htmlFor="edit-address">{t('Address')} *</Label>
                 <Input
                   id="edit-address"
                   value={editClinicForm.address}
                   onChange={(e) => setEditClinicForm({ ...editClinicForm, address: e.target.value })}
                   className="mt-1"
-                  placeholder="Enter clinic address"
+                  placeholder={t('Enter clinic address')}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-description">Description</Label>
+                <Label htmlFor="edit-description">{t('Description')}</Label>
                 <Textarea
                   id="edit-description"
                   value={editClinicForm.description}
                   onChange={(e) => setEditClinicForm({ ...editClinicForm, description: e.target.value })}
                   className="mt-1"
-                  placeholder="Enter clinic description"
+                  placeholder={t('Enter clinic description')}
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-contact-email">Contact Email</Label>
+                <Label htmlFor="edit-contact-email">{t('Contact Email')}</Label>
                 <Input
                   id="edit-contact-email"
                   type="email"
                   value={editClinicForm.contact_email}
                   onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_email: e.target.value })}
                   className="mt-1"
-                  placeholder="Enter contact email"
+                  placeholder={t('Enter contact email')}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-contact-phone">Contact Phone</Label>
+                <Label htmlFor="edit-contact-phone">{t('Contact Phone')}</Label>
                 <Input
                   id="edit-contact-phone"
                   value={editClinicForm.contact_phone}
                   onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_phone: e.target.value })}
                   className="mt-1"
-                  placeholder="Enter contact phone"
+                  placeholder={t('Enter contact phone')}
                 />
               </div>
 
               <div>
-                <Label>Specialties</Label>
+                <Label>{t('Specialties')}</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     value={editSpecialtyInput}
@@ -744,7 +746,7 @@ const AdminDashboard = () => {
                         handleAddEditSpecialty();
                       }
                     }}
-                    placeholder="Add specialty"
+                    placeholder={t('Add specialty')}
                     className="flex-1"
                   />
                   <Button
@@ -753,7 +755,7 @@ const AdminDashboard = () => {
                     variant="outline"
                     className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white border-0"
                   >
-                    Add
+                    {t('Add')}
                   </Button>
                 </div>
                 {editClinicForm.specialties.length > 0 && (
@@ -779,14 +781,14 @@ const AdminDashboard = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={savingEdit}>
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleSaveEditClinic}
                 disabled={savingEdit}
                 className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
               >
-                {savingEdit ? 'Saving...' : 'Save Changes'}
+                {savingEdit ? t('Saving...') : t('Save Changes')}
               </Button>
             </DialogFooter>
           </DialogContent>

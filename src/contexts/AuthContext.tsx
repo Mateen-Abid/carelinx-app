@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/services/api';
 
 export type UserRole = 'patient' | 'clinic_admin' | 'super_admin' | 'doctor';
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const { t } = useTranslation();
 
   // Fetch user role from backend API (NO Supabase direct calls)
   const fetchUserRole = async (retryOnError = true): Promise<UserRole | null> => {
@@ -258,13 +260,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (message) {
         toast.info(message);
       } else {
-        toast.success('Account created successfully! Please check your email to confirm your account.');
+        toast.success(t('Account created successfully! Please check your email to confirm your account.'));
       }
       
       return { error: null };
     } catch (error: any) {
       console.error('❌ Sign up error:', error);
-      toast.error(error.message || 'Failed to create account');
+      toast.error(error.message || t('Failed to create account'));
       return { error };
     }
   };
@@ -292,11 +294,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       await fetchUserRole();
       
-      toast.success('Signed in successfully!');
+      toast.success(t('Signed in successfully!'));
       return { error: null };
     } catch (error: any) {
       console.error('❌ Sign in error:', error);
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error.message || t('Failed to sign in'));
       return { error };
     }
   };
@@ -311,17 +313,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(null);
       localStorage.removeItem('userRole');
       
-      toast.success('Signed out successfully');
+      toast.success(t('Signed out successfully'));
     } catch (error: any) {
       console.error('❌ Sign out error:', error);
-      toast.error('Failed to sign out');
+      toast.error(t('Failed to sign out'));
     }
   };
 
   const updateProfile = async (fullName: string) => {
     try {
       if (!user) {
-        toast.error('You must be signed in to update your profile');
+        toast.error(t('You must be signed in to update your profile'));
         return { error: new Error('Not authenticated') };
       }
 
@@ -346,11 +348,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      toast.success('Profile updated successfully');
+      toast.success(t('Profile updated successfully'));
       return { error: null };
     } catch (error: any) {
       console.error('❌ Update profile error:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || t('Failed to update profile'));
       return { error };
     }
   };
@@ -360,11 +362,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔐 Changing password via backend...');
       const { message } = await api.auth.changePassword(currentPassword, newPassword);
       
-      toast.success(message || 'Password changed successfully');
+      toast.success(message || t('Password changed successfully'));
       return { error: null };
     } catch (error: any) {
       console.error('❌ Change password error:', error);
-      toast.error(error.message || 'Failed to change password');
+      toast.error(error.message || t('Failed to change password'));
       return { error };
     }
   };
@@ -372,7 +374,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const updatePassword = async (newPassword: string, accessToken?: string, refreshToken?: string) => {
     try {
       if (!accessToken || !refreshToken) {
-        const error = new Error('Reset link is invalid or expired');
+        const error = new Error(t('Reset link is invalid or expired'));
         toast.error(error.message);
         return { error };
       }
@@ -387,17 +389,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession({ user: currentUser });
       }
 
-      toast.success(message || 'Password updated successfully');
-      return { error: null };
+      toast.success(message || t('Password updated successfully'));
+    return { error: null };
     } catch (error: any) {
       console.error('❌ Update password error:', error);
-      toast.error(error.message || 'Failed to update password');
+      toast.error(error.message || t('Failed to update password'));
       return { error };
     }
   };
 
   const deleteAccount = async () => {
-    toast.info('Account deletion will be implemented soon');
+    toast.info(t('Account deletion will be implemented soon'));
     return { error: null };
   };
 
@@ -406,11 +408,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('📧 Resending confirmation email to:', email);
       const { message } = await api.auth.resendConfirmation(email);
       
-      toast.success(message || 'Confirmation email has been sent. Please check your inbox.');
+      toast.success(message || t('Confirmation email has been sent. Please check your inbox.'));
       return { error: null };
     } catch (error: any) {
       console.error('❌ Resend confirmation error:', error);
-      toast.error(error.message || 'Failed to resend confirmation email');
+      toast.error(error.message || t('Failed to resend confirmation email'));
       return { error };
     }
   };
@@ -420,11 +422,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔐 Sending password reset email to:', email);
       const { message } = await api.auth.resetPassword(email);
       
-      toast.success(message || 'If an account exists with this email, a password reset link has been sent.');
+      toast.success(message || t('If an account exists with this email, a password reset link has been sent.'));
       return { error: null };
     } catch (error: any) {
       console.error('❌ Reset password error:', error);
-      toast.error(error.message || 'Failed to send password reset email');
+      toast.error(error.message || t('Failed to send password reset email'));
       return { error };
     }
   };

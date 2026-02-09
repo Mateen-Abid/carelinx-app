@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Patient {
   id: string;
@@ -55,6 +56,7 @@ const DoctorPatients = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorBookings, setDoctorBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -428,12 +430,12 @@ const DoctorPatients = () => {
 
       if (error) {
         console.error('Error updating patient:', error);
-        toast.error('Failed to update patient information. Please try again.');
+        toast.error(t('Failed to update patient information. Please try again.'));
         setSavingPatient(false);
         return;
       }
 
-      toast.success('Patient information updated successfully');
+      toast.success(t('Patient information updated successfully'));
 
       // If email is different, we might need to update it (but email is usually managed by auth)
       // For now, we'll just refresh the patient list
@@ -479,7 +481,7 @@ const DoctorPatients = () => {
       }
     } catch (error) {
       console.error('Error saving patient changes:', error);
-      toast.error('Failed to update patient information. Please try again.');
+      toast.error(t('Failed to update patient information. Please try again.'));
     } finally {
       setSavingPatient(false);
     }
@@ -508,12 +510,12 @@ const DoctorPatients = () => {
 
       // Check if there were any errors
       if (error1) {
-        toast.error('Failed to delete patient. Please try again.');
+        toast.error(t('Failed to delete patient. Please try again.'));
         setDeletingPatient(false);
         return;
       }
 
-      toast.success('Patient deleted successfully');
+      toast.success(t('Patient deleted successfully'));
       setIsDeleteConfirmModalOpen(false);
       setPatientToDelete(null);
       
@@ -523,7 +525,7 @@ const DoctorPatients = () => {
       }
     } catch (error) {
       console.error('Error deleting patient:', error);
-      toast.error('Failed to delete patient. Please try again.');
+      toast.error(t('Failed to delete patient. Please try again.'));
     } finally {
       setDeletingPatient(false);
     }
@@ -535,7 +537,7 @@ const DoctorPatients = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -551,7 +553,7 @@ const DoctorPatients = () => {
           <div className="p-8">
             {/* Header with Clinic Name & Logo */}
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Patients</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Patients')}</h1>
               
               <div className="flex items-center gap-3">
                 {clinic?.logo_url && (
@@ -634,7 +636,7 @@ const DoctorPatients = () => {
             {/* Patients Table Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                Patients Table
+                {t('Patients Table')}
               </h2>
 
               {/* Filters */}
@@ -647,13 +649,13 @@ const DoctorPatients = () => {
                       onValueChange={(value) => setGenderFilter(value === 'all' ? undefined : value)}
                     >
                       <SelectTrigger className="w-[180px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white h-10 rounded-md">
-                        <SelectValue placeholder="Gender" />
+                        <SelectValue placeholder={t('Gender')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="all">{t('All')}</SelectItem>
+                        <SelectItem value="Male">{t('Male')}</SelectItem>
+                        <SelectItem value="Female">{t('Female')}</SelectItem>
+                        <SelectItem value="Other">{t('Other')}</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -661,7 +663,7 @@ const DoctorPatients = () => {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none z-10" />
                       <Input
                         type="text"
-                        placeholder="Search by Patient name, doctor, contact or service..."
+                        placeholder={t('Search by Patient name, doctor, contact or service...')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 pr-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 h-10 rounded-md w-full"
@@ -676,7 +678,7 @@ const DoctorPatients = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading patients...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading patients...')}</p>
                 </div>
               ) : sortedPatients.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -692,34 +694,34 @@ const DoctorPatients = () => {
                           />
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Patient Name
+                          {t('Patient Name')}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Gender
+                          {t('Gender')}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           <button
                             onClick={() => handleSort('age')}
                             className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
                           >
-                            Age
+                            {t('Age')}
                             <ArrowUpDown className="w-4 h-4" />
                           </button>
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Contact
+                          {t('Contact')}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           <button
                             onClick={() => handleSort('lastAppointment')}
                             className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
                           >
-                            Last Appointment
+                            {t('Last Appointment')}
                             <ArrowUpDown className="w-4 h-4" />
                           </button>
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
+                          {t('Action')}
                         </th>
                       </tr>
                     </thead>
@@ -803,7 +805,7 @@ const DoctorPatients = () => {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">No patients found</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">{t('No patients found')}</p>
                   <p className="text-sm text-gray-400 dark:text-gray-400">
                     Patients will appear here once they book appointments.
                   </p>
@@ -839,21 +841,21 @@ const DoctorPatients = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Gender</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Gender')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Age</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Age')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {selectedPatient.age > 0 ? selectedPatient.age : 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Registration Date</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Registration Date')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {selectedPatient.firstAppointment 
                           ? format(new Date(selectedPatient.firstAppointment), 'MMM d, yyyy')
@@ -870,16 +872,16 @@ const DoctorPatients = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Contact</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Contact')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Email</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.email || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Email')}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.email || t('N/A')}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Address</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">N/A</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Address')}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('N/A')}</p>
                     </div>
                   </div>
                 </div>
@@ -892,7 +894,7 @@ const DoctorPatients = () => {
                   {loadingAppointments ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-2"></div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Loading appointments...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('Loading appointments...')}</p>
                     </div>
                   ) : patientAppointments.length > 0 ? (
                     <div className="overflow-x-auto">
@@ -937,10 +939,10 @@ const DoctorPatients = () => {
                                 </span>
                               </td>
                               <td className="py-3 px-4">
-                                <span className="text-sm text-gray-900 dark:text-white">{appointment.doctor_name || 'N/A'}</span>
+                                <span className="text-sm text-gray-900 dark:text-white">{appointment.doctor_name || t('N/A')}</span>
                               </td>
                               <td className="py-3 px-4">
-                                <span className="text-sm text-gray-900 dark:text-white">{appointment.specialty || 'N/A'}</span>
+                                <span className="text-sm text-gray-900 dark:text-white">{appointment.specialty || t('N/A')}</span>
                               </td>
                               <td className="py-3 px-4">
                                 {getAppointmentStatusBadge(appointment.status)}
@@ -952,7 +954,7 @@ const DoctorPatients = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No appointment history found</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('No appointment history found')}</p>
                     </div>
                   )}
                 </div>
@@ -987,7 +989,7 @@ const DoctorPatients = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Edit Patient Information
+                {t('Edit Patient Information')}
               </DialogTitle>
             </DialogHeader>
 
@@ -995,27 +997,27 @@ const DoctorPatients = () => {
               {/* PERSONAL INFORMATION Section */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                  PERSONAL INFORMATION
+                  {t('PERSONAL INFORMATION')}
                 </h3>
                 <div className="space-y-4">
                   {/* Full Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Full Name
+                      {t('Full Name')}
                     </label>
                     <Input
                       type="text"
                       value={editFormData.fullName}
                       onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
                       className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="Enter full name"
+                      placeholder={t('Enter full name')}
                     />
                   </div>
 
                   {/* Gender */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Gender
+                      {t('Gender')}
                     </label>
                     <Select
                       value={editFormData.gender}
@@ -1024,12 +1026,12 @@ const DoctorPatients = () => {
                       }
                     >
                       <SelectTrigger className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Select gender" />
+                        <SelectValue placeholder={t('Select gender')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Male">{t('Male')}</SelectItem>
+                        <SelectItem value="Female">{t('Female')}</SelectItem>
+                        <SelectItem value="Other">{t('Other')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1037,14 +1039,14 @@ const DoctorPatients = () => {
                   {/* Age */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Age
+                      {t('Age')}
                     </label>
                     <Input
                       type="number"
                       value={editFormData.age || ''}
                       onChange={(e) => setEditFormData({ ...editFormData, age: parseInt(e.target.value) || 0 })}
                       className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="Enter age"
+                      placeholder={t('Enter age')}
                       min="0"
                       max="120"
                     />
@@ -1055,41 +1057,41 @@ const DoctorPatients = () => {
               {/* CONTACT DETAILS Section */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                  CONTACT DETAILS
+                  {t('CONTACT DETAILS')}
                 </h3>
                 <div className="space-y-4">
                   {/* Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Email
+                      {t('Email')}
                     </label>
                     <Input
                       type="email"
                       value={editFormData.email}
                       onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                       className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="Enter email"
+                      placeholder={t('Enter email')}
                     />
                   </div>
 
                   {/* Phone */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Phone
+                      {t('Phone')}
                     </label>
                     <Input
                       type="tel"
                       value={editFormData.phone}
                       onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
                       className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      placeholder="Enter phone number"
+                      placeholder={t('Enter phone number')}
                     />
                   </div>
 
                   {/* Address */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Address
+                      {t('Address')}
                     </label>
                     <div className="relative">
                       <Input
@@ -1097,7 +1099,7 @@ const DoctorPatients = () => {
                         value={editFormData.address}
                         onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
                         className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white pr-10"
-                        placeholder="Enter address"
+                      placeholder={t('Enter address')}
                       />
                       <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
                     </div>
@@ -1154,20 +1156,20 @@ const DoctorPatients = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Patient Name</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Patient Name')}</p>
                       <p className="text-sm font-semibold text-gray-900">{patientToDelete.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Gender</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Gender')}</p>
                       <p className="text-sm font-semibold text-gray-900">{patientToDelete.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Contact</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Contact')}</p>
                       <p className="text-sm font-semibold text-gray-900">{patientToDelete.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1.5">Email</p>
-                      <p className="text-sm font-semibold text-gray-900">{patientToDelete.email || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 mb-1.5">{t('Email')}</p>
+                      <p className="text-sm font-semibold text-gray-900">{patientToDelete.email || t('N/A')}</p>
                     </div>
                   </div>
                 </div>

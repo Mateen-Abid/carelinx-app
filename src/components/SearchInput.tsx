@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getAllServices, getAllCategories, clinicsData } from '@/data/clinicsData';
+import { useTranslation } from 'react-i18next';
 
 interface SearchOption {
   id: string;
@@ -29,14 +30,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
   superAdminServices = [],
   superAdminSpecialties = []
 }) => {
+  const { t } = useTranslation();
   // Dynamic placeholder based on selected category
   const getPlaceholder = () => {
     if (selectedCategory === 'dermatology') {
-      return "Search dermatology services...";
+      return t('Search dermatology services...');
     } else if (selectedCategory === 'dentistry') {
-      return "Search dental services...";
+      return t('Search dental services...');
     } else {
-      return "Search by service, clinic, or doctor's name";
+      return t("Search by service, clinic, or doctor's name");
     }
   };
   const [searchValue, setSearchValue] = useState('');
@@ -271,7 +273,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
             <img
               src="https://api.builder.io/api/v1/image/assets/TEMP/57274afdd1238290026fe0d60710347fbb4f5f8b?placeholderIfAbsent=true"
               className="aspect-[1] object-contain w-5 self-stretch shrink-0 my-auto"
-              alt="Search Icon"
+              alt={t('Search Icon')}
             />
             <input
               type="text"
@@ -291,7 +293,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   setShowDropdown(false);
                 }}
                 className="flex items-center justify-center p-1 hover:bg-gray-100 rounded-full transition-colors mr-1"
-                title="Clear search"
+                title={t('Clear search')}
               >
                 <svg 
                   className="w-4 h-4 text-gray-500" 
@@ -345,8 +347,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
               
               {filteredOptions.length === 0 && searchValue.trim().length > 0 && (
                 <div className="px-4 py-8 text-center text-gray-500">
-                  <div className="text-sm">No services found for "{searchValue}"</div>
-                  <div className="text-xs mt-1">Try searching for a different service</div>
+                  <div className="text-sm">{t('No services found for "{{searchValue}}"', { searchValue })}</div>
+                  <div className="text-xs mt-1">{t('Try searching for a different service')}</div>
                 </div>
               )}
             </div>

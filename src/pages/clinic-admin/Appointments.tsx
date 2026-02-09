@@ -4,6 +4,7 @@ import ClinicAdminSidebar from '@/components/clinic-admin/ClinicAdminSidebar';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -53,6 +54,7 @@ interface Clinic {
 
 const ClinicAdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
@@ -236,9 +238,9 @@ const ClinicAdminAppointments = () => {
         }
         
         // Get patient name with better fallback - check all possible fields
-        let patientName = 'Unknown Patient';
+        let patientName = t('Unknown Patient');
         if (profile) {
-          patientName = profile.full_name || profile.name || profile.email || 'Unknown Patient';
+          patientName = profile.full_name || profile.name || profile.email || t('Unknown Patient');
         } else if (booking.user_id) {
           // If profile is missing but we have user_id, try to get name from booking data
           // This shouldn't happen if backend is working correctly, but as a fallback
@@ -246,7 +248,7 @@ const ClinicAdminAppointments = () => {
         }
         
         // Log the final patient name for debugging
-        if (patientName === 'Unknown Patient' && booking.user_id) {
+        if (patientName === t('Unknown Patient') && booking.user_id) {
           console.log('⚠️ Using "Unknown Patient" for booking:', {
             bookingId: booking.id,
             userId: booking.user_id,
@@ -259,8 +261,8 @@ const ClinicAdminAppointments = () => {
           id: booking.id,
           user_id: booking.user_id,
           patientName: patientName,
-          doctorName: booking.doctor_name || 'Unknown Doctor',
-          service: booking.specialty || 'General Consultation',
+          doctorName: booking.doctor_name || t('Unknown Doctor'),
+          service: booking.specialty || t('General Consultation'),
           appointment_date: booking.appointment_date,
           appointment_time: booking.appointment_time,
           status: mappedStatus,
@@ -300,25 +302,25 @@ const ClinicAdminAppointments = () => {
         bg: 'bg-green-100',
         text: 'text-green-800',
         icon: Check,
-        label: 'Approved',
+        label: t('Approved'),
       },
       cancelled: {
         bg: 'bg-red-100',
         text: 'text-red-800',
         icon: X,
-        label: 'Cancelled',
+        label: t('Cancelled'),
       },
       pending: {
         bg: 'bg-orange-100',
         text: 'text-orange-800',
         icon: Clock,
-        label: 'Pending',
+        label: t('Pending'),
       },
       completed: {
         bg: 'bg-blue-100',
         text: 'text-blue-800',
         icon: Check,
-        label: 'Completed',
+        label: t('Completed'),
       },
     };
 
@@ -362,7 +364,7 @@ const ClinicAdminAppointments = () => {
 
       if (!bookingData) {
         console.error('❌ Booking not found for ID:', appointment.id);
-        toast.error('Failed to load appointment details');
+        toast.error(t('Failed to load appointment details'));
         setIsDetailsModalOpen(false);
         return;
       }
@@ -391,15 +393,15 @@ const ClinicAdminAppointments = () => {
       // Build appointment details
       // Handle gender with fallback to sex field
       const genderValue = profileData?.gender || profileData?.sex;
-      let patientGender = 'Not specified';
+      let patientGender = t('Not specified');
       if (genderValue) {
         const genderLower = String(genderValue).toLowerCase();
         if (genderLower === 'male' || genderLower === 'm') {
-          patientGender = 'Male';
+          patientGender = t('Male');
         } else if (genderLower === 'female' || genderLower === 'f') {
-          patientGender = 'Female';
+          patientGender = t('Female');
         } else {
-          patientGender = 'Other';
+          patientGender = t('Other');
         }
       }
 
@@ -420,31 +422,31 @@ const ClinicAdminAppointments = () => {
 
       // Re-calculate gender with the final profile data
       const finalGenderValue = finalProfileData?.gender || finalProfileData?.sex;
-      let finalPatientGender = 'Not specified';
+      let finalPatientGender = t('Not specified');
       if (finalGenderValue) {
         const genderLower = String(finalGenderValue).toLowerCase();
         if (genderLower === 'male' || genderLower === 'm') {
-          finalPatientGender = 'Male';
+          finalPatientGender = t('Male');
         } else if (genderLower === 'female' || genderLower === 'f') {
-          finalPatientGender = 'Female';
+          finalPatientGender = t('Female');
         } else {
-          finalPatientGender = 'Other';
+          finalPatientGender = t('Other');
         }
       }
 
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: finalProfileData?.full_name || appointment.patientName || 'Unknown Patient',
+          name: finalProfileData?.full_name || appointment.patientName || t('Unknown Patient'),
           gender: finalPatientGender,
-          contact: finalProfileData?.phone || finalProfileData?.email || appointment.patientName || 'Not provided',
-          email: finalProfileData?.email || 'Not provided',
+          contact: finalProfileData?.phone || finalProfileData?.email || appointment.patientName || t('Not provided'),
+          email: finalProfileData?.email || t('Not provided'),
         },
         doctor: {
-          name: doctorData?.name || bookingData.doctor_name || appointment.doctorName || 'Unknown Doctor',
-          specialty: doctorData?.specialty || bookingData.specialty || appointment.service || 'General',
-          service: bookingData.specialty || appointment.service || 'General Consultation',
-          availability: doctorData?.availability || '9:00 AM - 5:00 PM',
+          name: doctorData?.name || bookingData.doctor_name || appointment.doctorName || t('Unknown Doctor'),
+          specialty: doctorData?.specialty || bookingData.specialty || appointment.service || t('General'),
+          service: bookingData.specialty || appointment.service || t('General Consultation'),
+          availability: doctorData?.availability || t('9:00 AM - 5:00 PM'),
         },
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
@@ -454,7 +456,7 @@ const ClinicAdminAppointments = () => {
       setSelectedAppointmentDetails(details);
     } catch (error) {
       console.error('Error loading appointment details:', error);
-      toast.error('Failed to load appointment details');
+      toast.error(t('Failed to load appointment details'));
     } finally {
       setLoadingDetails(false);
     }
@@ -474,7 +476,7 @@ const ClinicAdminAppointments = () => {
         confirmed_at: new Date().toISOString()
       });
 
-      toast.success('Appointment approved successfully');
+      toast.success(t('Appointment approved successfully'));
       setIsApproveConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -485,7 +487,7 @@ const ClinicAdminAppointments = () => {
       }
     } catch (error) {
       console.error('Error approving appointment:', error);
-      toast.error('Failed to approve appointment');
+      toast.error(t('Failed to approve appointment'));
     }
   };
 
@@ -502,7 +504,7 @@ const ClinicAdminAppointments = () => {
         status: 'cancelled'
       });
 
-      toast.success('Appointment cancelled successfully');
+      toast.success(t('Appointment cancelled successfully'));
       setIsCancelConfirmModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -513,7 +515,7 @@ const ClinicAdminAppointments = () => {
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
-      toast.error('Failed to cancel appointment');
+      toast.error(t('Failed to cancel appointment'));
     }
   };
 
@@ -544,7 +546,7 @@ const ClinicAdminAppointments = () => {
 
     // Validate inputs
     if (!newAppointmentDate || !newAppointmentTime) {
-      toast.error('Please select both date and time');
+      toast.error(t('Please select both date and time'));
       return;
     }
 
@@ -555,7 +557,7 @@ const ClinicAdminAppointments = () => {
       // Validate date
       const dateObj = new Date(formattedDate);
       if (isNaN(dateObj.getTime())) {
-        toast.error('Invalid date. Please select a valid date');
+        toast.error(t('Invalid date. Please select a valid date'));
         return;
       }
 
@@ -567,7 +569,7 @@ const ClinicAdminAppointments = () => {
         updated_at: new Date().toISOString()
       });
 
-      toast.success('Appointment rescheduled successfully');
+      toast.success(t('Appointment rescheduled successfully'));
       setIsRescheduleModalOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedAppointmentDetails(null);
@@ -580,7 +582,7 @@ const ClinicAdminAppointments = () => {
       }
     } catch (error: any) {
       console.error('Error rescheduling appointment:', error);
-      const errorMessage = error?.message || 'Failed to reschedule appointment';
+      const errorMessage = error?.message || t('Failed to reschedule appointment');
       console.error('Full error details:', {
         message: errorMessage,
         code: error?.code,
@@ -647,7 +649,7 @@ const ClinicAdminAppointments = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -665,7 +667,7 @@ const ClinicAdminAppointments = () => {
             <div className="mb-6">
               {/* Title and Clinic Info Row */}
               <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Appointments</h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Appointments')}</h1>
                 
                 {/* Clinic Name and Logo */}
                 <div className="flex items-center gap-3">
@@ -690,7 +692,7 @@ const ClinicAdminAppointments = () => {
                     </div>
                   )}
                   <span className="text-gray-900 dark:text-white font-medium text-base">
-                    {clinic?.name || 'Clinic'}
+                    {clinic?.name || t('Clinic')}
                   </span>
                 </div>
               </div>
@@ -709,7 +711,7 @@ const ClinicAdminAppointments = () => {
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      {filter === 'all' ? t('All') : t(filter.charAt(0).toUpperCase() + filter.slice(1))}
                     </button>
                   ))}
                 </div>
@@ -726,9 +728,9 @@ const ClinicAdminAppointments = () => {
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      {filter === 'today' ? 'Today' : 
-                       filter === 'tomorrow' ? 'Tomorrow' : 
-                       filter === 'this-week' ? 'This week' : 'To date'}
+                      {filter === 'today' ? t('Today') : 
+                       filter === 'tomorrow' ? t('Tomorrow') : 
+                       filter === 'this-week' ? t('This week') : t('To date')}
                     </button>
                   ))}
                 </div>
@@ -740,7 +742,7 @@ const ClinicAdminAppointments = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     type="text"
-                    placeholder="Search by patient, doctor, or service..."
+                    placeholder={t('Search by patient, doctor, or service...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
@@ -754,7 +756,7 @@ const ClinicAdminAppointments = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading appointments...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading appointments...')}</p>
                 </div>
               ) : filteredAppointments.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -773,34 +775,34 @@ const ClinicAdminAppointments = () => {
                           sortDirection={getSortDirection('patientName')}
                           onSort={() => handleSort('patientName')}
                         >
-                          Patient Name
+                          {t('Patient Name')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('doctorName')}
                           onSort={() => handleSort('doctorName')}
                         >
-                          Doctor's Name
+                          {t("Doctor's Name")}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('service')}
                           onSort={() => handleSort('service')}
                         >
-                          Service
+                          {t('Service')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('appointment_date')}
                           onSort={() => handleSort('appointment_date')}
                         >
-                          Date & Time
+                          {t('Date & Time')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getSortDirection('status')}
                           onSort={() => handleSort('status')}
                         >
-                          Status
+                          {t('Status')}
                         </TableSortHeader>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
+                          {t('Action')}
                         </th>
                       </tr>
                     </thead>
@@ -839,7 +841,7 @@ const ClinicAdminAppointments = () => {
                               className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
                               onClick={() => handleViewDetails(appointment)}
                             >
-                              View Details
+                              {t('View Details')}
                             </Button>
                           </td>
                         </tr>
@@ -849,7 +851,7 @@ const ClinicAdminAppointments = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">No appointments found</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No appointments found')}</p>
                 </div>
               )}
             </div>
@@ -868,7 +870,7 @@ const ClinicAdminAppointments = () => {
             {loadingDetails ? (
               <div className="p-12 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading appointment details...</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('Loading appointment details...')}</p>
               </div>
             ) : selectedAppointmentDetails ? (
               <div className="px-6 py-6">
@@ -879,19 +881,19 @@ const ClinicAdminAppointments = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Gender</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Gender')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.gender}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Contact</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Contact')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.contact}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Email</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Email')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.email}</p>
                     </div>
                   </div>
@@ -900,23 +902,23 @@ const ClinicAdminAppointments = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    DOCTOR'S / TREATMENT INFORMATION
+                    {t("Doctor's / Treatment Information")}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Name</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Name')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Specialty</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.specialty}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Availability</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.availability}</p>
                     </div>
                   </div>
@@ -930,21 +932,21 @@ const ClinicAdminAppointments = () => {
                     className="border-red-600 dark:border-red-500 text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
                     <X className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    Cancel Appointment
+                    {t('Cancel Appointment')}
                   </Button>
                   <Button
                     onClick={handleRescheduleAppointment}
                     className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
                     <Clock className="w-4 h-4" />
-                    Reschedule
+                    {t('Reschedule')}
                   </Button>
                   <Button
                     onClick={handleApproveAppointment}
                     className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium shadow-sm"
                   >
                     <Check className="w-4 h-4 text-white" />
-                    Approve Appointment
+                    {t('Approve Appointment')}
                   </Button>
                 </div>
               </div>
@@ -957,7 +959,7 @@ const ClinicAdminAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Approve Appointment
+                {t('Approve Appointment')}
               </DialogTitle>
             </DialogHeader>
 
@@ -980,26 +982,26 @@ const ClinicAdminAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
+                        {formatDate(selectedAppointmentDetails.appointment_date)} {t('at')} {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Pending Approval</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Status')}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('Pending Approval')}</p>
                     </div>
                   </div>
                 </div>
@@ -1007,7 +1009,7 @@ const ClinicAdminAppointments = () => {
                 {/* Confirmation Message */}
                 <div className="mb-6">
                   <p className="text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed">
-                    Are you sure you want to approve this appointment? This will confirm the booking and notify both parties.
+                    {t('Are you sure you want to approve this appointment? This will confirm the booking and notify both parties.')}
                   </p>
                 </div>
 
@@ -1018,13 +1020,13 @@ const ClinicAdminAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </Button>
                   <Button
                     onClick={handleConfirmApprove}
                     className="flex-1 bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm"
                   >
-                    Approve Appointment
+                    {t('Approve Appointment')}
                   </Button>
                 </div>
               </div>
@@ -1037,7 +1039,7 @@ const ClinicAdminAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Cancel Appointment
+                {t('Cancel Appointment')}
               </DialogTitle>
             </DialogHeader>
 
@@ -1060,26 +1062,26 @@ const ClinicAdminAppointments = () => {
                 <div className="mb-6">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Patient</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Patient')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doctor</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Doctor')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Date & Time</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
+                        {formatDate(selectedAppointmentDetails.appointment_date)} {t('at')} {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Service</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Status</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Pending Approval</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Status')}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('Pending Approval')}</p>
                     </div>
                   </div>
                 </div>
@@ -1087,7 +1089,7 @@ const ClinicAdminAppointments = () => {
                 {/* Warning Message */}
                 <div className="mb-6">
                   <p className="text-sm text-red-600 dark:text-red-400 text-center leading-relaxed">
-                    Once cancelled, this appointment will be marked as "Cancelled".
+                    {t('Once cancelled, this appointment will be marked as "Cancelled".')}
                   </p>
                 </div>
 
@@ -1098,13 +1100,13 @@ const ClinicAdminAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Discard
+                    {t('Discard')}
                   </Button>
                   <Button
                     onClick={handleConfirmCancel}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Cancellation
+                    {t('Confirm Cancellation')}
                   </Button>
                 </div>
               </div>
@@ -1117,7 +1119,7 @@ const ClinicAdminAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Confirmation
+                {t('Confirmation')}
               </DialogTitle>
             </DialogHeader>
 
@@ -1136,17 +1138,24 @@ const ClinicAdminAppointments = () => {
                 {/* Question */}
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    Reschedule Appointment?
+                    {t('Reschedule Appointment?')}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                    Are you sure you want to reschedule this appointment? Previous: {formatDateForReschedule(selectedAppointmentDetails.appointment_date)} - {formatTime(selectedAppointmentDetails.appointment_time)} with {selectedAppointmentDetails.doctor.name}
+                    {t(
+                      'Are you sure you want to reschedule this appointment? Previous: {{date}} - {{time}} with {{doctor}}',
+                      {
+                        date: formatDateForReschedule(selectedAppointmentDetails.appointment_date),
+                        time: formatTime(selectedAppointmentDetails.appointment_time),
+                        doctor: selectedAppointmentDetails.doctor.name,
+                      }
+                    )}
                   </p>
                 </div>
 
                 {/* Date and Time Inputs */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New date</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">{t('New date')}</label>
                     <div className="relative">
                       <Calendar 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
@@ -1166,7 +1175,7 @@ const ClinicAdminAppointments = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">New time</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">{t('New time')}</label>
                     <div className="relative">
                       <Clock 
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
@@ -1197,13 +1206,13 @@ const ClinicAdminAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </Button>
                   <Button
                     onClick={handleConfirmReschedule}
                     className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] dark:bg-[#00FFA2] dark:hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Reschedule
+                    {t('Confirm Reschedule')}
                   </Button>
                 </div>
               </div>

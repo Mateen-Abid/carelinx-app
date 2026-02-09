@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { exportToExcel } from '@/utils/excelExport';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
+import { useTranslation } from 'react-i18next';
 
 interface Clinic {
   id: string;
@@ -48,6 +49,7 @@ interface Clinic {
 
 const AdminClinics = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'suspended'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'tomorrow' | 'this-week' | 'all-time'>('all-time');
   const [searchQuery, setSearchQuery] = useState('');
@@ -209,17 +211,17 @@ const AdminClinics = () => {
   const handleNextStep = () => {
     // Validate credentials step
     if (!newClinic.email || !newClinic.password || !newClinic.confirmPassword) {
-      toast.error('Please fill in all fields');
+      toast.error(t('Please fill in all fields'));
       return;
     }
 
     if (newClinic.password !== newClinic.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('Passwords do not match'));
       return;
     }
 
     if (newClinic.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('Password must be at least 6 characters'));
       return;
     }
 
@@ -231,7 +233,7 @@ const AdminClinics = () => {
     try {
       // Validate details step
       if (!newClinic.name || !newClinic.address) {
-        toast.error('Please fill in clinic name and address');
+        toast.error(t('Please fill in clinic name and address'));
         return;
       }
 
@@ -288,10 +290,10 @@ const AdminClinics = () => {
         specialties: [],
       });
       fetchClinics(); // Refresh list
-      toast.success('Clinic added successfully!');
+      toast.success(t('Clinic added successfully!'));
     } catch (error: any) {
       console.error('❌ Error adding clinic:', error);
-      toast.error('Error adding clinic: ' + (error.message || 'Unknown error'));
+      toast.error(t('Error adding clinic: {{message}}', { message: error.message || t('Unknown error') }));
     }
   };
 
@@ -327,7 +329,7 @@ const AdminClinics = () => {
 
   const handleSuspendClinic = async () => {
     if (!selectedClinic || !suspendReason.trim()) {
-      toast.error('Please provide a reason for suspension');
+      toast.error(t('Please provide a reason for suspension'));
       return;
     }
 
@@ -367,12 +369,12 @@ const AdminClinics = () => {
       await fetchClinics();
       
       // Show success message
-      toast.success(`Clinic "${selectedClinic.name}" has been suspended successfully. It will no longer be visible on the public page.`);
+      toast.success(t('Clinic "{{name}}" has been suspended successfully. It will no longer be visible on the public page.', { name: selectedClinic.name }));
       
       setSelectedClinic(null);
     } catch (error: any) {
       console.error('❌ Error suspending clinic:', error);
-      toast.error('Error suspending clinic: ' + (error.message || 'Unknown error'));
+      toast.error(t('Error suspending clinic: {{message}}', { message: error.message || t('Unknown error') }));
     }
   };
 
@@ -412,7 +414,7 @@ const AdminClinics = () => {
     if (!selectedClinic) return;
 
     if (!editClinicForm.name || !editClinicForm.address) {
-      toast.error('Please fill in clinic name and address');
+      toast.error(t('Please fill in clinic name and address'));
       return;
     }
 
@@ -466,10 +468,10 @@ const AdminClinics = () => {
       // Refresh the clinics list to ensure data is in sync with database
       await fetchClinics();
       
-      toast.success('Clinic updated successfully. Changes will be reflected in the clinic admin profile.');
+      toast.success(t('Clinic updated successfully. Changes will be reflected in the clinic admin profile.'));
     } catch (error: any) {
       console.error('❌ Error updating clinic:', error);
-      toast.error('Error updating clinic: ' + (error.message || 'Unknown error'));
+      toast.error(t('Error updating clinic: {{message}}', { message: error.message || t('Unknown error') }));
     } finally {
       setSavingEdit(false);
     }
@@ -484,7 +486,7 @@ const AdminClinics = () => {
   const handleSuspendClinicClick = async () => {
     // Directly suspend the clinic after reason is provided
     if (!selectedClinic || !suspendReason.trim()) {
-      toast.error('Please provide a reason for suspension');
+      toast.error(t('Please provide a reason for suspension'));
       return;
     }
     
@@ -526,29 +528,42 @@ const AdminClinics = () => {
       await fetchClinics();
       
       // Show success message
-      toast.success(`Clinic "${clinic.name}" has been unsuspended successfully. It will now be visible on the public page.`);
+      toast.success(t('Clinic "{{name}}" has been unsuspended successfully. It will now be visible on the public page.', { name: clinic.name }));
     } catch (error: any) {
       console.error('❌ Error unsuspending clinic:', error);
-      toast.error('Error unsuspending clinic: ' + (error.message || 'Unknown error'));
+      toast.error(t('Error unsuspending clinic: {{message}}', { message: error.message || t('Unknown error') }));
+    }
+  };
+
+  const getStatusLabel = (status: Clinic['status']) => {
+    switch (status) {
+      case 'active':
+        return t('Active');
+      case 'pending':
+        return t('Pending');
+      case 'suspended':
+        return t('Suspended');
+      default:
+        return t('Unknown');
     }
   };
 
   const handleExportToExcel = () => {
     const exportData = filteredClinics.map((clinic) => ({
-      'Clinic Name': clinic.name,
-      'Email': clinic.email,
-      'Address': clinic.address,
-      'Contact Phone': clinic.contact_phone || 'N/A',
-      'Contact Email': clinic.contact_email || 'N/A',
-      'Website': clinic.website || 'N/A',
-      'Specialties': clinic.specialties?.join(', ') || 'None',
-      'Status': clinic.status.charAt(0).toUpperCase() + clinic.status.slice(1),
-      'Registration Date': formatDate(clinic.registration_date),
-      'Created At': formatDate(clinic.created_at),
+      [t('Clinic Name')]: clinic.name,
+      [t('Email')]: clinic.email,
+      [t('Address')]: clinic.address,
+      [t('Contact Phone')]: clinic.contact_phone || t('N/A'),
+      [t('Contact Email')]: clinic.contact_email || t('N/A'),
+      [t('Website')]: clinic.website || t('N/A'),
+      [t('Specialties')]: clinic.specialties?.join(', ') || t('None'),
+      [t('Status')]: clinic.status.charAt(0).toUpperCase() + clinic.status.slice(1),
+      [t('Registration Date')]: formatDate(clinic.registration_date),
+      [t('Created At')]: formatDate(clinic.created_at),
     }));
 
-    exportToExcel(exportData, 'Clinics');
-    toast.success('Clinics data exported successfully!');
+    exportToExcel(exportData, t('Clinics'));
+    toast.success(t('Clinics data exported successfully!'));
   };
 
 
@@ -562,7 +577,7 @@ const AdminClinics = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clinics</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Clinics')}</h1>
               <div className="flex items-center gap-3">
                 <Button 
                   onClick={handleExportToExcel}
@@ -570,7 +585,7 @@ const AdminClinics = () => {
                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium px-6"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export to Excel
+                  {t('Export to Excel')}
                 </Button>
               </div>
             </div>
@@ -583,7 +598,7 @@ const AdminClinics = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
                     type="text"
-                    placeholder="Search by clinic name, location, or specialty..."
+                    placeholder={t('Search by clinic name, location, or specialty...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-full h-10"
@@ -616,27 +631,27 @@ const AdminClinics = () => {
                         sortDirection={getSortDirection('name')}
                         onSort={() => handleSort('name')}
                       >
-                        Clinics Name
+                        {t('Clinics Name')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('address')}
                         onSort={() => handleSort('address')}
                       >
-                        Locations
+                        {t('Locations')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('specialties')}
                         onSort={() => handleSort('specialties')}
                       >
-                        Specialties
+                        {t('Specialties')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('status')}
                         onSort={() => handleSort('status')}
                       >
-                        Status
+                        {t('Status')}
                       </TableSortHeader>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Action</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Action')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -672,7 +687,7 @@ const AdminClinics = () => {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-sm text-gray-400 dark:text-gray-500">No specialties</span>
+                              <span className="text-sm text-gray-400 dark:text-gray-500">{t('No specialties')}</span>
                             )}
                           </div>
                         </td>
@@ -691,7 +706,7 @@ const AdminClinics = () => {
                             ) : clinic.status === 'suspended' ? (
                               <X className="w-3.5 h-3.5" />
                             ) : null}
-                            {clinic.status.charAt(0).toUpperCase() + clinic.status.slice(1)}
+                            {getStatusLabel(clinic.status)}
                           </span>
                         </td>
                         <td className="py-4 px-6">
@@ -711,14 +726,14 @@ const AdminClinics = () => {
                                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2"
                               >
                                 <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-sm text-gray-900 dark:text-gray-100">View Details</span>
+                                <span className="text-sm text-gray-900 dark:text-gray-100">{t('View Details')}</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleOpenEditModal(clinic)}
                                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2"
                               >
                                 <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-sm text-gray-900 dark:text-gray-100">Edit Clinic Info</span>
+                                <span className="text-sm text-gray-900 dark:text-gray-100">{t('Edit Clinic Info')}</span>
                               </DropdownMenuItem>
                               {clinic.status === 'suspended' ? (
                                 <DropdownMenuItem
@@ -726,7 +741,7 @@ const AdminClinics = () => {
                                   className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-green-600 dark:text-green-400"
                                 >
                                   <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                  <span className="text-sm">Unsuspend Clinic</span>
+                                  <span className="text-sm">{t('Unsuspend Clinic')}</span>
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem
@@ -734,7 +749,7 @@ const AdminClinics = () => {
                                   className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-2 text-red-600 dark:text-red-400"
                                 >
                                   <Ban className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                  <span className="text-sm">Suspend Clinic</span>
+                                  <span className="text-sm">{t('Suspend Clinic')}</span>
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
@@ -782,40 +797,40 @@ const AdminClinics = () => {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Clinic</DialogTitle>
+            <DialogTitle>{t('Add New Clinic')}</DialogTitle>
           </DialogHeader>
           
           {addClinicStep === 'credentials' ? (
             <>
               <div className="space-y-4 py-4">
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('Email')}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter clinic email"
+                    placeholder={t('Enter clinic email')}
                     value={newClinic.email}
                     onChange={(e) => setNewClinic({ ...newClinic, email: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t('Password')}</Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Password"
+                    placeholder={t('Password')}
                     value={newClinic.password}
                     onChange={(e) => setNewClinic({ ...newClinic, password: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">{t('Confirm Password')}</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
-                    placeholder="Confirm Password"
+                    placeholder={t('Confirm Password')}
                     value={newClinic.confirmPassword}
                     onChange={(e) => setNewClinic({ ...newClinic, confirmPassword: e.target.value })}
                     className="mt-1"
@@ -824,10 +839,10 @@ const AdminClinics = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddModal(false)}>
-                  Cancel
+                  {t('Cancel')}
                 </Button>
                 <Button onClick={handleNextStep} className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] flex items-center gap-2">
-                  Next
+                  {t('Next')}
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </DialogFooter>
@@ -836,61 +851,61 @@ const AdminClinics = () => {
             <>
               <div className="space-y-4 py-4">
                 <div>
-                  <Label htmlFor="name">Clinic Name</Label>
+                  <Label htmlFor="name">{t('Clinic Name')}</Label>
                   <Input
                     id="name"
-                    placeholder="Enter clinic name"
+                    placeholder={t('Enter clinic name')}
                     value={newClinic.name}
                     onChange={(e) => setNewClinic({ ...newClinic, name: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t('Address')}</Label>
                   <Input
                     id="address"
-                    placeholder="Enter clinic address"
+                    placeholder={t('Enter clinic address')}
                     value={newClinic.address}
                     onChange={(e) => setNewClinic({ ...newClinic, address: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Label htmlFor="contact_phone">{t('Contact Phone')}</Label>
                   <Input
                     id="contact_phone"
-                    placeholder="Enter contact phone"
+                    placeholder={t('Enter contact phone')}
                     value={newClinic.contact_phone}
                     onChange={(e) => setNewClinic({ ...newClinic, contact_phone: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="contact_email">Contact Email</Label>
+                  <Label htmlFor="contact_email">{t('Contact Email')}</Label>
                   <Input
                     id="contact_email"
                     type="email"
-                    placeholder="Enter contact email (optional)"
+                    placeholder={t('Enter contact email (optional)')}
                     value={newClinic.contact_email}
                     onChange={(e) => setNewClinic({ ...newClinic, contact_email: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="website">Website</Label>
+                  <Label htmlFor="website">{t('Website')}</Label>
                   <Input
                     id="website"
-                    placeholder="Enter website URL (optional)"
+                    placeholder={t('Enter website URL (optional)')}
                     value={newClinic.website}
                     onChange={(e) => setNewClinic({ ...newClinic, website: e.target.value })}
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('Description')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Enter clinic description (optional)"
+                    placeholder={t('Enter clinic description (optional)')}
                     value={newClinic.description}
                     onChange={(e) => setNewClinic({ ...newClinic, description: e.target.value })}
                     className="mt-1"
@@ -900,10 +915,10 @@ const AdminClinics = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAddClinicStep('credentials')}>
-                  Back
+                  {t('Back')}
                 </Button>
                 <Button onClick={handleAddClinic} className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0C2243]/90 dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243]">
-                  Create Clinic
+                  {t('Create Clinic')}
                 </Button>
               </DialogFooter>
             </>
@@ -930,7 +945,7 @@ const AdminClinics = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-800 [&>button]:hidden">
           {/* Custom Header with Close Button */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4">
-            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Clinic Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">{t('Clinic Details')}</DialogTitle>
             <button
               onClick={() => setShowDetailsModal(false)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -943,7 +958,7 @@ const AdminClinics = () => {
             <div className="px-6 pb-6 space-y-6">
               {/* CLINIC OVERVIEW Section */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">CLINIC OVERVIEW</h3>
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('Clinic Overview')}</h3>
                 <div className="flex items-start gap-4">
                   {/* Logo */}
                   <div className="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
@@ -987,19 +1002,19 @@ const AdminClinics = () => {
                             ? 'bg-orange-600'
                             : 'bg-red-600'
                         }`}></span>
-                        {selectedClinic.status.charAt(0).toUpperCase() + selectedClinic.status.slice(1)}
+                        {getStatusLabel(selectedClinic.status)}
                       </span>
                     </div>
                     
                     {/* Registration Date */}
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">Registration Date:</span> {formatDate(selectedClinic.registration_date)}
+                      <span className="font-medium">{t('Registration Date')}:</span> {formatDate(selectedClinic.registration_date)}
                     </p>
                     
                     {/* Specialties as tags */}
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        <span className="font-medium">Specialties:</span>
+                        <span className="font-medium">{t('Specialties')}:</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {selectedClinic.specialties && selectedClinic.specialties.length > 0 ? (
@@ -1009,14 +1024,14 @@ const AdminClinics = () => {
                             </span>
                           ))
                         ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">No specialties listed</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">{t('No specialties listed')}</span>
                         )}
                       </div>
                     </div>
                     
                     {/* Description */}
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {selectedClinic.description || 'No description provided'}
+                      {selectedClinic.description || t('No description provided')}
                     </p>
                   </div>
                 </div>
@@ -1024,30 +1039,30 @@ const AdminClinics = () => {
 
               {/* CONTACT INFO Section */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">CONTACT INFO</h3>
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('Contact Info')}</h3>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Address</Label>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Address')}</Label>
                     <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.address}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Contact</Label>
-                    <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_phone || 'N/A'}</p>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Contact')}</Label>
+                    <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_phone || t('N/A')}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Email</Label>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Email')}</Label>
                     <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.contact_email || selectedClinic.email}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Website</Label>
-                    <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.website || 'N/A'}</p>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Website')}</Label>
+                    <p className="text-sm text-gray-900 dark:text-white">{selectedClinic.website || t('N/A')}</p>
                   </div>
                 </div>
               </div>
 
               {/* STATS OVERVIEW Section */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">STATS OVERVIEW</h3>
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wider">{t('Stats Overview')}</h3>
                 {loadingStats ? (
                   <div className="flex items-center justify-center py-4">
                     <div className="w-8 h-8 border-4 border-[#0C2243] border-t-transparent rounded-full animate-spin"></div>
@@ -1055,15 +1070,15 @@ const AdminClinics = () => {
                 ) : (
                   <div className="grid grid-cols-3 gap-6">
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Doctors</Label>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Doctors')}</Label>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalDoctors}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Patients</Label>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Patients')}</Label>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalPatients}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Total Appointments</Label>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">{t('Total Appointments')}</Label>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{clinicStats.totalAppointments}</p>
                     </div>
                   </div>
@@ -1085,7 +1100,7 @@ const AdminClinics = () => {
                 className="bg-green-600 border-2 border-white text-white hover:bg-green-700 flex items-center gap-2 px-4 py-2 rounded-lg"
               >
                 <Check className="w-4 h-4 text-white" />
-                <span className="text-white">Unsuspend Clinic</span>
+                <span className="text-white">{t('Unsuspend Clinic')}</span>
               </Button>
             ) : (
               <Button
@@ -1098,7 +1113,7 @@ const AdminClinics = () => {
                 className="bg-red-600 border-2 border-white text-white hover:bg-red-700 flex items-center gap-2 px-4 py-2 rounded-lg"
               >
                 <Ban className="w-4 h-4 text-white" />
-                <span className="text-white">Suspend Clinic</span>
+                <span className="text-white">{t('Suspend Clinic')}</span>
               </Button>
             )}
             <Button
@@ -1112,7 +1127,7 @@ const AdminClinics = () => {
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 px-4 py-2 rounded-lg"
             >
               <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              <span>Edit Clinic Info</span>
+              <span>{t('Edit Clinic Info')}</span>
             </Button>
           </div>
         </DialogContent>
@@ -1123,7 +1138,7 @@ const AdminClinics = () => {
         <DialogContent className="max-w-md p-0">
           {/* Custom Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">Suspend Clinic</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">{t('Suspend Clinic')}</DialogTitle>
           </div>
           
           <div className="px-6 py-6">
@@ -1141,21 +1156,21 @@ const AdminClinics = () => {
             </div>
 
             {/* Main Heading */}
-            <h3 className="text-xl font-bold text-center mb-3 text-gray-900 dark:text-white">Suspend Clinic</h3>
+            <h3 className="text-xl font-bold text-center mb-3 text-gray-900 dark:text-white">{t('Suspend Clinic')}</h3>
             
             {/* Description Text */}
             <p className="text-sm text-gray-700 dark:text-gray-300 text-center mb-6">
-              You're about to suspend <span className="font-bold text-red-600">'{selectedClinic?.name}'</span>. This clinic will be hidden from the public page until you unsuspend it.
+              {t("You're about to suspend {{clinicName}}. This clinic will be hidden from the public page until you unsuspend it.", { clinicName: `'${selectedClinic?.name}'` })}
             </p>
 
             {/* Reason Input Field */}
             <div>
               <Label htmlFor="suspendReason" className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
-                Reason
+                {t('Reason')}
               </Label>
               <Textarea
                 id="suspendReason"
-                placeholder="Add a reason for suspending"
+                placeholder={t('Add a reason for suspending')}
                 value={suspendReason}
                 onChange={(e) => setSuspendReason(e.target.value)}
                 className="w-full min-h-[100px] border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -1174,14 +1189,14 @@ const AdminClinics = () => {
               }}
               className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button 
               onClick={handleSuspendClinicClick}
               disabled={!suspendReason.trim()}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Suspend Clinic
+              {t('Suspend Clinic')}
             </Button>
           </div>
         </DialogContent>
@@ -1192,7 +1207,7 @@ const AdminClinics = () => {
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>New Clinic Onboarding</DialogTitle>
+            <DialogTitle>{t('New Clinic Onboarding')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <div className="flex justify-center mb-4">
@@ -1200,21 +1215,22 @@ const AdminClinics = () => {
                 <Check className="w-8 h-8 text-green-600" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-center mb-4">Clinic Added Successfully</h3>
+            <h3 className="text-xl font-bold text-center mb-4">{t('Clinic Added Successfully')}</h3>
             {newlyAddedClinic && (
               <div className="space-y-2 text-center">
                 <p>
-                  <span className="font-semibold">Clinic:</span> <span className="font-bold">{newlyAddedClinic.name}</span>
+                  <span className="font-semibold">{t('Clinic')}:</span> <span className="font-bold">{newlyAddedClinic.name}</span>
                 </p>
                 <p>
-                  <span className="font-semibold">Status:</span> <span className="font-bold">{newlyAddedClinic.status.charAt(0).toUpperCase() + newlyAddedClinic.status.slice(1)}</span>
+                  <span className="font-semibold">{t('Status')}:</span>{' '}
+                  <span className="font-bold">{getStatusLabel(newlyAddedClinic.status)}</span>
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
-              Close
+              {t('Close')}
             </Button>
             <Button 
               onClick={() => {
@@ -1235,68 +1251,68 @@ const AdminClinics = () => {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Clinic Info</DialogTitle>
+            <DialogTitle>{t('Edit Clinic Info')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="edit-name">Clinic Name *</Label>
+              <Label htmlFor="edit-name">{t('Clinic Name')} *</Label>
               <Input
                 id="edit-name"
                 value={editClinicForm.name}
                 onChange={(e) => setEditClinicForm({ ...editClinicForm, name: e.target.value })}
                 className="mt-1"
-                placeholder="Enter clinic name"
+                placeholder={t('Enter clinic name')}
               />
             </div>
 
             <div>
-              <Label htmlFor="edit-address">Address *</Label>
+              <Label htmlFor="edit-address">{t('Address')} *</Label>
               <Input
                 id="edit-address"
                 value={editClinicForm.address}
                 onChange={(e) => setEditClinicForm({ ...editClinicForm, address: e.target.value })}
                 className="mt-1"
-                placeholder="Enter clinic address"
+                placeholder={t('Enter clinic address')}
               />
             </div>
 
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">{t('Description')}</Label>
               <Textarea
                 id="edit-description"
                 value={editClinicForm.description}
                 onChange={(e) => setEditClinicForm({ ...editClinicForm, description: e.target.value })}
                 className="mt-1"
-                placeholder="Enter clinic description"
+                placeholder={t('Enter clinic description')}
                 rows={3}
               />
             </div>
 
             <div>
-              <Label htmlFor="edit-contact-email">Contact Email</Label>
+              <Label htmlFor="edit-contact-email">{t('Contact Email')}</Label>
               <Input
                 id="edit-contact-email"
                 type="email"
                 value={editClinicForm.contact_email}
                 onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_email: e.target.value })}
                 className="mt-1"
-                placeholder="Enter contact email"
+                placeholder={t('Enter contact email')}
               />
             </div>
 
             <div>
-              <Label htmlFor="edit-contact-phone">Contact Phone</Label>
+              <Label htmlFor="edit-contact-phone">{t('Contact Phone')}</Label>
               <Input
                 id="edit-contact-phone"
                 value={editClinicForm.contact_phone}
                 onChange={(e) => setEditClinicForm({ ...editClinicForm, contact_phone: e.target.value })}
                 className="mt-1"
-                placeholder="Enter contact phone"
+                placeholder={t('Enter contact phone')}
               />
             </div>
 
             <div>
-              <Label>Specialties</Label>
+              <Label>{t('Specialties')}</Label>
               <div className="flex gap-2 mt-1">
                 <Input
                   value={editSpecialtyInput}
@@ -1307,7 +1323,7 @@ const AdminClinics = () => {
                       handleAddEditSpecialty();
                     }
                   }}
-                  placeholder="Add specialty"
+                  placeholder={t('Add specialty')}
                   className="flex-1"
                 />
                 <Button
@@ -1316,7 +1332,7 @@ const AdminClinics = () => {
                   variant="outline"
                   className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white border-0"
                 >
-                  Add
+                  {t('Add')}
                 </Button>
               </div>
               {editClinicForm.specialties.length > 0 && (
@@ -1342,7 +1358,7 @@ const AdminClinics = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={savingEdit}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleSaveEditClinic}

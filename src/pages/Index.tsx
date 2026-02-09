@@ -13,6 +13,7 @@ import SearchInput from '@/components/SearchInput';
 import { BookingModal } from '@/components/BookingModal';
 import { clinicsData, getAllServices, getAllCategories } from '@/data/clinicsData';
 import { api } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 
 interface DatabaseClinic {
   id: string;
@@ -65,6 +66,7 @@ const Index = () => {
   const confirmAgeMs = emailConfirmMeta.time ? Date.now() - emailConfirmMeta.time : null;
   const isRecentEmailConfirm = shouldHandleEmailConfirm && (confirmAgeMs === null || confirmAgeMs < 10 * 60 * 1000);
   const { user, userRole } = useAuth(); // Get user and role from AuthContext to check if email was just confirmed
+  const { t } = useTranslation();
 
   // Check for email confirmation tokens on mount and redirect immediately
   // This runs BEFORE any rendering happens
@@ -228,7 +230,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#00FFA2] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Redirecting...</p>
+          <p className="text-gray-600">{t('Redirecting...')}</p>
         </div>
       </div>
     );
@@ -429,7 +431,7 @@ const Index = () => {
         services: (clinic.specialties || []).slice(0, 4).map(specialty => ({
           name: specialty,
           icon: defaultIcon
-        })).concat((clinic.specialties || []).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
+        })).concat((clinic.specialties || []).length > 4 ? [{ name: t('More'), icon: defaultIcon }] : []),
         doctorCount: hardcodedClinic?.doctorCount || 'Multiple Doctors',
         daysOpen: hardcodedClinic?.daysOpen || 'Mon – Sat',
         timing: hardcodedClinic?.timing || '9:00 AM – 6:00 PM',
@@ -448,7 +450,7 @@ const Index = () => {
       services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
         name: categoryName,
         icon: defaultIcon
-      })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: "More", icon: defaultIcon }] : []),
+      })).concat(Object.keys(clinic.categories).length > 4 ? [{ name: t('More'), icon: defaultIcon }] : []),
       doctorCount: clinic.doctorCount,
       daysOpen: clinic.daysOpen,
       timing: clinic.timing,
@@ -955,7 +957,7 @@ const Index = () => {
       {viewMode === 'services' && selectedCategory && (
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-gray-700 text-sm sm:text-base font-normal tracking-[-0.32px] text-left">
-            <span className="text-gray-700 font-medium">Step 02</span> Please choose a service
+            <span className="text-gray-700 font-medium">{t('Step 02')}</span> {t('Please choose a service')}
           </p>
         </div>
       )}
@@ -997,7 +999,7 @@ const Index = () => {
                     </svg>
                   </div>
                   <p className="text-gray-500 text-lg font-medium">
-                    Pick a specialty first
+                    {t('Pick a specialty first')}
                   </p>
                 </div>
               )}
@@ -1019,7 +1021,7 @@ const Index = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search clinics by name, address, or type..."
+                    placeholder={t('Search clinics by name, address, or type...')}
                     value={clinicSearchQuery}
                     onChange={(e) => setClinicSearchQuery(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -1028,7 +1030,7 @@ const Index = () => {
               </div>
               
               <h2 className="text-xl sm:text-2xl text-black font-normal tracking-[-1px] mb-3">
-                Choose Clinic
+                {t('Choose Clinic')}
               </h2>
               
               {filteredClinicCards.length > 0 ? (
@@ -1056,7 +1058,9 @@ const Index = () => {
                     </svg>
                   </div>
                   <p className="text-gray-500 text-lg font-medium">
-                    {clinicSearchQuery.trim() ? `No clinics found for "${clinicSearchQuery}"` : 'No clinics available'}
+                    {clinicSearchQuery.trim()
+                      ? t('No clinics found for "{{clinicSearchQuery}}"', { clinicSearchQuery })
+                      : t('No clinics available')}
                   </p>
                 </div>
               )}
@@ -1082,7 +1086,7 @@ const Index = () => {
           clinicName={selectedClinicRef.current || selectedClinic}
           serviceSchedule={getSelectedClinicSchedule()}
           clinicServices={getSelectedClinicServices}
-          doctorName={getSelectedClinicServices[0]?.doctorName || 'Dr. Available Doctor'}
+          doctorName={getSelectedClinicServices[0]?.doctorName || t('Dr. Available Doctor')}
         />
       )}
     </div>

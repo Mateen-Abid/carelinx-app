@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calendar, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface BottomNavigationProps {
   viewMode: 'services' | 'clinics';
@@ -10,6 +11,7 @@ interface BottomNavigationProps {
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewModeChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -27,7 +29,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
         >
           <Home className={`w-5 h-5 ${isActive('/') ? 'stroke-2' : 'stroke-1'}`} />
           <div className="relative">
-            <span className={`text-xs ${isActive('/') ? 'font-semibold' : 'font-normal'}`}>Home</span>
+            <span className={`text-xs ${isActive('/') ? 'font-semibold' : 'font-normal'}`}>{t('Home')}</span>
             {isActive('/') && (
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
             )}
@@ -44,7 +46,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
         >
           <Calendar className={`w-5 h-5 ${isActive('/my-bookings') ? 'stroke-2' : 'stroke-1'}`} />
           <div className="relative">
-            <span className={`text-xs ${isActive('/my-bookings') ? 'font-semibold' : 'font-normal'}`}>Booking</span>
+            <span className={`text-xs ${isActive('/my-bookings') ? 'font-semibold' : 'font-normal'}`}>{t('Booking')}</span>
             {isActive('/my-bookings') && (
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
             )}
@@ -61,7 +63,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ viewMode, onViewMod
         >
           <User className={`w-5 h-5 ${isActive('/profile') ? 'stroke-2' : 'stroke-1'}`} />
           <div className="relative">
-            <span className={`text-xs ${isActive('/profile') ? 'font-semibold' : 'font-normal'}`}>Profile</span>
+            <span className={`text-xs ${isActive('/profile') ? 'font-semibold' : 'font-normal'}`}>{t('Profile')}</span>
             {isActive('/profile') && (
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0C2243] rounded-full"></div>
             )}

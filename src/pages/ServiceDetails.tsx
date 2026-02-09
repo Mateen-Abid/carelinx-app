@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { api } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 
 import { getClinicByServiceId, getServiceById, clinicsData } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
@@ -132,6 +133,7 @@ const serviceDatabase = generateServiceDatabase();
 const ServiceDetails = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuth();
   const { addAppointment } = useBooking();
@@ -390,7 +392,7 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Loading service information...</p>
+          <p className="text-gray-600">{t('Loading service information...')}</p>
         </div>
       </div>
     );
@@ -400,8 +402,8 @@ const ServiceDetails = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Service not found</h1>
-          <p className="text-gray-600 mt-2">The requested service could not be found.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('Service not found')}</h1>
+          <p className="text-gray-600 mt-2">{t('The requested service could not be found.')}</p>
         </div>
       </div>
     );
@@ -595,7 +597,7 @@ const ServiceDetails = () => {
       {/* Date Selection Section */}
       <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Please choose a date</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">{t('Please choose a date')}</h2>
           
           {/* Date Navigator */}
           <div className="flex items-center justify-between mb-6">
@@ -621,7 +623,7 @@ const ServiceDetails = () => {
                 {format(selectedDisplayDate, 'd MMM')}
               </span>
               {isToday(selectedDisplayDate) && (
-                <span className="text-sm text-gray-500">Today</span>
+                <span className="text-sm text-gray-500">{t('Today')}</span>
               )}
             </button>
             
@@ -639,7 +641,7 @@ const ServiceDetails = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-sm mx-auto m-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Select Date</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('Select Date')}</h3>
                   <button
                     onClick={() => setShowCalendar(false)}
                     className="text-gray-500 hover:text-gray-700"

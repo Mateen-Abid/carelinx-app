@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const InviteAcceptance = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState<any>(null);
   const [error, setError] = useState<string>('');
@@ -20,7 +22,7 @@ const InviteAcceptance = () => {
   const fetchInvitation = async () => {
     try {
       if (!token) {
-        setError('Invalid invitation link');
+        setError(t('Invalid invitation link'));
         setLoading(false);
         return;
       }
@@ -29,28 +31,28 @@ const InviteAcceptance = () => {
       const { invitation: data } = await api.invitations.getInvitation(token);
 
       if (!data) {
-        setError('Invitation not found or invalid');
+        setError(t('Invitation not found or invalid'));
         setLoading(false);
         return;
       }
 
       // Check if invitation is expired
       if (new Date(data.expires_at) < new Date()) {
-        setError('This invitation has expired');
+        setError(t('This invitation has expired'));
         setLoading(false);
         return;
       }
 
       // Check if invitation is already accepted
       if (data.status === 'accepted') {
-        setError('This invitation has already been accepted');
+        setError(t('This invitation has already been accepted'));
         setLoading(false);
         return;
       }
 
       // Check if invitation is cancelled
       if (data.status === 'cancelled') {
-        setError('This invitation has been cancelled');
+        setError(t('This invitation has been cancelled'));
         setLoading(false);
         return;
       }
@@ -60,7 +62,7 @@ const InviteAcceptance = () => {
       setLoading(false);
     } catch (err: any) {
       console.error('❌ Error fetching invitation:', err);
-      setError(err.message || 'Failed to load invitation');
+      setError(err.message || t('Failed to load invitation'));
       setLoading(false);
     }
   };
@@ -76,7 +78,7 @@ const InviteAcceptance = () => {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#00FFA2]" />
-            <p className="text-gray-600 dark:text-gray-400">Loading invitation...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading invitation...')}</p>
           </CardContent>
         </Card>
       </div>
@@ -89,13 +91,13 @@ const InviteAcceptance = () => {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Invalid Invitation</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('Invalid Invitation')}</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
             <Button
               onClick={() => navigate('/auth')}
               className="bg-[#0C2243] hover:bg-[#0C2243]/90 text-white"
             >
-              Go to Login
+              {t('Go to Login')}
             </Button>
           </CardContent>
         </Card>
@@ -109,32 +111,36 @@ const InviteAcceptance = () => {
         <CardContent className="p-6">
           <div className="text-center mb-6">
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-[#00FFA2]" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You've been invited!</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t("You've been invited!")}</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              You've been invited to join CareLinix as a {
-                invitation.role_type === 'super_admin' ? 'Super Admin' : 
-                invitation.role_type === 'doctor' ? 'Doctor' : 
-                'Clinic Admin'
-              }.
+              {t("You've been invited to join CareLinix as a")}{" "}
+              {invitation.role_type === 'super_admin'
+                ? t('Super Admin')
+                : invitation.role_type === 'doctor'
+                ? t('Doctor')
+                : t('Clinic Admin')}
+              .
             </p>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
             <div className="space-y-2">
               <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Name:</span>
-                <span className="ml-2 text-sm text-gray-900 dark:text-white">{invitation.name || 'N/A'}</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Name')}:</span>
+                <span className="ml-2 text-sm text-gray-900 dark:text-white">{invitation.name || t('N/A')}</span>
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Email:</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Email')}:</span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">{invitation.email}</span>
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Role')}:</span>
                 <span className="ml-2 text-sm text-gray-900 dark:text-white">
-                  {invitation.role_type === 'super_admin' ? 'Super Admin' : 
-                   invitation.role_type === 'doctor' ? 'Doctor' : 
-                   'Clinic Admin'}
+                  {invitation.role_type === 'super_admin'
+                    ? t('Super Admin')
+                    : invitation.role_type === 'doctor'
+                    ? t('Doctor')
+                    : t('Clinic Admin')}
                 </span>
               </div>
             </div>
@@ -145,14 +151,14 @@ const InviteAcceptance = () => {
               onClick={handleAcceptInvitation}
               className="w-full bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
             >
-              Accept Invitation & Sign Up
+              {t('Accept Invitation & Sign Up')}
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/auth')}
               className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
             >
-              Already have an account? Sign In
+              {t('Already have an account? Sign In')}
             </Button>
           </div>
         </CardContent>

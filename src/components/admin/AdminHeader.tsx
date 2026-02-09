@@ -4,19 +4,21 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, Settings, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const AdminHeader: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const navItems = [
-    { path: '/admin/dashboard', label: 'Dashboard' },
-    { path: '/admin/clinics', label: 'Clinics' },
-    { path: '/admin/specialties', label: 'Specialties' },
-    { path: '/admin/services', label: 'Services' },
-    { path: '/admin/appointments', label: 'Appointments' },
-    { path: '/admin/users', label: 'Users' },
+    { path: '/admin/dashboard', label: t('Dashboard') },
+    { path: '/admin/clinics', label: t('Clinics') },
+    { path: '/admin/specialties', label: t('Specialties') },
+    { path: '/admin/services', label: t('Services') },
+    { path: '/admin/appointments', label: t('Appointments') },
+    { path: '/admin/users', label: t('Users') },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -69,7 +71,7 @@ const AdminHeader: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span className="hidden sm:inline">{t('Sign Out')}</span>
             </button>
           </div>
         </div>

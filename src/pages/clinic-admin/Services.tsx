@@ -7,6 +7,7 @@ import { api } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ const ClinicAdminServices = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [services, setServices] = useState<ServiceRow[]>([]);
@@ -185,7 +187,7 @@ const ClinicAdminServices = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -204,7 +206,7 @@ const ClinicAdminServices = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-start justify-between mb-3">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Specialties & Services</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Specialties & Services')}</h1>
               
               {/* Clinic Name, Logo, and Specialty Dropdown */}
               <div className="flex flex-col items-end gap-3">
@@ -238,10 +240,10 @@ const ClinicAdminServices = () => {
                 {/* Specialty Filter Dropdown */}
                 <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
                   <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg h-10">
-                    <SelectValue placeholder="Specialty" />
+                    <SelectValue placeholder={t('Specialty')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Specialties</SelectItem>
+                    <SelectItem value="all">{t('All Specialties')}</SelectItem>
                     {uniqueSpecialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
                         {specialty}
@@ -258,7 +260,7 @@ const ClinicAdminServices = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   type="text"
-                  placeholder="Search by specialties, doctor, or service..."
+                  placeholder={t('Search by specialties, doctor, or service...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg h-10"
@@ -271,7 +273,7 @@ const ClinicAdminServices = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading services...</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('Loading services...')}</p>
                 </div>
               ) : filteredServices.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -287,13 +289,13 @@ const ClinicAdminServices = () => {
                           />
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
-                          Specialties
+                          {t('Specialties')}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          Services
+                          {t('Services')}
                         </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
-                          Doctor's Name
+                          {t("Doctor's Name")}
                         </th>
                       </tr>
                     </thead>
@@ -369,9 +371,9 @@ const ClinicAdminServices = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">No services found</p>
+                  <p className="text-gray-500 dark:text-gray-400">{t('No services found')}</p>
                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                    Add doctors with services in the "Doctors & Treatment" section to see services here.
+                    {t('Add doctors with services in the "Doctors & Treatment" section to see services here.')}
                   </p>
                 </div>
               )}

@@ -33,6 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Doctor {
   id: string;
@@ -66,6 +67,7 @@ const ClinicAdminDoctors = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'doctors' | 'treatment'>('doctors');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'on-leave'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -340,12 +342,12 @@ const ClinicAdminDoctors = () => {
       });
 
       if (!trimmedName || trimmedName.length === 0) {
-        toast.error('Please fill in doctor name');
+        toast.error(t('Please fill in doctor name'));
         return;
       }
 
       if (newDoctor.specialties.length === 0) {
-        toast.error('Please select at least one specialty');
+        toast.error(t('Please select at least one specialty'));
         return;
       }
 
@@ -368,7 +370,7 @@ const ClinicAdminDoctors = () => {
         status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
       });
 
-      toast.success('Doctor added successfully');
+      toast.success(t('Doctor added successfully'));
       setShowAddDoctorModal(false);
       setNewDoctor({
         name: '',
@@ -385,7 +387,7 @@ const ClinicAdminDoctors = () => {
       fetchDoctors(clinic.id);
     } catch (error) {
       console.error('❌ Error adding doctor:', error);
-      toast.error('Failed to add doctor');
+      toast.error(t('Failed to add doctor'));
     }
   };
 
@@ -434,17 +436,17 @@ const ClinicAdminDoctors = () => {
 
   const handleSubmitServiceRequest = async () => {
     if (!newServiceName.trim()) {
-      toast.error('Please enter a service name');
+      toast.error(t('Please enter a service name'));
       return;
     }
 
     if (!clinic?.id || !user) {
-      toast.error('Clinic information not found');
+      toast.error(t('Clinic information not found'));
       return;
     }
 
     if (newDoctor.specialties.length === 0) {
-      toast.error('Please select a specialty first');
+      toast.error(t('Please select a specialty first'));
       return;
     }
 
@@ -456,7 +458,7 @@ const ClinicAdminDoctors = () => {
 
       if (!specialtyData) {
         console.error('Error: Specialty not found');
-        toast.error('Specialty not found. Please select a valid specialty.');
+        toast.error(t('Specialty not found. Please select a valid specialty.'));
         return;
       }
 
@@ -464,7 +466,7 @@ const ClinicAdminDoctors = () => {
       await api.clinicAdmin.createServiceRequest(specialtyData.id, newServiceName.trim());
 
       console.log('✅ Service request submitted successfully');
-      toast.success('Service request submitted successfully!');
+      toast.success(t('Service request submitted successfully!'));
       
       setShowRequestServiceModal(false);
       setNewServiceName('');
@@ -476,18 +478,18 @@ const ClinicAdminDoctors = () => {
       }, 3000);
     } catch (error) {
       console.error('❌ Error submitting service request:', error);
-      toast.error('Failed to submit service request. Please try again.');
+      toast.error(t('Failed to submit service request. Please try again.'));
     }
   };
 
   const handleSubmitSpecialtyRequest = async () => {
     if (!newSpecialtyName.trim()) {
-      toast.error('Please enter a specialty name');
+      toast.error(t('Please enter a specialty name'));
       return;
     }
 
     if (!clinic?.id || !user) {
-      toast.error('Clinic information not found');
+      toast.error(t('Clinic information not found'));
       return;
     }
 
@@ -496,7 +498,7 @@ const ClinicAdminDoctors = () => {
       await api.clinicAdmin.createSpecialtyRequest(newSpecialtyName.trim());
 
       console.log('✅ Specialty request submitted successfully');
-      toast.success('Specialty request submitted successfully!');
+      toast.success(t('Specialty request submitted successfully!'));
       
       setShowRequestSpecialtyModal(false);
       setNewSpecialtyName('');
@@ -508,7 +510,7 @@ const ClinicAdminDoctors = () => {
       }, 3000);
     } catch (error) {
       console.error('❌ Error submitting specialty request:', error);
-      toast.error('Failed to submit specialty request. Please try again.');
+      toast.error(t('Failed to submit specialty request. Please try again.'));
     }
   };
 
@@ -531,7 +533,7 @@ const ClinicAdminDoctors = () => {
     try {
       const trimmedName = editDoctor.name?.trim();
       if (!trimmedName || trimmedName.length === 0) {
-        toast.error('Please fill in doctor name');
+        toast.error(t('Please fill in doctor name'));
         return;
       }
 
@@ -544,13 +546,13 @@ const ClinicAdminDoctors = () => {
         availability: editDoctor.availability?.trim() || null,
       });
 
-      toast.success('Doctor updated successfully');
+      toast.success(t('Doctor updated successfully'));
       setShowEditDoctorModal(false);
       setSelectedDoctor(null);
       fetchDoctors(clinic.id);
     } catch (error) {
       console.error('❌ Error updating doctor:', error);
-      toast.error('Failed to update doctor');
+      toast.error(t('Failed to update doctor'));
     }
   };
 
@@ -565,36 +567,36 @@ const ClinicAdminDoctors = () => {
     try {
       await api.doctors.deleteDoctor(doctorToDelete.id);
 
-      toast.success('Doctor deleted successfully');
+      toast.success(t('Doctor deleted successfully'));
       setShowDeleteConfirmModal(false);
       setDoctorToDelete(null);
       fetchDoctors(clinic.id);
     } catch (error) {
       console.error('❌ Error deleting doctor:', error);
-      toast.error('Failed to delete doctor');
+      toast.error(t('Failed to delete doctor'));
     }
   };
 
   const handleAddTreatment = async () => {
     if (!clinic?.id) {
-      toast.error('Clinic not found');
+      toast.error(t('Clinic not found'));
       return;
     }
 
     try {
       // Validate required fields
       if (!newTreatment.name.trim()) {
-        toast.error('Please enter treatment/machine name');
+        toast.error(t('Please enter treatment/machine name'));
         return;
       }
 
       if (newTreatment.specialties.length === 0) {
-        toast.error('Please select at least one specialty');
+        toast.error(t('Please select at least one specialty'));
         return;
       }
 
       if (newTreatment.services.length === 0) {
-        toast.error('Please select at least one service');
+        toast.error(t('Please select at least one service'));
         return;
       }
 
@@ -609,7 +611,7 @@ const ClinicAdminDoctors = () => {
         status: 'active',
       });
 
-      toast.success('Treatment added successfully');
+      toast.success(t('Treatment added successfully'));
       setShowAddTreatmentModal(false);
       setNewTreatment({
         name: '',
@@ -621,7 +623,7 @@ const ClinicAdminDoctors = () => {
       fetchTreatments(clinic.id);
     } catch (error) {
       console.error('❌ Error adding treatment:', error);
-      toast.error('Failed to add treatment');
+      toast.error(t('Failed to add treatment'));
     }
   };
 
@@ -721,9 +723,9 @@ const ClinicAdminDoctors = () => {
 
   const getStatusLabel = (status: Doctor['status']) => {
     const statusConfig = {
-      active: 'Active',
-      inactive: 'Deactivated',
-      'on-leave': 'On Leave',
+      active: t('Active'),
+      inactive: t('Inactive'),
+      'on-leave': t('On Leave'),
     };
     return statusConfig[status];
   };
@@ -734,7 +736,7 @@ const ClinicAdminDoctors = () => {
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -750,7 +752,7 @@ const ClinicAdminDoctors = () => {
           <div className="p-8">
             {/* Page Header */}
             <div className="flex items-start justify-between mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Doctors & Treatment</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Doctors & Treatment')}</h1>
               
               {/* Clinic Name and Logo - Top Right */}
               <div className="flex items-center gap-3">
@@ -775,7 +777,7 @@ const ClinicAdminDoctors = () => {
                   </div>
                 )}
                 <span className="text-gray-900 dark:text-white font-medium text-base">
-                  {clinic?.name || 'Clinic'}
+                  {clinic?.name || t('Clinic')}
                 </span>
               </div>
             </div>
@@ -784,49 +786,49 @@ const ClinicAdminDoctors = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Total Doctors
+                  {t('Total Doctors')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.totalDoctors}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  All registered practitioners in your clinic
+                  {t('All registered practitioners in your clinic')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Total Treatment
+                  {t('Total Treatment')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.totalTreatment}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  All registered practitioners in your clinic
+                  {t('All registered practitioners in your clinic')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Active Doctors
+                  {t('Active Doctors')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.activeDoctors}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Currently available for appointments.
+                  {t('Currently available for appointments.')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Active Treatment
+                  {t('Active Treatment')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.activeTreatment}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Currently available for appointments.
+                  {t('Currently available for appointments.')}
                 </p>
               </div>
             </div>
@@ -842,7 +844,7 @@ const ClinicAdminDoctors = () => {
                       : 'text-gray-600 dark:text-gray-300'
                   }`}
                 >
-                  Doctors
+                  {t('Doctors')}
                 </button>
                 <button
                   onClick={() => setViewMode('treatment')}
@@ -852,7 +854,7 @@ const ClinicAdminDoctors = () => {
                       : 'text-gray-600 dark:text-gray-300'
                   }`}
                 >
-                  Treatment
+                  {t('Treatment')}
                 </button>
                 {/* Blue background for selected option - exactly 50% */}
                 {viewMode === 'doctors' && (
@@ -908,7 +910,7 @@ const ClinicAdminDoctors = () => {
                             : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                         }`}
                       >
-                        {status === 'all' ? 'All' : status === 'on-leave' ? 'On Leave' : status.charAt(0).toUpperCase() + status.slice(1)}
+                        {status === 'all' ? t('All') : status === 'on-leave' ? t('On Leave') : t(status.charAt(0).toUpperCase() + status.slice(1))}
                       </button>
                     ))}
                   </div>
@@ -918,7 +920,7 @@ const ClinicAdminDoctors = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       type="text"
-                      placeholder="Search by specialties, doctor, or service..."
+                      placeholder={t('Search by specialties, doctor, or service...')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
@@ -937,7 +939,7 @@ const ClinicAdminDoctors = () => {
                     }}
                     className="w-[180px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 justify-between"
                   >
-                    <span>Specialty</span>
+                    <span>{t('Specialty')}</span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
 
@@ -949,7 +951,7 @@ const ClinicAdminDoctors = () => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add a Treatment
+                      {t('Add a Treatment')}
                     </Button>
 
                     <Button
@@ -957,7 +959,7 @@ const ClinicAdminDoctors = () => {
                       className="bg-[#00FFA2] hover:bg-[#00e68a] text-[#0C2243] font-medium px-6"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add New Doctor
+                      {t('Add New Doctor')}
                     </Button>
                   </div>
                 </div>
@@ -969,7 +971,9 @@ const ClinicAdminDoctors = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400">Loading {viewMode === 'doctors' ? 'doctors' : 'treatments'}...</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {t('Loading {{type}}...', { type: viewMode === 'doctors' ? t('doctors') : t('treatments') })}
+                  </p>
                 </div>
               ) : viewMode === 'doctors' && filteredDoctors.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -988,34 +992,34 @@ const ClinicAdminDoctors = () => {
                           sortDirection={getDoctorsSortDirection('name')}
                           onSort={() => handleDoctorsSort('name')}
                         >
-                          Doctor's / Treatment
+                          {t("Doctor's / Treatment")}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getDoctorsSortDirection('specialty')}
                           onSort={() => handleDoctorsSort('specialty')}
                         >
-                          Specialty and service
+                          {t('Specialty and service')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getDoctorsSortDirection('availability')}
                           onSort={() => handleDoctorsSort('availability')}
                         >
-                          Availability
+                          {t('Availability')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getDoctorsSortDirection('contact')}
                           onSort={() => handleDoctorsSort('contact')}
                         >
-                          Contact
+                          {t('Contact')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getDoctorsSortDirection('status')}
                           onSort={() => handleDoctorsSort('status')}
                         >
-                          Status
+                          {t('Status')}
                         </TableSortHeader>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
+                          {t('Action')}
                         </th>
                       </tr>
                     </thead>
@@ -1045,12 +1049,12 @@ const ClinicAdminDoctors = () => {
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {doctor.availability || 'N/A'}
+                              {doctor.availability || t('N/A')}
                             </span>
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {doctor.phone || doctor.email || 'N/A'}
+                              {doctor.phone || doctor.email || t('N/A')}
                             </span>
                           </td>
                           <td className="py-4 px-6">
@@ -1092,25 +1096,29 @@ const ClinicAdminDoctors = () => {
                                     );
                                     
                                     await api.doctors.updateDoctor(doctor.id, { status: newStatus });
-                                    toast.success(`Doctor ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+                                    toast.success(
+                                      t('Doctor {{status}} successfully', {
+                                        status: newStatus === 'active' ? t('activated') : t('deactivated'),
+                                      })
+                                    );
                                     
                                     // Refresh to ensure data is in sync with database
                                     await fetchDoctors(clinic.id);
                                   } catch (error: any) {
                                     console.error('❌ Error updating doctor status:', error);
-                                    toast.error(error?.message || 'Failed to update doctor status');
+                                    toast.error(error?.message || t('Failed to update doctor status'));
                                     
                                     // Revert optimistic update on error
                                     await fetchDoctors(clinic.id);
                                   }
                                 }}>
-                                  {doctor.status === 'active' ? 'Deactivate' : 'Activate'}
+                                  {doctor.status === 'active' ? t('Deactivate') : t('Activate')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleOpenDeleteConfirm(doctor)}
                                   className="text-red-600"
                                 >
-                                  Delete
+                                  {t('Delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1137,34 +1145,34 @@ const ClinicAdminDoctors = () => {
                           sortDirection={getTreatmentsSortDirection('name')}
                           onSort={() => handleTreatmentsSort('name')}
                         >
-                          Treatment
+                          {t('Treatment')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getTreatmentsSortDirection('specialty')}
                           onSort={() => handleTreatmentsSort('specialty')}
                         >
-                          Specialty and service
+                          {t('Specialty and service')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getTreatmentsSortDirection('description')}
                           onSort={() => handleTreatmentsSort('description')}
                         >
-                          Description
+                          {t('Description')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getTreatmentsSortDirection('price')}
                           onSort={() => handleTreatmentsSort('price')}
                         >
-                          Price ($)
+                          {t('Price ($)')}
                         </TableSortHeader>
                         <TableSortHeader
                           sortDirection={getTreatmentsSortDirection('status')}
                           onSort={() => handleTreatmentsSort('status')}
                         >
-                          Status
+                          {t('Status')}
                         </TableSortHeader>
                         <th className="text-left py-4 px-6 text-sm font-semibold text-gray-900 dark:text-white">
-                          Action
+                          {t('Action')}
                         </th>
                       </tr>
                     </thead>
@@ -1210,7 +1218,7 @@ const ClinicAdminDoctors = () => {
                                   : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                               }`}
                             >
-                              {treatment.status === 'active' ? 'Active' : 'Inactive'}
+                              {treatment.status === 'active' ? t('Active') : t('Inactive')}
                             </span>
                           </td>
                           <td className="py-4 px-6">
@@ -1224,9 +1232,9 @@ const ClinicAdminDoctors = () => {
                                 <DropdownMenuItem onClick={() => {
                                   // TODO: Edit treatment (can be implemented later)
                                   console.log('Edit treatment:', treatment.id);
-                                  toast.info('Edit treatment functionality coming soon');
+                                  toast.info(t('Edit treatment functionality coming soon'));
                                 }}>
-                                  Edit
+                                  {t('Edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={async () => {
                                   if (!clinic?.id) return;
@@ -1234,31 +1242,35 @@ const ClinicAdminDoctors = () => {
                                     const newStatus = treatment.status === 'active' ? 'inactive' : 'active';
                                     await api.clinicAdmin.updateTreatment(treatment.id, { status: newStatus });
                                     fetchTreatments(clinic.id);
-                                    toast.success(`Treatment ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+                                    toast.success(
+                                      t('Treatment {{status}} successfully', {
+                                        status: newStatus === 'active' ? t('activated') : t('deactivated'),
+                                      })
+                                    );
                                   } catch (error: any) {
                                     console.error('❌ Error updating treatment status:', error);
-                                    toast.error(error?.message || 'Failed to update treatment status');
+                                    toast.error(error?.message || t('Failed to update treatment status'));
                                   }
                                 }}>
-                                  {treatment.status === 'active' ? 'Deactivate' : 'Activate'}
+                                  {treatment.status === 'active' ? t('Deactivate') : t('Activate')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={async () => {
                                     if (!clinic?.id) return;
-                                    if (confirm('Are you sure you want to delete this treatment?')) {
+                                    if (confirm(t('Are you sure you want to delete this treatment?'))) {
                                       try {
                                         await api.clinicAdmin.deleteTreatment(treatment.id);
                                         fetchTreatments(clinic.id);
-                                        toast.success('Treatment deleted successfully');
+                                        toast.success(t('Treatment deleted successfully'));
                                       } catch (error: any) {
                                         console.error('❌ Error deleting treatment:', error);
-                                        toast.error(error?.message || 'Failed to delete treatment');
+                                        toast.error(error?.message || t('Failed to delete treatment'));
                                       }
                                     }
                                   }}
                                   className="text-red-600 dark:text-red-400"
                                 >
-                                  Delete
+                                  {t('Delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1275,8 +1287,8 @@ const ClinicAdminDoctors = () => {
                   </p>
                   <p className="text-sm text-gray-400 dark:text-gray-500">
                     {viewMode === 'doctors' 
-                      ? 'Click "Add New Doctor" to add your first doctor.'
-                      : 'Click "Add a Treatment" to add your first treatment.'}
+                      ? t('Click "Add New Doctor" to add your first doctor.')
+                      : t('Click "Add a Treatment" to add your first treatment.')}
                   </p>
                 </div>
               )}
@@ -1289,67 +1301,67 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showAddDoctorModal} onOpenChange={setShowAddDoctorModal}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
-            <DialogTitle className="text-xl font-semibold">Add New</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">{t('Add New')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-8 py-6">
             {/* BASIC INFORMATION */}
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
-                BASIC INFORMATION
+                {t('BASIC INFORMATION')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="doctor-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Full Name
+                    {t('Full Name')}
                   </Label>
                   <Input
                     id="doctor-name"
                     value={newDoctor.name}
                     onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                    placeholder="Enter full name"
+                    placeholder={t('Enter full name')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="doctor-gender" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Gender
+                    {t('Gender')}
                   </Label>
                   <Select
                     value={newDoctor.gender}
                     onValueChange={(value) => setNewDoctor({ ...newDoctor, gender: value })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select a gender" />
+                      <SelectValue placeholder={t('Select a gender')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="male">{t('Male')}</SelectItem>
+                      <SelectItem value="female">{t('Female')}</SelectItem>
+                      <SelectItem value="other">{t('Other')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="doctor-email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Email
+                    {t('Email')}
                   </Label>
                   <Input
                     id="doctor-email"
                     type="email"
                     value={newDoctor.email}
                     onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
-                    placeholder="Enter email address"
+                    placeholder={t('Enter email address')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="doctor-phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Phone
+                    {t('Phone')}
                   </Label>
                   <Input
                     id="doctor-phone"
                     value={newDoctor.phone}
                     onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
-                    placeholder="Enter phone number"
+                    placeholder={t('Enter phone number')}
                     className="mt-1.5 h-10"
                   />
                 </div>
@@ -1359,11 +1371,11 @@ const ClinicAdminDoctors = () => {
             {/* PROFESSIONAL DETAILS */}
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
-                PROFESSIONAL DETAILS
+                {t('PROFESSIONAL DETAILS')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Specialty</Label>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Specialty')}</Label>
                   <Select
                     open={showSpecialtyDropdown}
                     onOpenChange={setShowSpecialtyDropdown}
@@ -1375,7 +1387,7 @@ const ClinicAdminDoctors = () => {
                     }}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select a speciality" />
+                      <SelectValue placeholder={t('Select a speciality')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableSpecialties.map((specialty) => (
@@ -1426,7 +1438,7 @@ const ClinicAdminDoctors = () => {
                   )}
                 </div>
                 <div className="relative">
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Service</Label>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Service')}</Label>
                   <Select
                     open={showServiceDropdown}
                     onOpenChange={setShowServiceDropdown}
@@ -1438,16 +1450,22 @@ const ClinicAdminDoctors = () => {
                     disabled={newDoctor.specialties.length === 0}
                   >
                     <SelectTrigger className="mt-1.5 h-10" disabled={newDoctor.specialties.length === 0}>
-                      <SelectValue placeholder={newDoctor.specialties.length === 0 ? "Select a specialty first" : "Select the service"} />
+                      <SelectValue
+                        placeholder={
+                          newDoctor.specialties.length === 0
+                            ? t('Select a specialty first')
+                            : t('Select the service')
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {newDoctor.specialties.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-gray-500">
-                          Please select a specialty first
+                          {t('Please select a specialty first')}
                         </div>
                       ) : availableServices.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-gray-500">
-                          No services available for selected specialty
+                          {t('No services available for selected specialty')}
                         </div>
                       ) : (
                         availableServices
@@ -1498,19 +1516,19 @@ const ClinicAdminDoctors = () => {
                 </div>
                 <div>
                   <Label htmlFor="doctor-experience" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Experience
+                    {t('Experience')}
                   </Label>
                   <Select
                     value={newDoctor.experience}
                     onValueChange={(value) => setNewDoctor({ ...newDoctor, experience: value })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select years of experience" />
+                      <SelectValue placeholder={t('Select years of experience')} />
                     </SelectTrigger>
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30].map((years) => (
                         <SelectItem key={years} value={years.toString()}>
-                          {years} {years === 1 ? 'year' : 'years'}
+                          {years} {years === 1 ? t('year') : t('years')}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1518,44 +1536,44 @@ const ClinicAdminDoctors = () => {
                 </div>
                 <div>
                   <Label htmlFor="doctor-status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
+                    {t('Status')}
                   </Label>
                   <Select
                     value={newDoctor.status}
                     onValueChange={(value) => setNewDoctor({ ...newDoctor, status: value })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select a status" />
+                      <SelectValue placeholder={t('Select a status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="on-leave">On Leave</SelectItem>
+                      <SelectItem value="active">{t('Active')}</SelectItem>
+                      <SelectItem value="inactive">{t('Inactive')}</SelectItem>
+                      <SelectItem value="on-leave">{t('On Leave')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Price
+                    {t('Price')}
                   </Label>
                   <Input
                     id="doctor-price"
                     type="number"
                     value={newDoctor.price}
                     onChange={(e) => setNewDoctor({ ...newDoctor, price: e.target.value })}
-                    placeholder="Enter Price"
+                    placeholder={t('Enter Price')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Availability
+                    {t('Availability')}
                   </Label>
                   <Input
                     id="doctor-availability"
                     value={newDoctor.availability}
                     onChange={(e) => setNewDoctor({ ...newDoctor, availability: e.target.value })}
-                    placeholder="e.g., 9:00 AM - 5:00 PM"
+                    placeholder={t('e.g., 9:00 AM - 5:00 PM')}
                     className="mt-1.5 h-10"
                   />
                 </div>
@@ -1568,13 +1586,13 @@ const ClinicAdminDoctors = () => {
               onClick={() => setShowAddDoctorModal(false)}
               className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleAddDoctor}
               className="bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6"
             >
-              Add New Doctor
+              {t('Add New Doctor')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1584,62 +1602,62 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showEditDoctorModal} onOpenChange={setShowEditDoctorModal}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
-            <DialogTitle className="text-xl font-semibold">Edit Doctor</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">{t('Edit Doctor')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-8 py-6">
             {/* BASIC INFORMATION */}
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
-                BASIC INFORMATION
+                {t('BASIC INFORMATION')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-doctor-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Full Name
+                    {t('Full Name')}
                   </Label>
                   <Input
                     id="edit-doctor-name"
                     value={editDoctor.name}
                     onChange={(e) => setEditDoctor({ ...editDoctor, name: e.target.value })}
-                    placeholder="Enter full name"
+                    placeholder={t('Enter full name')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Email
+                    {t('Email')}
                   </Label>
                   <Input
                     id="edit-doctor-email"
                     type="email"
                     value={editDoctor.email}
                     onChange={(e) => setEditDoctor({ ...editDoctor, email: e.target.value })}
-                    placeholder="Enter email address"
+                    placeholder={t('Enter email address')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Phone
+                    {t('Phone')}
                   </Label>
                   <Input
                     id="edit-doctor-phone"
                     value={editDoctor.phone}
                     onChange={(e) => setEditDoctor({ ...editDoctor, phone: e.target.value })}
-                    placeholder="Enter phone number"
+                    placeholder={t('Enter phone number')}
                     className="mt-1.5 h-10"
                   />
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-specialty" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Specialty
+                    {t('Specialty')}
                   </Label>
                   <Select
                     value={editDoctor.specialty}
                     onValueChange={(value) => setEditDoctor({ ...editDoctor, specialty: value })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select a specialty" />
+                      <SelectValue placeholder={t('Select a specialty')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableSpecialties.map((specialty) => (
@@ -1652,31 +1670,31 @@ const ClinicAdminDoctors = () => {
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
+                    {t('Status')}
                   </Label>
                   <Select
                     value={editDoctor.status}
                     onValueChange={(value) => setEditDoctor({ ...editDoctor, status: value })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
-                      <SelectValue placeholder="Select a status" />
+                      <SelectValue placeholder={t('Select a status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="on-leave">On Leave</SelectItem>
+                      <SelectItem value="active">{t('Active')}</SelectItem>
+                      <SelectItem value="inactive">{t('Inactive')}</SelectItem>
+                      <SelectItem value="on-leave">{t('On Leave')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Availability
+                    {t('Availability')}
                   </Label>
                   <Input
                     id="edit-doctor-availability"
                     value={editDoctor.availability}
                     onChange={(e) => setEditDoctor({ ...editDoctor, availability: e.target.value })}
-                    placeholder="e.g., 9:00 AM - 5:00 PM"
+                    placeholder={t('e.g., 9:00 AM - 5:00 PM')}
                     className="mt-1.5 h-10"
                   />
                 </div>
@@ -1692,13 +1710,13 @@ const ClinicAdminDoctors = () => {
               }}
               className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleSaveEditDoctor}
               className="bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6"
             >
-              Save Changes
+              {t('Save Changes')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1708,11 +1726,11 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showDeleteConfirmModal} onOpenChange={setShowDeleteConfirmModal}>
         <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
-            <DialogTitle className="text-lg font-semibold text-gray-900">Delete Doctor</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900">{t('Delete Doctor')}</DialogTitle>
           </DialogHeader>
           <div className="px-6 py-6">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Are you sure you want to delete <span className="font-semibold">{doctorToDelete?.name}</span>? This action cannot be undone.
+              {t('Are you sure you want to delete {{name}}? This action cannot be undone.', { name: doctorToDelete?.name || '' })}
             </p>
           </div>
           <DialogFooter className="px-6 pb-6 flex gap-3">
@@ -1724,13 +1742,13 @@ const ClinicAdminDoctors = () => {
               }}
               className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleConfirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Delete
+              {t('Delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1740,20 +1758,20 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showAddTreatmentModal} onOpenChange={setShowAddTreatmentModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Add New</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">{t('Add New')}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             {/* Treatment / Machine Name */}
             <div>
               <Label htmlFor="treatment-name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                Treatment / Machine Name
+                {t('Treatment / Machine Name')}
               </Label>
               <Input
                 id="treatment-name"
                 value={newTreatment.name}
                 onChange={(e) => setNewTreatment({ ...newTreatment, name: e.target.value })}
-                placeholder="e.g. Candela GentleMax Pro, HydraFacial MD, CO₂ Laser"
+                placeholder={t('e.g. Candela GentleMax Pro, HydraFacial MD, CO₂ Laser')}
                 className="h-10"
               />
             </div>
@@ -1761,13 +1779,13 @@ const ClinicAdminDoctors = () => {
             {/* Description */}
             <div>
               <Label htmlFor="treatment-description" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                Description
+                {t('Description')}
               </Label>
               <Input
                 id="treatment-description"
                 value={newTreatment.description}
                 onChange={(e) => setNewTreatment({ ...newTreatment, description: e.target.value })}
-                placeholder="e.g. 2023 Edition, Elite IQ"
+                placeholder={t('e.g. 2023 Edition, Elite IQ')}
                 className="h-10"
               />
             </div>
@@ -1775,26 +1793,26 @@ const ClinicAdminDoctors = () => {
             {/* Price */}
             <div>
               <Label htmlFor="treatment-price" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                Price
+                {t('Price')}
               </Label>
               <Input
                 id="treatment-price"
                 type="number"
                 value={newTreatment.price}
                 onChange={(e) => setNewTreatment({ ...newTreatment, price: e.target.value })}
-                placeholder="Enter Price"
+                placeholder={t('Enter Price')}
                 className="h-10"
               />
             </div>
 
             {/* USED FOR Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">USED FOR</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('USED FOR')}</h3>
 
               {/* Specialty */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Specialty
+                  {t('Specialty')}
                 </Label>
                 <div className="relative">
                   <Select
@@ -1807,7 +1825,7 @@ const ClinicAdminDoctors = () => {
                     }}
                   >
                     <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Select a speciality" />
+                      <SelectValue placeholder={t('Select a speciality')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableSpecialties
@@ -1848,7 +1866,7 @@ const ClinicAdminDoctors = () => {
               {/* Service */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Service
+                  {t('Service')}
                 </Label>
                 <div className="relative">
                   <Select
@@ -1861,7 +1879,7 @@ const ClinicAdminDoctors = () => {
                     }}
                   >
                     <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Select the service" />
+                      <SelectValue placeholder={t('Select the service')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableServices
@@ -1916,13 +1934,13 @@ const ClinicAdminDoctors = () => {
               }}
               className="flex-1 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleAddTreatment}
               className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white"
             >
-              Add New Treatment
+              {t('Add New Treatment')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1932,21 +1950,21 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showRequestServiceModal} onOpenChange={setShowRequestServiceModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Request a New Service</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t('Request a New Service')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Can't find the service you're looking for? Submit a request and the admin will add it.
+              {t("Can't find the service you're looking for? Submit a request and the admin will add it.")}
             </p>
             <div>
               <Label htmlFor="service-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Enter the service name
+                {t('Enter the service name')}
               </Label>
               <Input
                 id="service-name"
                 value={newServiceName}
                 onChange={(e) => setNewServiceName(e.target.value)}
-                placeholder="Service name"
+                placeholder={t('Service name')}
                 className="mt-1.5 h-10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -1961,7 +1979,7 @@ const ClinicAdminDoctors = () => {
               onClick={handleSubmitServiceRequest}
               className="bg-[#0C2243] hover:bg-[#0a1a35] text-white w-full"
             >
-              Request Service
+              {t('Request Service')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1971,21 +1989,21 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showRequestSpecialtyModal} onOpenChange={setShowRequestSpecialtyModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Request a New Specialty</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t('Request a New Specialty')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Can't find the specialty you're looking for? Submit a request and the admin will add it.
+              {t("Can't find the specialty you're looking for? Submit a request and the admin will add it.")}
             </p>
             <div>
               <Label htmlFor="specialty-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Enter the specialty name
+                {t('Enter the specialty name')}
               </Label>
               <Input
                 id="specialty-name"
                 value={newSpecialtyName}
                 onChange={(e) => setNewSpecialtyName(e.target.value)}
-                placeholder="Specialty name"
+                placeholder={t('Specialty name')}
                 className="mt-1.5 h-10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -2000,7 +2018,7 @@ const ClinicAdminDoctors = () => {
               onClick={handleSubmitSpecialtyRequest}
               className="bg-[#0C2243] hover:bg-[#0a1a35] text-white w-full"
             >
-              Request Specialty
+              {t('Request Specialty')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2010,7 +2028,7 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showRequestSuccessModal} onOpenChange={setShowRequestSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="sr-only">Request Success</DialogTitle>
+            <DialogTitle className="sr-only">{t('Request Success')}</DialogTitle>
           </DialogHeader>
           <div className="py-8 text-center">
             <div className="flex justify-center mb-4">
@@ -2019,7 +2037,7 @@ const ClinicAdminDoctors = () => {
               </div>
             </div>
             <p className="text-base text-gray-700 dark:text-gray-300 font-medium">
-              Your request has been sent to the admin.
+              {t('Your request has been sent to the admin.')}
             </p>
           </div>
         </DialogContent>
@@ -2029,7 +2047,7 @@ const ClinicAdminDoctors = () => {
       <Dialog open={showSpecialtyModal} onOpenChange={setShowSpecialtyModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Specialty</DialogTitle>
+            <DialogTitle>{t('Specialty')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <div className="flex flex-wrap gap-2">

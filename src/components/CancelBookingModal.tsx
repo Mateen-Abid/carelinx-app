@@ -2,6 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CancelBookingModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
   onConfirm,
   appointmentDetails
 }) => {
+  const { t } = useTranslation();
   const handleConfirm = () => {
     onConfirm();
     onClose();
@@ -51,20 +53,20 @@ export const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 
           <DialogHeader className="text-center">
             <DialogTitle className="text-lg font-semibold text-gray-900 mb-1">
-              Cancel Appointment?
+              {t('Cancel Appointment?')}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 mb-4">
-              Are you sure you want to cancel this appointment? This action cannot be undone.
+              {t('Are you sure you want to cancel this appointment? This action cannot be undone.')}
             </DialogDescription>
           </DialogHeader>
 
           {appointmentDetails && (
             <div className="bg-gray-50 rounded-lg p-3 mb-4 text-left text-sm">
-              <h4 className="font-medium text-gray-900 mb-2">Appointment Details:</h4>
-              <p><strong>Service:</strong> {appointmentDetails.specialty}</p>
-              <p><strong>Doctor:</strong> {appointmentDetails.doctorName}</p>
-              <p><strong>Clinic:</strong> {appointmentDetails.clinic}</p>
-              <p><strong>Date & Time:</strong> {appointmentDetails.date} at {appointmentDetails.time}</p>
+              <h4 className="font-medium text-gray-900 mb-2">{t('Appointment Details')}:</h4>
+              <p><strong>{t('Service')}:</strong> {appointmentDetails.specialty}</p>
+              <p><strong>{t('Doctor')}:</strong> {appointmentDetails.doctorName}</p>
+              <p><strong>{t('Clinic')}:</strong> {appointmentDetails.clinic}</p>
+              <p><strong>{t('Date & Time')}:</strong> {appointmentDetails.date} {t('at')} {appointmentDetails.time}</p>
             </div>
           )}
 
@@ -73,14 +75,14 @@ export const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
               className="w-full bg-red-600 hover:bg-red-700 text-white rounded-full py-2 text-sm font-medium"
               onClick={handleConfirm}
             >
-              Yes, Cancel Appointment
+              {t('Yes, Cancel Appointment')}
             </Button>
             <Button 
               variant="outline" 
               className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 rounded-full py-2 text-sm font-medium"
               onClick={onClose}
             >
-              Keep Appointment
+              {t('Keep Appointment')}
             </Button>
           </div>
         </div>

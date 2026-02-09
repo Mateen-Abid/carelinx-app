@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,6 +30,7 @@ const Auth = () => {
   
   const { signIn, signUp, user, userRole, signOut, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Check for message and mode in URL params
@@ -264,7 +266,7 @@ const Auth = () => {
       <button
         onClick={() => navigate('/')}
         className="fixed top-4 left-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-        aria-label="Go back to home"
+        aria-label={t('Go back to home')}
       >
         <ArrowLeft className="w-6 h-6 text-white" />
       </button>
@@ -283,7 +285,7 @@ const Auth = () => {
         {/* Welcome Message - Left aligned */}
         <div className="text-left mb-8">
           <h1 className="text-white text-2xl font-bold">
-            {isLogin ? 'Nice to see you again' : 'Welcome!'}
+            {isLogin ? t('Nice to see you again') : t('Welcome!')}
           </h1>
         </div>
 
@@ -310,14 +312,14 @@ const Auth = () => {
                 }}
                 className="text-[#00FFC2] hover:underline underline text-sm font-medium"
               >
-                Switch to Sign In
+                {t('Switch to Sign In')}
               </button>
             </div>
           )}
           {!isLogin && (
             <div>
               <Label htmlFor="fullName" className="text-white text-sm font-medium block mb-2">
-                Full name
+                {t('Full name')}
               </Label>
               <Input
                 id="fullName"
@@ -325,7 +327,7 @@ const Auth = () => {
                 type="text"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                placeholder="Enter here"
+                placeholder={t('Enter here')}
                 className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2]"
                 required
               />
@@ -334,7 +336,7 @@ const Auth = () => {
 
           <div>
             <Label htmlFor="email" className="text-white text-sm font-medium block mb-2">
-              Email
+              {t('Email')}
             </Label>
             <Input
               id="email"
@@ -342,7 +344,7 @@ const Auth = () => {
               type="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="Please enter your email"
+              placeholder={t('Please enter your email')}
               className={`w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 ${
                 emailError ? 'focus:ring-red-500' : 'focus:ring-[#00FFC2]'
               }`}
@@ -355,7 +357,7 @@ const Auth = () => {
 
           <div>
             <Label htmlFor="password" className="text-white text-sm font-medium block mb-2">
-              Password
+              {t('Password')}
             </Label>
             <div className="relative">
               <Input
@@ -364,7 +366,7 @@ const Auth = () => {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Enter your password"
+                placeholder={t('Enter your password')}
                 className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                 required
               />
@@ -381,7 +383,7 @@ const Auth = () => {
           {!isLogin && (
             <div>
               <Label htmlFor="confirmPassword" className="text-white text-sm font-medium block mb-2">
-                Confirm Password
+                {t('Confirm Password')}
               </Label>
               <div className="relative">
                 <Input
@@ -390,7 +392,7 @@ const Auth = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  placeholder="Enter your password"
+                  placeholder={t('Enter your password')}
                   className="w-full h-12 bg-[#F0F0F0] border-0 rounded-full px-4 text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#00FFC2] pr-12"
                   required
                 />
@@ -409,19 +411,19 @@ const Auth = () => {
              <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-1">
                <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
                  {passwordValidation.hasMinLength ? <Check size={12} /> : <X size={12} />}
-                 <span>8+ characters</span>
+                 <span>{t('8+ characters')}</span>
                </div>
                <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
                  {passwordValidation.hasNumber ? <Check size={12} /> : <X size={12} />}
-                 <span>Number</span>
+                 <span>{t('Number')}</span>
                </div>
                <div className={`flex items-center gap-1 ${passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
                  {passwordValidation.hasUpperCase && passwordValidation.hasLowerCase ? <Check size={12} /> : <X size={12} />}
-                 <span>Uppercase and lowercase letters</span>
+                 <span>{t('Uppercase and lowercase letters')}</span>
                </div>
                <div className={`flex items-center gap-1 ${passwordValidation.hasSpecialChar ? 'text-[#00FFC2]' : 'text-[#6B7280]'}`}>
                  {passwordValidation.hasSpecialChar ? <Check size={12} /> : <X size={12} />}
-                 <span>Special character</span>
+                 <span>{t('Special character')}</span>
                </div>
              </div>
            )}
@@ -433,7 +435,7 @@ const Auth = () => {
                  onClick={handleForgotPassword}
                  className="text-sm text-[#00FFC2] hover:underline underline"
                >
-                 Forgot password?
+                {t('Forgot password?')}
                </button>
              </div>
            )}
@@ -444,7 +446,7 @@ const Auth = () => {
             disabled={loading || (!isLogin && !isPasswordValid)}
             className="w-full h-12 bg-[#00FFC2] hover:bg-[#00FFC2]/90 text-[#1A202C] font-bold text-base rounded-full border-0 focus:outline-none focus:ring-2 focus:ring-[#00FFC2] focus:ring-offset-2 focus:ring-offset-[#1A202C]"
           >
-            {loading ? 'Loading...' : isLogin ? 'Sign in' : 'Create Account'}
+            {loading ? t('Loading...') : isLogin ? t('Sign in') : t('Create Account')}
           </Button>
 
           {!isLogin && (
@@ -457,17 +459,17 @@ const Auth = () => {
                   variant="outline"
                   className="w-full h-8 text-sm border-[#6B7280] text-[#6B7280] hover:bg-[#6B7280] hover:text-white rounded-full"
                 >
-                  Resend Confirmation Email
+                  {t('Resend Confirmation Email')}
                 </Button>
               )}
               <p className="text-xs text-[#6B7280] text-center">
-                By creating an account, you agree to the{' '}
+                {t('By creating an account, you agree to the')}{' '}
                 <button type="button" className="text-[#00FFC2] hover:underline">
-                  Terms of use
+                  {t('Terms of use')}
                 </button>{' '}
-                and{' '}
+                {t('and')}{' '}
                 <button type="button" className="text-[#00FFC2] hover:underline">
-                  Privacy Policy
+                  {t('Privacy Policy')}
                 </button>
               </p>
             </>
@@ -479,14 +481,14 @@ const Auth = () => {
           {/* Sign Up Link */}
           <div className="text-center">
             <span className="text-white text-sm">
-              {isLogin ? "Don't have an account?" : "Have an account?"}
+              {isLogin ? t("Don't have an account?") : t('Have an account?')}
             </span>{' '}
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-[#00FFC2] hover:underline underline font-medium"
             >
-              {isLogin ? 'Sign up now' : 'Log in'}
+              {isLogin ? t('Sign up now') : t('Log in')}
             </button>
           </div>
         </form>

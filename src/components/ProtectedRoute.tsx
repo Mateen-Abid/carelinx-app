@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -15,6 +16,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, userRole, loading } = useAuth();
   const [isChecking, setIsChecking] = React.useState(true);
+  const { t } = useTranslation();
 
   // Wait a bit for role to load if user exists
   React.useEffect(() => {
@@ -34,7 +36,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#0C2243] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('Loading...')}</p>
         </div>
       </div>
     );
@@ -64,7 +66,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#0C2243] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Loading user role...</p>
+          <p className="text-gray-600">{t('Loading user role...')}</p>
         </div>
       </div>
     );

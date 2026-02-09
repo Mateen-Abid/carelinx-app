@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from '@/components/LanguageToggle';
 
 interface HeaderProps {
   viewMode?: 'services' | 'clinics';
@@ -12,6 +14,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const handleClinicClick = () => {
     if (location.pathname === '/') {
@@ -35,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => onViewModeChange('services')}
                 className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
-                aria-label="Go back to services"
+                aria-label={t('Go back to services')}
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
@@ -46,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
-                aria-label="Go back to home"
+                aria-label={t('Go back to home')}
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
@@ -57,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => navigate(-1)}
                 className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 rounded-full transition-colors mr-3 mt-1"
-                aria-label="Go back to previous page"
+                aria-label={t('Go back to previous page')}
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
@@ -85,35 +88,36 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                   onClick={() => navigate('/')}
                   className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  Home
+                  {t('Home')}
                 </div>
                 <div 
                   onClick={() => navigate('/my-bookings')}
                   className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  Booking
+                  {t('Booking')}
                 </div>
                 <div 
                   onClick={() => navigate('/profile')}
                   className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  Profile
+                  {t('Profile')}
                 </div>
               </nav>
             )}
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4 text-sm font-normal tracking-[-0.28px]">
+            <LanguageToggle />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="hidden sm:block">
-                  <span className="hidden lg:block text-white truncate max-w-32">Welcome, {user.email}</span>
+                  <span className="hidden lg:block text-white truncate max-w-32">{t('Welcome')}, {user.email}</span>
                 </div>
                 <button 
                   onClick={signOut}
                   className="hover:text-[rgba(0,255,162,1)] transition-colors px-2 sm:px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 text-xs sm:text-sm"
                 >
-                  Sign Out
+                  {t('Sign Out')}
                 </button>
               </div>
             ) : (
@@ -121,7 +125,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                 onClick={() => navigate('/auth?mode=login')}
                 className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-2 sm:px-6 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs sm:text-sm whitespace-nowrap"
               >
-                Log in
+                {t('Log in')}
               </button>
             )}
           </div>
@@ -150,7 +154,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                   }
                 }}
                 className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
-                aria-label="Go back"
+                aria-label={t('Go back')}
               >
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -165,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => onViewModeChange('services')}
                 className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
-                aria-label="Go back to services"
+                aria-label={t('Go back to services')}
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
@@ -178,7 +182,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
-                aria-label="Go back to home"
+                aria-label={t('Go back to home')}
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
@@ -191,7 +195,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
               <button
                 onClick={() => navigate(-1)}
                 className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-md transition-colors"
-                aria-label="Go back to previous page"
+                aria-label={t('Go back to previous page')}
               >
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>

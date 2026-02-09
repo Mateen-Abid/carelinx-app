@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Stethoscope, Building2, ArrowLeft } from 'lucide-react';
 import ServicesFilter from './ServicesFilter';
+import { useTranslation } from 'react-i18next';
 
 interface HeroSectionProps {
   viewMode: 'services' | 'clinics';
@@ -11,6 +12,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, selectedCategory, onCategoryChange, superAdminSpecialties = [] }) => {
+  const { t } = useTranslation();
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -96,7 +98,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
                 }`}
                >
                 <Stethoscope className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Specialties</span>
+                <span>{t('Specialties')}</span>
               </button>
               <button
                 onClick={() => onViewModeChange('clinics')}
@@ -107,13 +109,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
                 }`}
               >
                 <Building2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>Clinics</span>
+                <span>{t('Clinics')}</span>
               </button>
             </div>
           </div>
           {viewMode === 'services' && (
             <p className="text-white text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
-              <span className="text-[#00FFA2] font-medium">Step 01</span> <span className="text-white/90">Please choose a specialty</span>
+              <span className="text-[#00FFA2] font-medium">{t('Step 01')}</span>{' '}
+              <span className="text-white/90">{t('Please choose a specialty')}</span>
             </p>
           )}
           {viewMode === 'services' && (
