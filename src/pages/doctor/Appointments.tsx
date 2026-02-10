@@ -51,7 +51,8 @@ interface Clinic {
 
 const DoctorAppointments = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
@@ -137,7 +138,7 @@ const DoctorAppointments = () => {
           user_id: booking.user_id,
           patientName: profile?.full_name || t('Unknown Patient'),
           doctorName: booking.doctor_name || t('Unknown Doctor'),
-          service: booking.specialty || 'General Consultation',
+          service: booking.specialty || t('General Consultation'),
           appointment_date: booking.appointment_date,
           appointment_time: booking.appointment_time,
           status: mappedStatus,
@@ -156,15 +157,15 @@ const DoctorAppointments = () => {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const formatTime = (timeStr: string) => {
+    if (!timeStr) return t('N/A');
     const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours);
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:${minutes} ${period}`;
+    const date = new Date();
+    date.setHours(parseInt(hours, 10), parseInt(minutes || '0', 10), 0, 0);
+    return date.toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' });
   };
 
   const getStatusBadge = (status: Appointment['status']) => {
@@ -268,15 +269,15 @@ const DoctorAppointments = () => {
         id: appointment.id,
         patient: {
           name: (profileData as any)?.full_name || appointment.patientName || t('Unknown Patient'),
-          gender: (profileData as any)?.gender || 'Not specified',
-          contact: (profileData as any)?.phone || 'Not provided',
-          email: (profileData as any)?.email || 'Not provided',
+          gender: (profileData as any)?.gender || t('Not specified'),
+          contact: (profileData as any)?.phone || t('Not provided'),
+          email: (profileData as any)?.email || t('Not provided'),
         },
         doctor: {
           name: doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || t('Unknown Doctor'),
-          specialty: doctorData?.specialty || (bookingData as any).specialty || appointment.service || 'General',
-          service: (bookingData as any).specialty || appointment.service || 'General Consultation',
-          availability: doctorData?.availability || '9:00 AM - 5:00 PM',
+          specialty: doctorData?.specialty || (bookingData as any).specialty || appointment.service || t('General'),
+          service: (bookingData as any).specialty || appointment.service || t('General Consultation'),
+          availability: doctorData?.availability || t('9:00 AM - 5:00 PM'),
         },
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
@@ -563,13 +564,13 @@ const DoctorAppointments = () => {
               {/* Search Bar */}
               <div className="mb-4">
                 <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
                   <Input
                     type="text"
                     placeholder={t('Search by patient, doctor, or service...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
+                    className={`${isRtl ? 'pr-10 pl-3 text-right' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg`}
                   />
                 </div>
               </div>
@@ -587,7 +588,7 @@ const DoctorAppointments = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                        <th className="text-left py-4 px-4">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4`}>
                           <input
                             type="checkbox"
                             checked={selectedAppointments.length === filteredAppointments.length && filteredAppointments.length > 0}
@@ -595,25 +596,25 @@ const DoctorAppointments = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Patient Name')}
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t("Doctor's Name")}
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Service')}
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
-                          <div className="flex items-center gap-2">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
+                          <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
                             {t('Date & Time')}
                             <ArrowUpDown className="w-4 h-4 text-gray-400" />
                           </div>
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Status')}
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Action')}
                         </th>
                       </tr>
@@ -624,7 +625,7 @@ const DoctorAppointments = () => {
                           key={appointment.id}
                           className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <td className="py-4 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4`}>
                             <input
                               type="checkbox"
                               checked={selectedAppointments.includes(appointment.id)}
@@ -632,28 +633,28 @@ const DoctorAppointments = () => {
                               className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                             />
                           </td>
-                          <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-medium">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-900 dark:text-white font-medium`}>
                             {appointment.patientName}
                           </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
                             {appointment.doctorName}
                           </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
                             {appointment.service}
                           </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
+                            {formatDate(appointment.appointment_date)} {t('at')} {formatTime(appointment.appointment_time)}
                           </td>
-                          <td className="py-4 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4`}>
                             {getStatusBadge(appointment.status)}
                           </td>
-                          <td className="py-4 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4`}>
                             <Button
                               size="sm"
                               className="bg-[#0C2243] text-white hover:bg-[#0a1a35] text-xs px-4 py-1.5 font-medium"
                               onClick={() => handleViewDetails(appointment)}
                             >
-                              View Details
+                              {t('View Details')}
                             </Button>
                           </td>
                         </tr>
@@ -675,7 +676,7 @@ const DoctorAppointments = () => {
           <DialogContent className="max-w-2xl mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Appointment Details
+                {t('Appointment Details')}
               </DialogTitle>
             </DialogHeader>
 
@@ -689,7 +690,7 @@ const DoctorAppointments = () => {
                 {/* PATIENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                    PATIENT INFORMATION
+                    {t('Patient Information')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -698,7 +699,7 @@ const DoctorAppointments = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Gender')}</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedAppointmentDetails.patient.gender}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t(selectedAppointmentDetails.patient.gender)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Contact')}</p>
@@ -714,7 +715,7 @@ const DoctorAppointments = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                    DOCTOR'S / TREATMENT INFORMATION
+                    {t("Doctor's / Treatment Information")}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -744,21 +745,21 @@ const DoctorAppointments = () => {
                     className="border-red-600 text-red-600 bg-white hover:bg-red-50 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
                     <X className="w-4 h-4 text-red-600" />
-                    Cancel Appointment
+                    {t('Cancel Appointment')}
                   </Button>
                   <Button
                     onClick={handleRescheduleAppointment}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
                   >
                     <Clock className="w-4 h-4" />
-                    Reschedule
+                    {t('Reschedule')}
                   </Button>
                   <Button
                     onClick={handleApproveAppointment}
                     className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium shadow-sm"
                   >
                     <Check className="w-4 h-4 text-white" />
-                    Approve Appointment
+                    {t('Approve Appointment')}
                   </Button>
                 </div>
               </div>
@@ -771,7 +772,7 @@ const DoctorAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Approve Appointment
+                {t('Approve Appointment')}
               </DialogTitle>
             </DialogHeader>
 
@@ -804,7 +805,7 @@ const DoctorAppointments = () => {
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
+                        {formatDate(selectedAppointmentDetails.appointment_date)} {t('at')} {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
@@ -821,7 +822,7 @@ const DoctorAppointments = () => {
                 {/* Confirmation Message */}
                 <div className="mb-6">
                   <p className="text-sm text-gray-600 text-center leading-relaxed">
-                    Are you sure you want to approve this appointment? This will confirm the booking and notify both parties.
+                    {t('Are you sure you want to approve this appointment? This will confirm the booking and notify both parties.')}
                   </p>
                 </div>
 
@@ -832,13 +833,13 @@ const DoctorAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </Button>
                   <Button
                     onClick={handleConfirmApprove}
                     className="flex-1 bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm"
                   >
-                    Approve Appointment
+                    {t('Approve Appointment')}
                   </Button>
                 </div>
               </div>
@@ -851,7 +852,7 @@ const DoctorAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Cancel Appointment
+                {t('Cancel Appointment')}
               </DialogTitle>
             </DialogHeader>
 
@@ -884,7 +885,7 @@ const DoctorAppointments = () => {
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Date & Time')}</p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatDate(selectedAppointmentDetails.appointment_date)} at {formatTime(selectedAppointmentDetails.appointment_time)}
+                        {formatDate(selectedAppointmentDetails.appointment_date)} {t('at')} {formatTime(selectedAppointmentDetails.appointment_time)}
                       </p>
                     </div>
                     <div>
@@ -901,7 +902,7 @@ const DoctorAppointments = () => {
                 {/* Warning Message */}
                 <div className="mb-6">
                   <p className="text-sm text-red-600 text-center leading-relaxed">
-                    Once cancelled, this appointment will be marked as "Cancelled".
+                    {t('Once cancelled, this appointment will be marked as "Cancelled".')}
                   </p>
                 </div>
 
@@ -912,13 +913,13 @@ const DoctorAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Discard
+                    {t('Discard')}
                   </Button>
                   <Button
                     onClick={handleConfirmCancel}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Cancellation
+                    {t('Confirm Cancellation')}
                   </Button>
                 </div>
               </div>
@@ -931,7 +932,7 @@ const DoctorAppointments = () => {
           <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Confirmation
+                {t('Confirmation')}
               </DialogTitle>
             </DialogHeader>
 
@@ -950,10 +951,14 @@ const DoctorAppointments = () => {
                 {/* Question */}
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-bold text-gray-900 mb-3">
-                    Reschedule Appointment?
+                    {t('Reschedule Appointment?')}
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Are you sure you want to reschedule this appointment? Previous: {formatDateForReschedule(selectedAppointmentDetails.appointment_date)} - {formatTime(selectedAppointmentDetails.appointment_time)} with {selectedAppointmentDetails.doctor.name}
+                    {t('Are you sure you want to reschedule this appointment? Previous: {{date}} - {{time}} with {{doctor}}', {
+                      date: formatDateForReschedule(selectedAppointmentDetails.appointment_date),
+                      time: formatTime(selectedAppointmentDetails.appointment_time),
+                      doctor: selectedAppointmentDetails.doctor.name,
+                    })}
                   </p>
                 </div>
 
@@ -1023,13 +1028,13 @@ const DoctorAppointments = () => {
                     variant="outline"
                     className="flex-1 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </Button>
                   <Button
                     onClick={handleConfirmReschedule}
                     className="flex-1 bg-[#0C2243] hover:bg-[#0a1a35] text-white px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Confirm Reschedule
+                    {t('Confirm Reschedule')}
                   </Button>
                 </div>
               </div>

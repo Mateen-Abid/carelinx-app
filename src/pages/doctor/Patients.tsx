@@ -56,7 +56,8 @@ const DoctorPatients = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctorBookings, setDoctorBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,9 +215,9 @@ const DoctorPatients = () => {
         }
         
         // If user has a profile, use profile data; otherwise use booking data
-        const patientName = profile?.full_name || 'Unknown Patient';
+        const patientName = profile?.full_name || t('Unknown Patient');
         const patientGender = (profile?.gender as 'Male' | 'Female' | 'Other') || 'Other';
-        const patientContact = profile?.phone || profile?.email || 'N/A';
+        const patientContact = profile?.phone || profile?.email || t('N/A');
         
         console.log('👤 Creating patient for user_id:', userId, 'with name:', patientName, 'gender:', patientGender, 'age:', age);
         
@@ -332,18 +333,18 @@ const DoctorPatients = () => {
             status === 'active' ? 'bg-green-200' : 'bg-orange-200'
           }`}
         />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'active' ? t('Active') : t('Inactive')}
       </span>
     );
   };
 
   const getAppointmentStatusBadge = (status: string) => {
     const statusConfig: Record<string, { bg: string; dot: string; text: string }> = {
-      'completed': { bg: 'bg-green-500', dot: 'bg-green-200', text: 'Completed' },
-      'confirmed': { bg: 'bg-green-500', dot: 'bg-green-200', text: 'Completed' },
-      'cancelled': { bg: 'bg-red-500', dot: 'bg-red-200', text: 'Cancelled' },
-      'pending': { bg: 'bg-yellow-500', dot: 'bg-yellow-200', text: 'Pending' },
-      'rescheduled': { bg: 'bg-yellow-500', dot: 'bg-yellow-200', text: 'Pending' },
+      completed: { bg: 'bg-green-500', dot: 'bg-green-200', text: t('Completed') },
+      confirmed: { bg: 'bg-green-500', dot: 'bg-green-200', text: t('Completed') },
+      cancelled: { bg: 'bg-red-500', dot: 'bg-red-200', text: t('Cancelled') },
+      pending: { bg: 'bg-yellow-500', dot: 'bg-yellow-200', text: t('Pending') },
+      rescheduled: { bg: 'bg-yellow-500', dot: 'bg-yellow-200', text: t('Pending') },
     };
 
     const config = statusConfig[status] || statusConfig['pending'];
@@ -577,7 +578,7 @@ const DoctorPatients = () => {
                   </div>
                 )}
                 <span className="text-gray-900 dark:text-white font-medium text-base">
-                  {clinic?.name || 'Clinic'}
+                  {clinic?.name || t('Clinic')}
                 </span>
               </div>
             </div>
@@ -586,49 +587,49 @@ const DoctorPatients = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Total Patients
+                  {t('Total Patients')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.totalPatients}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  All registered patients in the clinic.
+                  {t('All registered patients in the clinic.')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  New This Month
+                  {t('New This Month')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.newThisMonth}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Recently onboarded patients.
+                  {t('Recently onboarded patients.')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Active Patients
+                  {t('Active Patients')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.activePatients}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Patients with recent or upcoming visits.
+                  {t('Patients with recent or upcoming visits.')}
                 </p>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                  Returning Patients
+                  {t('Returning Patients')}
                 </h3>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                   {stats.returningPatients}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Revisited after a previous appointment.
+                  {t('Revisited after a previous appointment.')}
                 </p>
               </div>
             </div>
@@ -660,13 +661,13 @@ const DoctorPatients = () => {
                     </Select>
 
                     <div className="relative max-w-md">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none z-10" />
+                      <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none z-10`} />
                       <Input
                         type="text"
                         placeholder={t('Search by Patient name, doctor, contact or service...')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 h-10 rounded-md w-full"
+                        className={`${isRtl ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3'} bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 h-10 rounded-md w-full`}
                       />
                     </div>
                   </div>
@@ -685,7 +686,7 @@ const DoctorPatients = () => {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                        <th className="text-left py-3 px-4">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                           <input
                             type="checkbox"
                             checked={selectedPatients.length === sortedPatients.length && sortedPatients.length > 0}
@@ -693,34 +694,34 @@ const DoctorPatients = () => {
                             className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                           />
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Patient Name')}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Gender')}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           <button
                             onClick={() => handleSort('age')}
-                            className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+                            className={`flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 ${isRtl ? 'flex-row-reverse' : ''}`}
                           >
                             {t('Age')}
                             <ArrowUpDown className="w-4 h-4" />
                           </button>
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Contact')}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           <button
                             onClick={() => handleSort('lastAppointment')}
-                            className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+                            className={`flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 ${isRtl ? 'flex-row-reverse' : ''}`}
                           >
                             {t('Last Appointment')}
                             <ArrowUpDown className="w-4 h-4" />
                           </button>
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           {t('Action')}
                         </th>
                       </tr>
@@ -731,7 +732,7 @@ const DoctorPatients = () => {
                           key={patient.id}
                           className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <input
                               type="checkbox"
                               checked={selectedPatients.includes(patient.id)}
@@ -739,61 +740,61 @@ const DoctorPatients = () => {
                               className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
                             />
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <span className="text-sm text-gray-900 dark:text-white font-medium">
                               {patient.name}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {patient.gender}
+                              {t(patient.gender)}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {patient.age > 0 ? patient.age : 'N/A'}
+                              {patient.age > 0 ? patient.age : t('N/A')}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {patient.contact}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {patient.lastAppointment 
                                 ? format(new Date(patient.lastAppointment), 'MMM d, yyyy')
-                                : 'N/A'}
+                                : t('N/A')}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                   <MoreVertical className="w-5 h-5" />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuContent align={isRtl ? 'start' : 'end'} className="w-48">
                                 <DropdownMenuItem 
                                   onClick={() => handleViewPatientDetails(patient)}
                                   className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <Eye className="w-4 h-4" />
-                                  View Details
+                                  {t('View Details')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleOpenEditPatient(patient)}
                                   className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <Pencil className="w-4 h-4" />
-                                  Edit Patient Info
+                                  {t('Edit Patient Info')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleDeletePatient(patient)}
                                   className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                                 >
                                   <X className="w-4 h-4" />
-                                  Delete Patient
+                                  {t('Delete Patient')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -807,7 +808,7 @@ const DoctorPatients = () => {
                 <div className="text-center py-16">
                   <p className="text-gray-500 dark:text-gray-400 text-lg font-medium mb-2">{t('No patients found')}</p>
                   <p className="text-sm text-gray-400 dark:text-gray-400">
-                    Patients will appear here once they book appointments.
+                    {t('Patients will appear here once they book appointments.')}
                   </p>
                 </div>
               )}
@@ -821,7 +822,7 @@ const DoctorPatients = () => {
             <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div className="flex items-center justify-between">
                 <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Patient Details
+                  {t('Patient Details')}
                 </DialogTitle>
                 <button
                   onClick={() => setIsPatientDetailsModalOpen(false)}
@@ -837,7 +838,7 @@ const DoctorPatients = () => {
                 {/* PATIENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    PATIENT INFORMATION
+                    {t('Patient Information')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -846,12 +847,12 @@ const DoctorPatients = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Gender')}</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.gender}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{t(selectedPatient.gender)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Age')}</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {selectedPatient.age > 0 ? selectedPatient.age : 'N/A'}
+                        {selectedPatient.age > 0 ? selectedPatient.age : t('N/A')}
                       </p>
                     </div>
                     <div>
@@ -859,7 +860,7 @@ const DoctorPatients = () => {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
                         {selectedPatient.firstAppointment 
                           ? format(new Date(selectedPatient.firstAppointment), 'MMM d, yyyy')
-                          : 'N/A'}
+                          : t('N/A')}
                       </p>
                     </div>
                   </div>
@@ -868,7 +869,7 @@ const DoctorPatients = () => {
                 {/* CONTACT DETAILS */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    CONTACT DETAILS
+                    {t('CONTACT DETAILS')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -889,7 +890,7 @@ const DoctorPatients = () => {
                 {/* APPOINTMENT HISTORY */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    APPOINTMENT HISTORY
+                    {t('Appointment History')}
                   </h3>
                   {loadingAppointments ? (
                     <div className="text-center py-8">
@@ -901,23 +902,23 @@ const DoctorPatients = () => {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                            <th className="text-left py-3 px-4">
+                            <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                               <input
                                 type="checkbox"
                                 className="w-4 h-4 text-[#00FFA2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#00FFA2] bg-white dark:bg-gray-800"
                               />
                             </th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Date
+                            <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
+                              {t('Date')}
                             </th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Doctor
+                            <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
+                              {t('Doctor')}
                             </th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Service
+                            <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
+                              {t('Service')}
                             </th>
-                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Status
+                            <th className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
+                              {t('Status')}
                             </th>
                           </tr>
                         </thead>
@@ -927,24 +928,24 @@ const DoctorPatients = () => {
                               key={appointment.id}
                               className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
-                              <td className="py-3 px-4">
+                              <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                                 <input
                                   type="checkbox"
                                   className="w-4 h-4 text-[#00FFA2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#00FFA2] bg-white dark:bg-gray-800"
                                 />
                               </td>
-                              <td className="py-3 px-4">
+                              <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                                 <span className="text-sm text-gray-900 dark:text-white">
                                   {format(new Date(appointment.appointment_date), 'MMM d, yyyy')}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
+                              <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                                 <span className="text-sm text-gray-900 dark:text-white">{appointment.doctor_name || t('N/A')}</span>
                               </td>
-                              <td className="py-3 px-4">
+                              <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                                 <span className="text-sm text-gray-900 dark:text-white">{appointment.specialty || t('N/A')}</span>
                               </td>
-                              <td className="py-3 px-4">
+                              <td className={`${isRtl ? 'text-right' : 'text-left'} py-3 px-4`}>
                                 {getAppointmentStatusBadge(appointment.status)}
                               </td>
                             </tr>
@@ -966,7 +967,7 @@ const DoctorPatients = () => {
                     variant="outline"
                     className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Close
+                    {t('Close')}
                   </Button>
                   <Button
                     onClick={() => {
@@ -976,7 +977,7 @@ const DoctorPatients = () => {
                     }}
                     className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Edit Patient Info
+                    {t('Edit Patient Info')}
                   </Button>
                 </div>
               </div>
@@ -1115,14 +1116,14 @@ const DoctorPatients = () => {
                 variant="outline"
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={handleSavePatientChanges}
                 disabled={savingPatient}
                 className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {savingPatient ? 'Saving...' : 'Save Changes'}
+                {savingPatient ? t('Saving...') : t('Save Changes')}
               </Button>
             </div>
           </DialogContent>
@@ -1133,7 +1134,7 @@ const DoctorPatients = () => {
           <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Delete Patient
+                {t('Delete Patient')}
               </DialogTitle>
             </DialogHeader>
 
@@ -1161,7 +1162,7 @@ const DoctorPatients = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Gender')}</p>
-                      <p className="text-sm font-semibold text-gray-900">{patientToDelete.gender}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t(patientToDelete.gender)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1.5">{t('Contact')}</p>
@@ -1177,25 +1178,25 @@ const DoctorPatients = () => {
                 {/* Warning Message */}
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-800">
-                    Are you sure you want to delete this patient? This will remove all their appointments with this clinic. This action cannot be undone.
+                    {t('Are you sure you want to delete this patient? This will remove all their appointments with this clinic. This action cannot be undone.')}
                   </p>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-3 ${isRtl ? 'flex-row-reverse' : ''}`}>
                   <Button
                     onClick={() => setIsDeleteConfirmModalOpen(false)}
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Discard
+                    {t('Discard')}
                   </Button>
                   <Button
                     onClick={handleConfirmDeletePatient}
                     disabled={deletingPatient}
                     className="flex-1 bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {deletingPatient ? 'Deleting...' : 'Confirm Deletion'}
+                    {deletingPatient ? t('Deleting...') : t('Confirm Deletion')}
                   </Button>
                 </div>
               </div>

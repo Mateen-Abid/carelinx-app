@@ -863,7 +863,7 @@ const ClinicAdminAppointments = () => {
           <DialogContent className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Appointment Details
+                {t('Appointment Details')}
               </DialogTitle>
             </DialogHeader>
 
@@ -877,7 +877,7 @@ const ClinicAdminAppointments = () => {
                 {/* PATIENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    PATIENT INFORMATION
+                    {t('Patient Information')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>

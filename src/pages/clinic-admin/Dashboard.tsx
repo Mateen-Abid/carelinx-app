@@ -979,7 +979,7 @@ const ClinicAdminDashboard = () => {
           <DialogContent className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg p-0 overflow-hidden shadow-xl border-0">
             <DialogHeader className="px-6 pt-6 pb-5 border-b border-gray-200 dark:border-gray-700">
               <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Appointment Details
+                {t('Appointment Details')}
               </DialogTitle>
             </DialogHeader>
 
@@ -993,7 +993,7 @@ const ClinicAdminDashboard = () => {
                 {/* PATIENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    PATIENT INFORMATION
+                    {t('Patient Information')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -1002,7 +1002,7 @@ const ClinicAdminDashboard = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Gender')}</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.patient.gender}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{t(selectedAppointmentDetails.patient.gender)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Contact')}</p>
@@ -1018,7 +1018,7 @@ const ClinicAdminDashboard = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    DOCTOR'S / TREATMENT INFORMATION
+                    {t("Doctor's / Treatment Information")}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
