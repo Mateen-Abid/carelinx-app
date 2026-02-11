@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageToggle from '@/components/LanguageToggle';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -30,7 +31,8 @@ const Auth = () => {
   
   const { signIn, signUp, user, userRole, signOut, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   useEffect(() => {
     // Check for message and mode in URL params
@@ -270,6 +272,11 @@ const Auth = () => {
       >
         <ArrowLeft className="w-6 h-6 text-white" />
       </button>
+      
+      {/* Language Toggle */}
+      <div className="fixed top-4 right-4 z-20">
+        <LanguageToggle />
+      </div>
 
       {/* Main Content Container */}
       <div className="w-full max-w-md relative z-10">

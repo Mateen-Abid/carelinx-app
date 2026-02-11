@@ -14,7 +14,8 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   const handleClinicClick = () => {
     if (location.pathname === '/') {
@@ -202,35 +203,31 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
             </div>
           )}
 
-          {/* Auth button for non-logged in users */}
-          {!user && (
-            <div className="absolute right-4 top-4">
+          <div className={`absolute top-4 flex items-center gap-2 ${isRtl ? 'left-4' : 'right-4'}`}>
+            <LanguageToggle />
+            {!user && (
               <button 
                 onClick={() => navigate('/auth?mode=login')}
                 className="bg-[rgba(0,255,162,1)] text-[rgba(12,34,67,1)] px-4 py-2 rounded-[40px] font-medium hover:bg-[rgba(0,255,162,0.9)] transition-colors text-xs whitespace-nowrap"
               >
-                Log in
+                {t('Log in')}
               </button>
-            </div>
-          )}
-
-          {/* Sign out button for logged in users */}
-          {user && (
-            <div className="absolute right-4 top-4">
+            )}
+            {user && (
               <button 
                 onClick={signOut}
                 className="hover:text-[rgba(0,255,162,1)] transition-colors px-4 py-2 rounded-[40px] border border-white/20 hover:bg-white/10 text-xs"
               >
-                Sign Out
+                {t('Sign Out')}
               </button>
-            </div>
-          )}
+            )}
+          </div>
           
           {/* Left-aligned Logo and Greeting */}
           <div className={`flex flex-col justify-start items-start pt-2 ${
             (location.pathname === '/' && viewMode === 'clinics') || 
             location.pathname.startsWith('/clinic/') || 
-            location.pathname.startsWith('/service/') ? 'pl-12' : ''
+            location.pathname.startsWith('/service/') ? (isRtl ? 'pr-12' : 'pl-12') : ''
           }`}>
             <button 
               onClick={() => navigate('/')}

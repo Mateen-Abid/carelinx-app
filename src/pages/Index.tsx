@@ -66,7 +66,8 @@ const Index = () => {
   const confirmAgeMs = emailConfirmMeta.time ? Date.now() - emailConfirmMeta.time : null;
   const isRecentEmailConfirm = shouldHandleEmailConfirm && (confirmAgeMs === null || confirmAgeMs < 10 * 60 * 1000);
   const { user, userRole } = useAuth(); // Get user and role from AuthContext to check if email was just confirmed
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   // Check for email confirmation tokens on mount and redirect immediately
   // This runs BEFORE any rendering happens
@@ -956,7 +957,7 @@ const Index = () => {
       {/* Text below the blue section */}
       {viewMode === 'services' && selectedCategory && (
         <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-gray-700 text-sm sm:text-base font-normal tracking-[-0.32px] text-left">
+          <p className={`text-gray-700 text-sm sm:text-base font-normal tracking-[-0.32px] ${isRtl ? 'text-right' : 'text-left'}`}>
             <span className="text-gray-700 font-medium">{t('Step 02')}</span> {t('Please choose a service')}
           </p>
         </div>

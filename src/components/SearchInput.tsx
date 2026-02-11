@@ -30,7 +30,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   superAdminServices = [],
   superAdminSpecialties = []
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
   // Dynamic placeholder based on selected category
   const getPlaceholder = () => {
     if (selectedCategory === 'dermatology') {
@@ -269,7 +270,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <div className="w-full flex justify-center relative" ref={searchRef}>
       <div className="relative w-full max-w-2xl">
         <form onSubmit={handleSubmit}>
-          <div className="items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px] mx-auto border border-gray-100 shadow-sm">
+          <div className={`items-center flex w-full gap-2 overflow-hidden text-base text-[#717680] font-normal flex-wrap bg-white p-4 rounded-[34px] mx-auto border border-gray-100 shadow-sm ${isRtl ? 'flex-row-reverse' : ''}`}>
             <img
               src="https://api.builder.io/api/v1/image/assets/TEMP/57274afdd1238290026fe0d60710347fbb4f5f8b?placeholderIfAbsent=true"
               className="aspect-[1] object-contain w-5 self-stretch shrink-0 my-auto"
@@ -282,7 +283,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               onFocus={handleInputFocus}
               onClick={handleInputClick}
               placeholder={placeholder || getPlaceholder()}
-              className="text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none"
+              className={`text-[#717680] text-ellipsis text-base leading-6 self-stretch flex-1 shrink basis-[0%] my-auto max-md:max-w-full bg-transparent border-none outline-none ${isRtl ? 'text-right' : 'text-left'}`}
             />
             {searchValue && (
               <button
@@ -292,7 +293,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   onSearch?.('');
                   setShowDropdown(false);
                 }}
-                className="flex items-center justify-center p-1 hover:bg-gray-100 rounded-full transition-colors mr-1"
+                className={`flex items-center justify-center p-1 hover:bg-gray-100 rounded-full transition-colors ${isRtl ? 'ml-1' : 'mr-1'}`}
                 title={t('Clear search')}
               >
                 <svg 
