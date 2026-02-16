@@ -8,12 +8,13 @@ import { Stethoscope, User } from 'lucide-react';
 import { clinicsData, Clinic } from '@/data/clinicsData';
 import { api } from '@/services/api';
 import Image5 from '../assets/image 5.svg';
+import DentalIcon from '../assets/dental-icon.svg';
 import { useTranslation } from 'react-i18next';
 
 // Custom Tooth Icon Component
 const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
   <img 
-    src="/src/assets/dental-icon.svg" 
+    src={DentalIcon} 
     width={size} 
     height={size} 
     alt="Tooth icon"
