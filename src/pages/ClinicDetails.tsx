@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import SearchInput from '@/components/SearchInput';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, User } from 'lucide-react';
@@ -12,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 // Custom Tooth Icon Component
 const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
   <img 
-    src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png" 
+    src="/src/assets/dental-icon.svg" 
     width={size} 
     height={size} 
     alt="Tooth icon"
@@ -466,10 +467,10 @@ const ClinicDetails = () => {
                             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center ${selectedCategory === category.id ? 'bg-white rounded-full p-1' : ''}`}>
+                      <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center rounded-full p-1 ${selectedCategory === category.id ? 'bg-white' : 'bg-transparent'}`}>
                         <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6" />
                       </div>
-                      <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
+                      <span className="text-[9px] sm:text-[11px] leading-[1.2] sm:leading-[1.2] text-center px-0.5 pb-0.5 break-words hyphens-auto max-w-full">
                         {category.name}
                       </span>
                     </button>
@@ -547,6 +548,8 @@ const ClinicDetails = () => {
         </div>
       </section>
 
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation viewMode="clinics" onViewModeChange={() => {}} />
     </div>
   );
 };

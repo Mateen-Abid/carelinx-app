@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TimeSlotModalProps {
   isOpen: boolean;
@@ -20,6 +19,36 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
   onBookAppointment
 }) => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
+
+  const formatTime = (date: Date) =>
+    new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+
+  const localizeTimeString = (timeStr: string) => {
+    if (!isRtl) return timeStr;
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridiem = match[3].toUpperCase();
+
+    if (meridiem === 'PM' && hours !== 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+
+    return formatTime(new Date(2000, 0, 1, hours, minutes));
+  };
 
   const handleTimeSlotSelect = (timeSlot: string) => {
     setSelectedTimeSlot(timeSlot);
@@ -43,7 +72,7 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-center pb-6">
           <h2 className="text-lg font-semibold text-gray-900">
-            {format(selectedDate, 'EEEE, MMMM d')}
+            {formatDate(selectedDate)}
           </h2>
         </div>
 
@@ -54,14 +83,14 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
               key={timeSlot}
               onClick={() => handleTimeSlotSelect(timeSlot)}
               className={`
-                w-full p-3 rounded-lg border text-left font-medium transition-all text-sm
+                w-full p-3 rounded-lg border font-medium transition-all text-sm ${isRtl ? 'text-right' : 'text-left'}
                 ${selectedTimeSlot === timeSlot
                   ? 'border-gray-400 bg-gray-100 text-gray-900'
                   : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
                 }
               `}
             >
-              {timeSlot}
+              {localizeTimeString(timeSlot)}
             </button>
           ))}
         </div>
@@ -73,7 +102,7 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
             disabled={!selectedTimeSlot}
             className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            Request appointment
+            {t('Request appointment')}
           </Button>
         </div>
       </DialogContent>

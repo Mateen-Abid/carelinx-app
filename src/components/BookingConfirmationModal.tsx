@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface BookingConfirmationModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   bookingDetails
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleViewBooking = () => {
     navigate('/my-bookings');
@@ -50,12 +52,12 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
           {/* Title */}
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Booking Request Sent
+            {t('Booking Request Sent')}
           </h2>
 
           {/* Description */}
           <p className="text-gray-600 text-sm mb-8 leading-relaxed max-w-xs mx-auto">
-            Your appointment booking request has been sent. We'll get back to you shortly.
+            {t("Your appointment booking request has been sent. We'll get back to you shortly.")}
           </p>
 
           {/* View Booking Button */}
@@ -63,7 +65,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
             onClick={handleViewBooking}
             className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium py-3 rounded-xl transition-colors"
           >
-            View Booking
+            {t('View Booking')}
           </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
+import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
 import BookingConfirmationModal from '@/components/BookingConfirmationModal';
 import TimeSlotModal from '@/components/TimeSlotModal';
@@ -133,7 +134,37 @@ const serviceDatabase = generateServiceDatabase();
 const ServiceDetails = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+
+  const formatTime = (date: Date) =>
+    new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+
+  const localizeTimeString = (timeStr: string) => {
+    if (!isRtl) return timeStr;
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridiem = match[3].toUpperCase();
+
+    if (meridiem === 'PM' && hours !== 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+
+    return formatTime(new Date(2000, 0, 1, hours, minutes));
+  };
+
+  const localizeTimeRange = (range: string) => {
+    if (!isRtl) return range;
+    const normalized = range.replace('–', '-');
+    const parts = normalized.split('-').map((part) => part.trim());
+    if (parts.length !== 2) return range;
+    return `${localizeTimeString(parts[0])} - ${localizeTimeString(parts[1])}`;
+  };
   const location = useLocation();
   const { user } = useAuth();
   const { addAppointment } = useBooking();
@@ -409,13 +440,17 @@ const ServiceDetails = () => {
     );
   }
 
+  const translatedServiceName = t(service.name);
+  const descriptionServiceName = isRtl ? translatedServiceName : translatedServiceName.toLowerCase();
+
   // Create service data object for compatibility
   const serviceData = {
     name: service.name,
     specialty: service.category,
-    description: isDatabaseService 
-      ? `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`
-      : `Professional ${service.name.toLowerCase()} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.`,
+    description: t(
+      'Professional {{serviceName}} services provided by our experienced medical team. Quality care with personalized treatment plans tailored to your specific needs.',
+      { serviceName: descriptionServiceName }
+    ),
     clinic: isDatabaseService ? (clinic?.name || 'Clinic') : clinic.name,
     clinicLogo: isDatabaseService ? (clinic?.logo_url || '') : clinic.logo,
     address: isDatabaseService ? (clinic?.address || 'Location not specified') : clinic.address,
@@ -551,7 +586,7 @@ const ServiceDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
       <Header />
       
       {/* Blue Header Section with Clinic Info Only */}
@@ -582,10 +617,10 @@ const ServiceDetails = () => {
       <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{serviceData.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t(serviceData.name)}</h1>
             
             <div className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
-              {serviceData.specialty}
+              {t(serviceData.specialty)}
             </div>
             <p className="text-gray-600 leading-relaxed max-w-2xl">
               {serviceData.description}
@@ -611,7 +646,7 @@ const ServiceDetails = () => {
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              <ChevronLeft size={20} />
+              {isRtl ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
             
             {/* Current Date Display */}
@@ -632,7 +667,7 @@ const ServiceDetails = () => {
               onClick={() => setSelectedDisplayDate(addDays(selectedDisplayDate, 1))}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
             >
-              <ChevronRight size={20} />
+              {isRtl ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
             </button>
           </div>
 
@@ -693,7 +728,7 @@ const ServiceDetails = () => {
                     {/* Time Slot Badge */}
                     <div className="mt-2">
                       <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-                        {doctor.timeSlots[0]}
+                        {localizeTimeRange(doctor.timeSlots[0])}
                       </span>
                     </div>
                   </div>
@@ -728,6 +763,9 @@ const ServiceDetails = () => {
         isOpen={isAuthPromptOpen}
         onClose={() => setIsAuthPromptOpen(false)}
       />
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation viewMode="services" onViewModeChange={() => {}} />
     </div>
   );
 };

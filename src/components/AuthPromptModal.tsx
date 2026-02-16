@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
   message = "YOU ARE NOT LOGGED IN"
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSignUp = () => {
     onClose();
@@ -41,7 +43,7 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
             </h2>
             
             <p className="text-gray-600 mb-6 text-sm">
-              Please sign in or create an account to continue.
+              {t('Please sign in or create an account to continue.')}
             </p>
             
             <div className="space-y-2">
@@ -49,14 +51,14 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
                 className="w-full bg-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.9)] text-white rounded-full py-2.5 font-medium text-sm"
                 onClick={handleLogIn}
               >
-                Log In
+                {t('Log In')}
               </Button>
               <Button 
                 variant="outline" 
                 className="w-full border-[rgba(12,34,67,1)] text-[rgba(12,34,67,1)] hover:bg-[rgba(12,34,67,0.05)] rounded-full py-2.5 font-medium text-sm"
                 onClick={handleSignUp}
               >
-                Sign Up
+                {t('Sign Up')}
               </Button>
             </div>
           </div>

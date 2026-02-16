@@ -290,8 +290,11 @@ const Auth = () => {
         </div>
 
         {/* Welcome Message - Left aligned */}
-        <div className="text-left mb-8">
-          <h1 className="text-white text-2xl font-bold">
+        <div className="mb-8">
+          <h1
+            className="text-white text-2xl font-bold"
+            style={{ textAlign: isRtl ? 'right' : 'left' }}
+          >
             {isLogin ? t('Nice to see you again') : t('Welcome!')}
           </h1>
         </div>

@@ -47,6 +47,7 @@ const Profile = () => {
   useEffect(() => {
     if (!user) {
       setShowAuthPrompt(true);
+      setLoadingProfile(false);
       return;
     }
     fetchProfile();

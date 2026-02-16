@@ -28,7 +28,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
   // Custom Tooth Icon Component
   const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
     <img 
-      src="/lovable-uploads/74f053c5-a248-4f63-812c-6ba128f47e0a.png" 
+      src="/src/assets/dental-icon.svg" 
       width={size} 
       height={size} 
       alt={t('Tooth icon')}
@@ -175,10 +175,10 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
           }`}
         >
-          <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center ${isSelected ? 'bg-white rounded-full p-1' : ''}`}>
+          <div className={`shrink-0 sm:w-6 sm:h-6 mb-1 flex items-center justify-center rounded-full p-1 ${isSelected ? 'bg-white' : 'bg-transparent'}`}>
             <IconComponent size={20} className="shrink-0 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-[9px] sm:text-[11px] leading-[1.0] sm:leading-[1.1] text-center px-0.5 break-words hyphens-auto max-w-full overflow-hidden">
+          <span className="text-[9px] sm:text-[11px] leading-[1.2] sm:leading-[1.2] text-center px-0.5 pb-0.5 break-words hyphens-auto max-w-full">
             {category.name}
           </span>
         </button>
