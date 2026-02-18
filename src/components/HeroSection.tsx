@@ -12,7 +12,8 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, selectedCategory, onCategoryChange, superAdminSpecialties = [] }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
 
   return (
     <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
@@ -114,13 +115,21 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
             </div>
           </div>
           {viewMode === 'services' && (
-            <div className="mt-3 w-full px-4 sm:px-0 relative overflow-visible">
-              <ServicesFilter 
-                selectedCategory={selectedCategory}
-                onCategoryChange={onCategoryChange}
-                superAdminSpecialties={superAdminSpecialties}
-              />
-            </div>
+            <>
+              <div className="mt-3 w-full px-4 sm:px-0">
+                <p className={`text-white text-sm sm:text-base font-normal tracking-[-0.32px] ${isRtl ? 'text-right' : 'text-left'}`}>
+                  <span className="text-[#00FFA2] font-medium">{t('Step 01')}</span>{' '}
+                  <span className="text-white font-normal">{t('Please choose a specialty')}</span>
+                </p>
+              </div>
+              <div className="mt-3 w-full px-4 sm:px-0 relative overflow-visible">
+                <ServicesFilter 
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={onCategoryChange}
+                  superAdminSpecialties={superAdminSpecialties}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>

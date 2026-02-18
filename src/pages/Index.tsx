@@ -971,14 +971,6 @@ const Index = () => {
         {viewMode === 'services' && (
           <section className="flex w-full flex-col items-stretch mt-2 sm:mt-4 px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8">
             <div className="w-full max-w-7xl mx-auto">
-              {!selectedCategory && (
-                <div className="mb-4">
-                  <p className={`text-gray-700 text-sm sm:text-base font-normal tracking-[-0.32px] ${isRtl ? 'text-right' : 'text-left'} w-full`}>
-                    <span className="text-[#0C2243] font-medium">{t('Step 01')}</span>{' '}
-                    <span className="text-gray-500 font-normal">{t('Please choose a specialty')}</span>
-                  </p>
-                </div>
-              )}
               {/* Search Bar above title - only show when specialty is selected */}
               {selectedCategory && (
                 <div className="mb-4 w-full">
