@@ -182,7 +182,7 @@ const ServiceDetails = () => {
   // Database service state
   const [databaseService, setDatabaseService] = useState<any>(null);
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
-  const [databaseDoctors, setDatabaseDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>([]);
+  const [databaseDoctors, setDatabaseDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>>([]);
   const [loading, setLoading] = useState(true);
 
   // Check if serviceId is a database service (starts with "doctor-")
@@ -444,6 +444,17 @@ const ServiceDetails = () => {
   const descriptionServiceName = isRtl ? translatedServiceName : translatedServiceName.toLowerCase();
 
   // Create service data object for compatibility
+  const formatDoctorPrice = (price?: string | number | null) => {
+    if (price === null || price === undefined) return null;
+    const trimmed = String(price).trim();
+    if (!trimmed) return null;
+    const numeric = trimmed.replace(/,/g, '');
+    if (/^\d+(\.\d+)?$/.test(numeric)) {
+      return new Intl.NumberFormat(isRtl ? 'ar' : 'en').format(Number(numeric));
+    }
+    return trimmed;
+  };
+
   const serviceData = {
     name: service.name,
     specialty: service.category,
@@ -470,7 +481,8 @@ const ServiceDetails = () => {
           timeSlots: doctor.availability 
             ? [doctor.availability] 
             : ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM'],
-          doctorId: doctor.id
+          doctorId: doctor.id,
+          price: doctor.price ?? null
         }))
       : getHardcodedDoctors()
   };
@@ -723,7 +735,14 @@ const ServiceDetails = () => {
                   
                   {/* Doctor Info */}
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">{doctor.name}</h3>
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-semibold text-gray-900 text-lg">{doctor.name}</h3>
+                      {formatDoctorPrice(doctor.price) ? (
+                        <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
+                          {t('Price')} {formatDoctorPrice(doctor.price)}
+                        </span>
+                      ) : null}
+                    </div>
                     
                     {/* Time Slot Badge */}
                     <div className="mt-2">

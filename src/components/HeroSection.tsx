@@ -114,12 +114,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
             </div>
           </div>
           {viewMode === 'services' && (
-            <p className="text-white text-sm sm:text-base font-normal tracking-[-0.32px] mt-4 text-left px-4">
-              <span className="text-[#00FFA2] font-medium">{t('Step 01')}</span>{' '}
-              <span className="text-white/90">{t('Please choose a specialty')}</span>
-            </p>
-          )}
-          {viewMode === 'services' && (
             <div className="mt-3 w-full px-4 sm:px-0 relative overflow-visible">
               <ServicesFilter 
                 selectedCategory={selectedCategory}

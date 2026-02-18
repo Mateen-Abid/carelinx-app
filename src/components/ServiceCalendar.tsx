@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isAfter, startOfDay, startOfWeek, addDays } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ServiceCalendarProps {
   serviceData?: {
@@ -17,6 +19,9 @@ const ServiceCalendar: React.FC<ServiceCalendarProps> = ({
   onDateSelect,
   className = "" 
 }) => {
+  const { i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+  const locale = isRtl ? ar : undefined;
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
 
   // Update calendar month when selectedDate changes
@@ -79,32 +84,37 @@ const ServiceCalendar: React.FC<ServiceCalendarProps> = ({
 
   const calendarDays = [...paddedDays, ...allDaysInMonth];
 
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const dayLabels = Array.from({ length: 7 }, (_, index) =>
+    format(addDays(weekStart, index), 'EEE', { locale })
+  );
+
   return (
-    <div className={`bg-white rounded-lg border p-6 max-w-md mx-auto ${className}`}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`bg-white rounded-lg border p-6 max-w-md mx-auto ${className}`}>
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={goToPreviousMonth}
           className="p-2 hover:bg-gray-100 rounded transition-colors"
         >
-          <ChevronLeft size={18} className="text-gray-600" />
+          {isRtl ? <ChevronRight size={18} className="text-gray-600" /> : <ChevronLeft size={18} className="text-gray-600" />}
         </button>
         
         <h3 className="text-base font-medium text-gray-900">
-          {format(currentDate, 'MMMM yyyy')}
+          {format(currentDate, 'MMMM yyyy', { locale })}
         </h3>
         
         <button
           onClick={goToNextMonth}
           className="p-2 hover:bg-gray-100 rounded transition-colors"
         >
-          <ChevronRight size={18} className="text-gray-600" />
+          {isRtl ? <ChevronLeft size={18} className="text-gray-600" /> : <ChevronRight size={18} className="text-gray-600" />}
         </button>
       </div>
 
       {/* Day Headers */}
       <div className="grid grid-cols-7 mb-4">
-        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
+        {dayLabels.map((day) => (
           <div key={day} className="text-center py-3">
             <span className="text-xs font-medium text-gray-500">{day}</span>
           </div>
@@ -132,7 +142,7 @@ const ServiceCalendar: React.FC<ServiceCalendarProps> = ({
                   }
                 `}
               >
-                {format(date, 'd')}
+                {format(date, 'd', { locale })}
               </button>
             </div>
           );

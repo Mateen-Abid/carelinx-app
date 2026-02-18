@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface ClinicService {
   name: string;
@@ -44,6 +44,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   hasSelectedService = false
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [logoError, setLogoError] = React.useState(false);
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -61,12 +62,13 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
     
     // Otherwise, navigate to clinic details page
     // Use the clinic ID if available, otherwise fallback to name-based slug
+    const from = `${location.pathname}${location.search}`;
     if (id) {
-      navigate(`/clinic/${id}`);
+      navigate(`/clinic/${id}`, { state: { from } });
     } else {
       // Fallback: Convert clinic name to a URL-friendly slug
       const clinicSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-      navigate(`/clinic/${clinicSlug}`);
+      navigate(`/clinic/${clinicSlug}`, { state: { from } });
     }
   };
 

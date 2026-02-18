@@ -43,6 +43,7 @@ interface Doctor {
   phone: string | null;
   availability: string | null;
   services?: string | null; // Services column from database (comma-separated)
+  price?: string | number | null;
   status: 'active' | 'inactive' | 'on-leave';
 }
 
@@ -111,6 +112,7 @@ const ClinicAdminDoctors = () => {
     specialty: '',
     status: '',
     availability: '',
+    price: '',
   });
   
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
@@ -368,6 +370,7 @@ const ClinicAdminDoctors = () => {
         availability: newDoctor.availability?.trim() || null,
         services: servicesString, // Store services as comma-separated string
         status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
+        price: newDoctor.price?.trim() || null,
       });
 
       toast.success(t('Doctor added successfully'));
@@ -523,6 +526,7 @@ const ClinicAdminDoctors = () => {
       specialty: doctor.specialty || '',
       status: doctor.status || 'active',
       availability: doctor.availability || '',
+      price: doctor.price !== null && doctor.price !== undefined ? String(doctor.price) : '',
     });
     setShowEditDoctorModal(true);
   };
@@ -544,6 +548,7 @@ const ClinicAdminDoctors = () => {
         specialty: editDoctor.specialty || null,
         status: editDoctor.status as 'active' | 'inactive' | 'on-leave',
         availability: editDoctor.availability?.trim() || null,
+        price: editDoctor.price?.trim() || null,
       });
 
       toast.success(t('Doctor updated successfully'));
@@ -1695,6 +1700,19 @@ const ClinicAdminDoctors = () => {
                     value={editDoctor.availability}
                     onChange={(e) => setEditDoctor({ ...editDoctor, availability: e.target.value })}
                     placeholder={t('e.g., 9:00 AM - 5:00 PM')}
+                    className="mt-1.5 h-10"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('Price')}
+                  </Label>
+                  <Input
+                    id="edit-doctor-price"
+                    type="number"
+                    value={editDoctor.price}
+                    onChange={(e) => setEditDoctor({ ...editDoctor, price: e.target.value })}
+                    placeholder={t('Enter Price')}
                     className="mt-1.5 h-10"
                   />
                 </div>

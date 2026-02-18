@@ -32,7 +32,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res) => {
     // Otherwise, only return active doctors for public users
     let query = supabaseAdmin
       .from('doctors')
-      .select('id, name, specialty, email, phone, availability, clinic_id, status, services');
+      .select('id, name, specialty, email, phone, availability, clinic_id, status, services, price');
 
     // Only filter by status if:
     // - Not super admin requesting all doctors (all=true)
@@ -65,7 +65,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res) => {
  */
 router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { clinic_id, name, specialty, email, phone, availability, services, status } = req.body;
+    const { clinic_id, name, specialty, email, phone, availability, services, status, price } = req.body;
 
     if (!clinic_id || !name || !specialty) {
       return res.status(400).json({ error: 'Clinic ID, name, and specialty are required' });
@@ -94,6 +94,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         availability: availability || null,
         services: services || null,
         status: status || 'active',
+        price: price ?? null,
       })
       .select()
       .single();

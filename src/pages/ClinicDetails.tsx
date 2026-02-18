@@ -305,7 +305,8 @@ const ClinicDetails = () => {
       state: {
         clinicId: currentClinic.id,
         clinicName: currentClinic.name,
-        isDatabaseService: service.id.startsWith('doctor-')
+        isDatabaseService: service.id.startsWith('doctor-'),
+        from: `${location.pathname}${location.search}`,
       }
     });
   };
@@ -323,7 +324,8 @@ const ClinicDetails = () => {
         state: {
           clinicId: currentClinic.id,
           clinicName: currentClinic.name,
-          isDatabaseService: option.id.startsWith('doctor-')
+          isDatabaseService: option.id.startsWith('doctor-'),
+          from: `${location.pathname}${location.search}`,
         }
       });
     }
@@ -478,8 +480,8 @@ const ClinicDetails = () => {
                     
                     {/* SOON Banner for Others button - positioned diagonally on top right corner */}
                     {isOthers && (
-                      <div className="absolute top-1 -right-1 z-10">
-                        <div className="bg-[#00FFA2] text-black px-2 py-1 text-[7px] sm:text-[8px] font-bold whitespace-nowrap shadow-sm transform rotate-45 rounded">
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 w-40 sm:w-44 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#00FFA2] text-black flex items-center justify-center px-2 py-1 text-[7px] sm:text-[8px] font-bold whitespace-nowrap shadow-sm rounded">
                           {t('SOON')}
                         </div>
                       </div>
