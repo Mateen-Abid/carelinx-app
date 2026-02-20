@@ -235,9 +235,9 @@ const ClinicDetails = () => {
 
   // Service categories for filtering
   const serviceCategories: ServiceCategory[] = [
-    { id: 'dermatology', name: 'Dermatology', icon: DermatologyIcon },
-    { id: 'dentistry', name: 'Dental', icon: ToothIcon },
-    { id: 'others', name: 'Others', icon: OthersIcon }
+    { id: 'dermatology', name: t('Dermatology'), icon: DermatologyIcon },
+    { id: 'dentistry', name: t('Dental'), icon: ToothIcon },
+    { id: 'others', name: t('Others'), icon: OthersIcon }
   ];
 
   // Generate service cards from clinic services (database) - same logic as clinic admin
