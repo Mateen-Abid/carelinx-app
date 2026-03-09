@@ -277,7 +277,8 @@
   "Choose Clinic": "اختر العيادة",
   "No clinics found for \"{{clinicSearchQuery}}\"": "لم يتم العثور على عيادات لـ \"{{clinicSearchQuery}}\"",
   "No clinics available": "لا توجد عيادات متاحة",
-  "Dr. Available Doctor": "د. طبيب متاح"
+  "Dr. Available Doctor": "د. طبيب متاح",
+  "Starting from": "يبدأ من"
   ,
   "SOON": "قريبًا",
   "Loading clinic information...": "جارٍ تحميل معلومات العيادة...",

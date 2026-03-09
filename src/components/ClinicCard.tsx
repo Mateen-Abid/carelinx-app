@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ClinicService {
   name: string;
@@ -23,6 +24,7 @@ interface ClinicCardProps {
   phoneNumber?: string;
   onBookingClick?: () => void;
   hasSelectedService?: boolean; // Indicates if a service is selected
+  startingPrice?: string;
 }
 
 const ClinicCard: React.FC<ClinicCardProps> = ({
@@ -41,10 +43,12 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   isCallOnly = false,
   phoneNumber,
   onBookingClick,
-  hasSelectedService = false
+  hasSelectedService = false,
+  startingPrice
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [logoError, setLogoError] = React.useState(false);
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -100,8 +104,15 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           </div>
         )}
         <div className="flex flex-col min-w-0 flex-1">
-          <div className="text-black text-sm sm:text-base font-medium truncate">
-            {name}
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-black text-sm sm:text-base font-medium truncate">
+              {name}
+            </div>
+            {startingPrice ? (
+              <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-xs font-semibold">
+                {t('Starting from')} {startingPrice}
+              </span>
+            ) : null}
           </div>
           <div className="flex items-center gap-1 mt-1">
             <div className="bg-white text-gray-600 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 border border-gray-200">

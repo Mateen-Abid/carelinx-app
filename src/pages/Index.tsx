@@ -40,7 +40,7 @@ const Index = () => {
   const [clinicSearchQuery, setClinicSearchQuery] = useState<string>('');
   const [databaseClinics, setDatabaseClinics] = useState<DatabaseClinic[]>([]);
   const [loadingClinics, setLoadingClinics] = useState(true);
-  const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>>({});
+  const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>>>({});
   const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
   const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -272,7 +272,7 @@ const Index = () => {
           
           console.log('✅ Fetched doctors from backend:', doctorsData?.length || 0);
           // Group doctors by clinic_id
-          const doctorsByClinic: Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>> = {};
+          const doctorsByClinic: Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>> = {};
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (doctorsData as any[])?.forEach((doctor: any) => {
             if (!doctorsByClinic[doctor.clinic_id]) {
@@ -285,7 +285,8 @@ const Index = () => {
               email: doctor.email,
               phone: doctor.phone,
               availability: doctor.availability,
-              services: doctor.services
+              services: doctor.services,
+              price: doctor.price ?? null
             });
             
             // Debug: Log doctor services
@@ -961,6 +962,49 @@ const Index = () => {
     return filtered;
   }, [clinicCards, clinicDoctors, clinicSearchQuery, selectedService, serviceCards]);
 
+  const parseNumericPrice = (price: string | number | null | undefined): number | null => {
+    if (price === null || price === undefined) return null;
+    const raw = String(price).trim();
+    if (!raw) return null;
+    const numeric = Number(raw.replace(/[^0-9.]/g, ''));
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const formatStartingPrice = (price: number): string => {
+    const locale = isRtl ? 'ar' : 'en-US';
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(price);
+  };
+
+  const startingPriceByClinic = useMemo(() => {
+    const map: Record<string, string> = {};
+    const selectedServiceName = selectedService.trim().toLowerCase();
+
+    if (!selectedServiceName) {
+      return map;
+    }
+
+    clinicCards.forEach((clinic) => {
+      const clinicKey = clinic.id || clinic.name;
+      const doctors = clinic.id ? (clinicDoctors[clinic.id] || []) : [];
+      const matchingPrices = doctors
+        .filter((doctor) => {
+          const doctorServices = (doctor.services || '')
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+          return doctorServices.includes(selectedServiceName);
+        })
+        .map((doctor) => parseNumericPrice(doctor.price))
+        .filter((value): value is number => value !== null);
+
+      if (matchingPrices.length > 0) {
+        map[clinicKey] = formatStartingPrice(Math.min(...matchingPrices));
+      }
+    });
+
+    return map;
+  }, [clinicCards, clinicDoctors, isRtl, selectedService]);
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
       <Header 
@@ -1051,6 +1095,7 @@ const Index = () => {
                     <ClinicCard 
                       key={index} 
                       {...clinic} 
+                      startingPrice={startingPriceByClinic[clinic.id || clinic.name]}
                       onBookingClick={() => handleClinicBooking(clinic.name)}
                       hasSelectedService={!!(selectedService && selectedService.trim() && selectedServiceId && selectedServiceId.trim())}
                     />

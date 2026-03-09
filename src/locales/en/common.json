@@ -277,7 +277,8 @@
   "Choose Clinic": "Choose Clinic",
   "No clinics found for \"{{clinicSearchQuery}}\"": "No clinics found for \"{{clinicSearchQuery}}\"",
   "No clinics available": "No clinics available",
-  "Dr. Available Doctor": "Dr. Available Doctor"
+  "Dr. Available Doctor": "Dr. Available Doctor",
+  "Starting from": "Starting from"
   ,
   "SOON": "SOON",
   "Loading clinic information...": "Loading clinic information...",
