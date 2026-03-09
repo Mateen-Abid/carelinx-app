@@ -29,7 +29,17 @@ interface Profile {
 const Profile = () => {
   const { user, signOut, updateProfile, changePassword, deleteAccount } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === 'rtl';
+  const dateLocale = isRtl ? 'ar' : 'en-US';
+  const numberFormatter = new Intl.NumberFormat(dateLocale, { useGrouping: false });
+
+  const formatDobDisplay = (date: Date) =>
+    new Intl.DateTimeFormat(dateLocale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -77,7 +87,8 @@ const Profile = () => {
         try {
           const date = new Date(data.date_of_birth);
           if (!isNaN(date.getTime())) {
-            profileData.date_of_birth = format(date, 'd MMM yyyy'); // Format as "8 Jan 1998"
+            profileData.date_of_birth = formatDobDisplay(date);
+            setSelectedDate(date);
           }
         } catch (e) {
           // Keep empty if parsing fails
@@ -151,7 +162,7 @@ const Profile = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    const formattedDate = format(date, 'd MMM yyyy');
+    const formattedDate = formatDobDisplay(date);
     setProfile(prev => prev ? { ...prev, date_of_birth: formattedDate } : null);
     setShowDatePicker(false);
   };
@@ -164,6 +175,9 @@ const Profile = () => {
       // Prepare date_of_birth for database (convert from display format to ISO format)
       let dateOfBirthForDB = null;
       if (profile.date_of_birth) {
+        if (selectedDate && !isNaN(selectedDate.getTime())) {
+          dateOfBirthForDB = selectedDate.toISOString().split('T')[0];
+        } else {
         // If it's in "8 Jan 1998" format, convert it
         const dateStr = profile.date_of_birth;
         if (dateStr.includes(' ')) {
@@ -175,6 +189,7 @@ const Profile = () => {
         } else {
           // Already in ISO format
           dateOfBirthForDB = dateStr;
+        }
         }
       }
       
@@ -294,7 +309,8 @@ const Profile = () => {
                 type="tel"
                 value={profile?.phone || ''}
                 onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                className="bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-600"
+                className={`bg-gray-100 border-0 rounded-lg px-4 py-3 text-gray-600 ${isRtl ? 'text-right' : 'text-left'}`}
+                dir={isRtl ? 'rtl' : 'ltr'}
                 placeholder={t('966 - 5xxxxxxxxx')}
               />
         </div>
@@ -445,7 +461,9 @@ const Profile = () => {
                   }}
                 >
                   {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                    <option key={year} value={year}>{year}</option>
+                    <option key={year} value={year}>
+                      {numberFormatter.format(year)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -463,7 +481,7 @@ const Profile = () => {
                 >
                   {Array.from({ length: 12 }, (_, i) => i).map(month => (
                     <option key={month} value={month}>
-                      {new Date(0, month).toLocaleString('default', { month: 'long' })}
+                      {new Intl.DateTimeFormat(dateLocale, { month: 'long' }).format(new Date(2000, month, 1))}
                     </option>
                   ))}
                 </select>
@@ -481,7 +499,9 @@ const Profile = () => {
                   }}
                 >
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                    <option key={day} value={day}>{day}</option>
+                    <option key={day} value={day}>
+                      {numberFormatter.format(day)}
+                    </option>
                   ))}
                 </select>
               </div>

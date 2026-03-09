@@ -930,15 +930,36 @@ const Index = () => {
     
     // Then apply clinic search query filter if present
     if (clinicSearchQuery.trim()) {
-      filtered = filtered.filter(clinic =>
-        clinic.name.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
-        clinic.address.toLowerCase().includes(clinicSearchQuery.toLowerCase()) ||
-        clinic.type.toLowerCase().includes(clinicSearchQuery.toLowerCase())
-      );
+      const normalizedQuery = clinicSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter(clinic => {
+        const matchesClinicFields =
+          clinic.name.toLowerCase().includes(normalizedQuery) ||
+          clinic.address.toLowerCase().includes(normalizedQuery) ||
+          clinic.type.toLowerCase().includes(normalizedQuery);
+
+        if (matchesClinicFields) return true;
+
+        // Match doctors from database doctors map (for DB clinics)
+        const dbDoctorNames = clinic.id
+          ? (clinicDoctors[clinic.id] || []).map(doctor => doctor.name.toLowerCase())
+          : [];
+
+        if (dbDoctorNames.some(name => name.includes(normalizedQuery))) {
+          return true;
+        }
+
+        // Match doctors from generated service cards (covers hardcoded + merged data)
+        const serviceDoctorNames = serviceCards
+          .filter(card => card.clinicName.toLowerCase() === clinic.name.toLowerCase())
+          .map(card => (card.doctorName || '').toLowerCase())
+          .filter(Boolean);
+
+        return serviceDoctorNames.some(name => name.includes(normalizedQuery));
+      });
     }
     
     return filtered;
-  }, [clinicCards, clinicSearchQuery, selectedService, serviceCards]);
+  }, [clinicCards, clinicDoctors, clinicSearchQuery, selectedService, serviceCards]);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
@@ -1004,17 +1025,18 @@ const Index = () => {
               {/* Clinic Search Bar */}
               <div className="mb-3">
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className={`absolute inset-y-0 ${isRtl ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
+                    <svg className={`h-5 w-5 text-gray-400 ${isRtl ? '-scale-x-100' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   <input
                     type="text"
-                    placeholder={t('Search clinics by name, address, or type...')}
+                    placeholder={t('Search by clinic name, location, or doctor...')}
                     value={clinicSearchQuery}
                     onChange={(e) => setClinicSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    dir={isRtl ? 'rtl' : 'ltr'}
+                    className={`block w-full ${isRtl ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3 text-left'} py-3 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm`}
                   />
                 </div>
               </div>

@@ -144,6 +144,12 @@ const ServiceDetails = () => {
       hour12: true,
     }).format(date);
 
+  const formatDisplayDate = (date: Date) =>
+    new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', {
+      day: 'numeric',
+      month: 'short',
+    }).format(date);
+
   const localizeTimeString = (timeStr: string) => {
     if (!isRtl) return timeStr;
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -647,7 +653,7 @@ const ServiceDetails = () => {
           <h2 className="text-lg font-medium text-gray-900 mb-4">{t('Please choose a date')}</h2>
           
           {/* Date Navigator */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 bg-gray-100 rounded-lg px-3 py-2">
             {/* Left Arrow - Functional when not at today */}
             <button
               onClick={() => setSelectedDisplayDate(subDays(selectedDisplayDate, 1))}
@@ -667,7 +673,7 @@ const ServiceDetails = () => {
               className="flex flex-col items-center gap-1 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <span className="text-lg font-bold text-gray-900">
-                {format(selectedDisplayDate, 'd MMM')}
+                {formatDisplayDate(selectedDisplayDate)}
               </span>
               {isToday(selectedDisplayDate) && (
                 <span className="text-sm text-gray-500">{t('Today')}</span>

@@ -34,14 +34,33 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
     event.preventDefault();
     event.stopPropagation();
     const from = (location.state as { from?: string } | null)?.from;
-    if (from) {
-      navigate(from);
-      return;
+    const currentPathWithQuery = `${location.pathname}${location.search}`;
+    const hasValidFrom = Boolean(from && from !== currentPathWithQuery);
+    const isServicePage = location.pathname.startsWith('/service/');
+
+    if (isServicePage) {
+      // Service pages are usually reached from clinic pages; history back keeps
+      // the stack clean and avoids requiring multiple clicks on clinic page.
+      if (window.history.length > 1) {
+        navigate(-1);
+        return;
+      }
+      if (hasValidFrom) {
+        navigate(from!, { replace: true });
+        return;
+      }
+    } else {
+      // Clinic pages usually carry a reliable origin route in state (e.g. "/").
+      if (hasValidFrom) {
+        navigate(from!, { replace: true });
+        return;
+      }
+      if (window.history.length > 1) {
+        navigate(-1);
+        return;
+      }
     }
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
+
     navigate('/');
   };
 
@@ -205,3 +224,4 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
 };
 
 export default Header;
+
