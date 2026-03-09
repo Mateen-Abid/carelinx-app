@@ -932,6 +932,7 @@ const Index = () => {
     // Then apply clinic search query filter if present
     if (clinicSearchQuery.trim()) {
       const normalizedQuery = clinicSearchQuery.toLowerCase().trim();
+      const selectedServiceName = selectedService.trim().toLowerCase();
       filtered = filtered.filter(clinic => {
         const matchesClinicFields =
           clinic.name.toLowerCase().includes(normalizedQuery) ||
@@ -940,22 +941,34 @@ const Index = () => {
 
         if (matchesClinicFields) return true;
 
-        // Match doctors from database doctors map (for DB clinics)
-        const dbDoctorNames = clinic.id
-          ? (clinicDoctors[clinic.id] || []).map(doctor => doctor.name.toLowerCase())
-          : [];
+        // Match doctors from database doctors map (for DB clinics),
+        // scoped to selected service when one is selected.
+        const dbDoctors = clinic.id ? (clinicDoctors[clinic.id] || []) : [];
+        const dbDoctorMatch = dbDoctors.some((doctor) => {
+          const nameMatches = doctor.name.toLowerCase().includes(normalizedQuery);
+          if (!nameMatches) return false;
+          if (!selectedServiceName) return true;
 
-        if (dbDoctorNames.some(name => name.includes(normalizedQuery))) {
+          const doctorServices = (doctor.services || '')
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean);
+          return doctorServices.includes(selectedServiceName);
+        });
+
+        if (dbDoctorMatch) {
           return true;
         }
 
-        // Match doctors from generated service cards (covers hardcoded + merged data)
-        const serviceDoctorNames = serviceCards
-          .filter(card => card.clinicName.toLowerCase() === clinic.name.toLowerCase())
-          .map(card => (card.doctorName || '').toLowerCase())
-          .filter(Boolean);
+        // Match doctors from generated service cards (covers hardcoded + merged data),
+        // also scoped to selected service when available.
+        const serviceDoctorMatch = serviceCards.some((card) => {
+          if (card.clinicName.toLowerCase() !== clinic.name.toLowerCase()) return false;
+          if (selectedServiceName && card.serviceName.toLowerCase() !== selectedServiceName) return false;
+          return (card.doctorName || '').toLowerCase().includes(normalizedQuery);
+        });
 
-        return serviceDoctorNames.some(name => name.includes(normalizedQuery));
+        return serviceDoctorMatch;
       });
     }
     

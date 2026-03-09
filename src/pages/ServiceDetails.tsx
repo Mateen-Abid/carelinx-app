@@ -580,27 +580,45 @@ const ServiceDetails = () => {
     setIsBookingConfirmationOpen(false);
   };
 
-  // Generate time slots based on service schedule
-  const getTimeSlots = (date: Date) => {
+  const generateSlotsFromRange = (range: string): string[] => {
+    // Supports both "-" and "–" separators (e.g. "9:00 AM - 5:00 PM")
+    const normalized = range.replace('–', '-');
+    const parts = normalized.split('-').map((part) => part.trim());
+    if (parts.length !== 2) return [];
+
+    const [startTime, endTime] = parts;
+    const slots: string[] = [];
+    const start = new Date(`2000-01-01 ${startTime}`);
+    const end = new Date(`2000-01-01 ${endTime}`);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      return [];
+    }
+
+    const current = new Date(start);
+    while (current < end) {
+      slots.push(format(current, 'h:mma'));
+      current.setMinutes(current.getMinutes() + 30);
+    }
+
+    return slots;
+  };
+
+  // Generate time slots using selected doctor availability first, then service schedule fallback
+  const getTimeSlots = (date: Date, doctorRange?: string) => {
+    if (doctorRange) {
+      const doctorSlots = generateSlotsFromRange(doctorRange);
+      if (doctorSlots.length > 0) {
+        return doctorSlots;
+      }
+    }
+
     const dayName = format(date, 'EEE');
     const schedule = serviceData.schedule[dayName];
     
     if (!schedule || schedule === 'Closed') return [];
     
-    // Parse schedule like "09:00 - 13:00"
-    const [startTime, endTime] = schedule.split(' - ');
-    const slots = [];
-    
-    // Generate 30-minute slots
-    let current = new Date(`2000-01-01 ${startTime}`);
-    const end = new Date(`2000-01-01 ${endTime}`);
-    
-    while (current < end) {
-      slots.push(format(current, 'h:mma'));
-      current.setMinutes(current.getMinutes() + 30);
-    }
-    
-    return slots;
+    return generateSlotsFromRange(schedule);
   };
 
   return (
@@ -780,7 +798,10 @@ const ServiceDetails = () => {
         isOpen={isTimeSlotModalOpen}
         onClose={() => setIsTimeSlotModalOpen(false)}
         selectedDate={selectedDate}
-        timeSlots={selectedDate ? getTimeSlots(selectedDate) : []}
+        timeSlots={selectedDate ? getTimeSlots(
+          selectedDate,
+          serviceData.doctors.find((doctor) => doctor.name === selectedDoctor)?.timeSlots?.[0]
+        ) : []}
         onBookAppointment={handleTimeSlotBook}
       />
 
