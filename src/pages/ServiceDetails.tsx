@@ -604,13 +604,82 @@ const ServiceDetails = () => {
     return slots;
   };
 
+  const getDoctorSlotsForDate = (availability: string, date: Date): string[] => {
+    const dayFull = format(date, 'EEEE').toLowerCase(); // monday
+    const dayShort = format(date, 'EEE').toLowerCase(); // mon
+    const entries = availability
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    // Multi-day format: "Monday: 10:00 AM - 2:00 PM | Tuesday: 11:00 AM - 1:00 PM"
+    const daySpecificSlots = entries
+      .map((entry) => {
+        const match = entry.match(/^([A-Za-z]+):\s*(.+)$/);
+        if (!match) return null;
+        const dayLabel = match[1].toLowerCase();
+        const rangePart = match[2].trim();
+        const matchesDay = dayLabel === dayFull || dayLabel.slice(0, 3) === dayShort;
+        if (!matchesDay) return null;
+        return generateSlotsFromRange(rangePart);
+      })
+      .filter((slots): slots is string[] => Array.isArray(slots))
+      .flat();
+
+    if (daySpecificSlots.length > 0) return daySpecificSlots;
+
+    // Legacy single-range format (no day prefix), apply as fallback for any selected day
+    if (entries.length === 1 && !entries[0].includes(':')) {
+      return generateSlotsFromRange(entries[0]);
+    }
+
+    return [];
+  };
+
+  const getDoctorAvailabilityLabelForDate = (
+    timeSlots: string[] | undefined,
+    date: Date
+  ) => {
+    if (!timeSlots || timeSlots.length === 0) return t('Not available');
+
+    const availability = timeSlots[0];
+    const dayFull = format(date, 'EEEE').toLowerCase();
+    const dayShort = format(date, 'EEE').toLowerCase();
+    const entries = availability
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    // Day-specific availability format:
+    // "Monday: 10:00 AM - 1:00 PM | Tuesday: 11:00 AM - 2:00 PM"
+    const dayEntry = entries.find((entry) => {
+      const match = entry.match(/^([A-Za-z]+):\s*(.+)$/);
+      if (!match) return false;
+      const dayLabel = match[1].toLowerCase();
+      return dayLabel === dayFull || dayLabel.slice(0, 3) === dayShort;
+    });
+
+    if (dayEntry) {
+      const match = dayEntry.match(/^([A-Za-z]+):\s*(.+)$/);
+      if (!match) return dayEntry;
+      const [, , rangeRaw] = match;
+      return localizeTimeRange(rangeRaw.trim());
+    }
+
+    // Legacy single range format fallback
+    if (entries.length === 1 && !entries[0].includes(':')) {
+      return localizeTimeRange(entries[0]);
+    }
+
+    return t('Not available on selected date');
+  };
+
   // Generate time slots using selected doctor availability first, then service schedule fallback
   const getTimeSlots = (date: Date, doctorRange?: string) => {
     if (doctorRange) {
-      const doctorSlots = generateSlotsFromRange(doctorRange);
-      if (doctorSlots.length > 0) {
-        return doctorSlots;
-      }
+      // IMPORTANT: when doctor availability exists, ONLY use doctor availability.
+      // Do not fallback to generic clinic schedule for non-matching days.
+      return getDoctorSlotsForDate(doctorRange, date);
     }
 
     const dayName = format(date, 'EEE');
@@ -771,7 +840,7 @@ const ServiceDetails = () => {
                     {/* Time Slot Badge */}
                     <div className="mt-2">
                       <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-                        {localizeTimeRange(doctor.timeSlots[0])}
+                        {getDoctorAvailabilityLabelForDate(doctor.timeSlots, selectedDisplayDate)}
                       </span>
                     </div>
                   </div>

@@ -437,7 +437,9 @@ const Index = () => {
         doctorCount: hardcodedClinic?.doctorCount || 'Multiple Doctors',
         daysOpen: hardcodedClinic?.daysOpen || 'Mon – Sat',
         timing: hardcodedClinic?.timing || '9:00 AM – 6:00 PM',
-        logo: clinic.logo_url || hardcodedClinic?.logo || defaultIcon,
+        // IMPORTANT: never borrow another clinic's hardcoded logo for DB clinics.
+        // If logo_url is missing, ClinicCard will render neutral initial avatar fallback.
+        logo: clinic.logo_url || '',
         daysIcon: daysIcon,
         timingIcon: timingIcon
       };

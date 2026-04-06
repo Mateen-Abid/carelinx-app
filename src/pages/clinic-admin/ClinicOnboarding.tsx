@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Upload, Mountain, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CarelinxIcon from '@/assets/carelinx-icon.svg';
 
 type OnboardingStep = 'clinic-info' | 'contact-details' | 'operating-hours';
 
@@ -50,7 +51,8 @@ const ClinicOnboarding = () => {
     email: user?.email || '',
     phone: '',
     address: '',
-    country: '',
+    city: '',
+    country: 'Saudi Arabia',
   });
 
   // Step 3: Operating Hours
@@ -212,46 +214,6 @@ const ClinicOnboarding = () => {
     );
   }
 
-  // Countries list
-  const countries = [
-    'United States',
-    'United Kingdom',
-    'Canada',
-    'Australia',
-    'Germany',
-    'France',
-    'Italy',
-    'Spain',
-    'Netherlands',
-    'Belgium',
-    'Switzerland',
-    'Austria',
-    'Sweden',
-    'Norway',
-    'Denmark',
-    'Finland',
-    'Poland',
-    'Portugal',
-    'Greece',
-    'Ireland',
-    'New Zealand',
-    'Japan',
-    'South Korea',
-    'Singapore',
-    'Malaysia',
-    'Thailand',
-    'India',
-    'China',
-    'United Arab Emirates',
-    'Saudi Arabia',
-    'South Africa',
-    'Brazil',
-    'Mexico',
-    'Argentina',
-    'Chile',
-    'Other',
-  ];
-
   // Time slots for operating hours (display format)
   const timeSlots = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / 2);
@@ -326,47 +288,28 @@ const ClinicOnboarding = () => {
 
   const uploadLogoToStorage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-      const filePath = `clinic-logos/${fileName}`;
+      // Convert file to base64 and upload through backend API.
+      // This avoids frontend storage RLS failures in onboarding.
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(file);
 
-      console.log('📤 Uploading logo to storage...', { filePath, bucket: 'clinic-assets' });
+      const base64File = await base64Promise;
+      const { logo_url } = await api.clinicAdmin.uploadLogo({
+        file: base64File,
+        fileName: file.name,
+        fileType: file.type,
+      });
 
-      const { data, error } = await supabase.storage
-        .from('clinic-assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) {
-        console.error('❌ Error uploading logo:', error);
-        
-        // Provide more specific error messages
-        if (error.message?.includes('Bucket not found') || error.message?.includes('does not exist')) {
-          toast.error(t('Storage bucket not found. Please create "clinic-assets" bucket in Supabase Storage.'));
-          console.error('💡 Solution: Create a storage bucket named "clinic-assets" in Supabase Dashboard → Storage');
-        } else if (error.message?.includes('new row violates row-level security')) {
-          toast.error(t('Permission denied. Please check storage bucket policies.'));
-          console.error('💡 Solution: Update storage bucket policies to allow authenticated users to upload');
-        } else {
-          toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
-        }
-        return null;
-      }
-
-      if (!data) {
-        console.error('❌ No data returned from upload');
-        toast.error(t('Failed to upload logo: No data returned'));
-        return null;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('clinic-assets')
-        .getPublicUrl(filePath);
-
-      console.log('✅ Logo uploaded successfully:', publicUrl);
-      return publicUrl;
+      console.log('✅ Logo uploaded successfully:', logo_url);
+      return logo_url;
     } catch (error: any) {
       console.error('❌ Error in uploadLogoToStorage:', error);
       toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
@@ -450,11 +393,6 @@ const ClinicOnboarding = () => {
         toast.error(t('Please enter clinic address'));
         return;
       }
-      if (!contactDetails.country) {
-        toast.error(t('Please select country'));
-        return;
-      }
-
       if (!clinicId) {
         toast.error(t('Clinic not found. Please go back and complete Step 1.'));
         return;
@@ -462,12 +400,16 @@ const ClinicOnboarding = () => {
 
       setLoading(true);
       try {
+        const fullAddress = contactDetails.city.trim()
+          ? `${contactDetails.address}, ${contactDetails.city.trim()}`
+          : contactDetails.address;
+
         await api.clinicAdmin.updateClinic({
           email: contactDetails.email,
           contact_phone: contactDetails.phone,
           contact_email: contactDetails.email,
-          address: contactDetails.address,
-          country: contactDetails.country,
+          address: fullAddress,
+          country: 'Saudi Arabia',
         });
 
         toast.success(t('Contact details saved!'));
@@ -551,11 +493,12 @@ const ClinicOnboarding = () => {
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-[#00FFA2] rounded-full"></div>
-                <div className="w-3 h-3 bg-[#00FFA2] rounded-full"></div>
-              </div>
-              <span className="text-2xl font-bold">
+              <img
+                src={CarelinxIcon}
+                alt="Carelinx icon"
+                className="h-8 w-8"
+              />
+              <span className="text-2xl font-bold leading-none">
                 <span className="text-[#0C2243] dark:text-white">care</span>
                 <span className="text-[#00FFA2]">linx</span>
               </span>
@@ -774,35 +717,33 @@ const ClinicOnboarding = () => {
                 />
               </div>
 
-              {/* Country */}
+              {/* City (optional) */}
+              <div>
+                <Label htmlFor="city" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('City')}
+                </Label>
+                <Input
+                  id="city"
+                  placeholder={t('Enter city')}
+                  value={contactDetails.city}
+                  onChange={(e) =>
+                    setContactDetails(prev => ({ ...prev, city: e.target.value }))
+                  }
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              {/* Country (fixed) */}
               <div>
                 <Label htmlFor="country" className="text-gray-700 dark:text-gray-300 mb-2 block">
                   {t('Country')}
                 </Label>
-                <Select
-                  value={contactDetails.country}
-                  onValueChange={(value) =>
-                    setContactDetails(prev => ({ ...prev, country: value }))
-                  }
-                >
-                  <SelectTrigger
-                    id="country"
-                    className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
-                  >
-                    <SelectValue placeholder={t('Select country')} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
-                    {countries.map((country) => (
-                      <SelectItem
-                        key={country}
-                        value={country}
-                        className="dark:text-white cursor-pointer"
-                      >
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="country"
+                  value="Saudi Arabia"
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
+                />
               </div>
             </div>
           )}

@@ -4,6 +4,119 @@ import { optionalAuth, authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+type AvailabilityEntry = {
+  day_of_week: number;
+  start_minutes: number;
+  end_minutes: number;
+};
+
+const dayNameToNumber: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+const dbTimeToMinutes = (dbTime: string | null): number | null => {
+  if (!dbTime) return null;
+  const [h, m] = dbTime.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+};
+
+const displayTimeToMinutes = (value: string): number | null => {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+
+  const hourRaw = Number(match[1]);
+  const minute = Number(match[2]);
+  const period = match[3].toUpperCase();
+
+  if (Number.isNaN(hourRaw) || Number.isNaN(minute) || hourRaw < 1 || hourRaw > 12 || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  let hour24 = hourRaw % 12;
+  if (period === 'PM') hour24 += 12;
+
+  return hour24 * 60 + minute;
+};
+
+const parseAvailability = (availability: string): AvailabilityEntry[] | null => {
+  const parts = availability
+    .split('|')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return [];
+
+  const parsed: AvailabilityEntry[] = [];
+
+  for (const part of parts) {
+    const match = part.match(/^([A-Za-z]+):\s*(.+)\s-\s(.+)$/);
+    if (!match) return null;
+
+    const dayName = match[1].toLowerCase();
+    const day_of_week = dayNameToNumber[dayName];
+    if (day_of_week === undefined) return null;
+
+    const start_minutes = displayTimeToMinutes(match[2]);
+    const end_minutes = displayTimeToMinutes(match[3]);
+    if (start_minutes === null || end_minutes === null || end_minutes <= start_minutes) return null;
+
+    parsed.push({ day_of_week, start_minutes, end_minutes });
+  }
+
+  return parsed;
+};
+
+const validateAvailabilityWithinClinicHours = async (
+  clinicId: string,
+  availability: string
+): Promise<{ valid: boolean; error?: string }> => {
+  const entries = parseAvailability(availability);
+  if (entries === null) {
+    return { valid: false, error: 'Invalid availability format' };
+  }
+
+  // Allow empty availability string
+  if (entries.length === 0) return { valid: true };
+
+  const { data: clinicHours, error } = await supabaseAdmin
+    .from('clinic_operating_hours')
+    .select('day_of_week, opening_time, closing_time, is_closed')
+    .eq('clinic_id', clinicId);
+
+  if (error) {
+    return { valid: false, error: `Failed to validate clinic hours: ${error.message}` };
+  }
+
+  const hoursMap = new Map<number, { opening: number | null; closing: number | null; is_closed: boolean }>();
+  (clinicHours || []).forEach((h: any) => {
+    hoursMap.set(h.day_of_week, {
+      opening: dbTimeToMinutes(h.opening_time),
+      closing: dbTimeToMinutes(h.closing_time),
+      is_closed: !!h.is_closed,
+    });
+  });
+
+  for (const entry of entries) {
+    const clinicDay = hoursMap.get(entry.day_of_week);
+    if (!clinicDay || clinicDay.is_closed || clinicDay.opening === null || clinicDay.closing === null) {
+      return { valid: false, error: 'Doctor availability must be within clinic operating days' };
+    }
+
+    if (entry.start_minutes < clinicDay.opening || entry.end_minutes > clinicDay.closing) {
+      return { valid: false, error: 'Doctor availability must be within clinic operating hours' };
+    }
+  }
+
+  return { valid: true };
+};
+
 /**
  * GET /api/doctors
  * Get all active doctors (public route)
@@ -83,6 +196,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       return res.status(403).json({ error: 'Clinic not found or access denied' });
     }
 
+    if (availability && typeof availability === 'string') {
+      const validation = await validateAvailabilityWithinClinicHours(clinic_id, availability);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error || 'Invalid doctor availability' });
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('doctors')
       .insert({
@@ -153,6 +273,23 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    if (updates.availability && typeof updates.availability === 'string') {
+      const { data: doctor, error: doctorError } = await supabaseAdmin
+        .from('doctors')
+        .select('clinic_id')
+        .eq('id', id)
+        .single();
+
+      if (doctorError || !doctor?.clinic_id) {
+        return res.status(404).json({ error: 'Doctor not found' });
+      }
+
+      const validation = await validateAvailabilityWithinClinicHours(doctor.clinic_id, updates.availability);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error || 'Invalid doctor availability' });
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from('doctors')

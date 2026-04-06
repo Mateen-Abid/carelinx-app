@@ -64,6 +64,19 @@ interface Clinic {
   logo_url: string | null;
 }
 
+interface OperatingHour {
+  day_of_week: number;
+  opening_time: string | null;
+  closing_time: string | null;
+  is_closed: boolean;
+}
+
+interface AvailabilityEntry {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
 const ClinicAdminDoctors = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
@@ -78,6 +91,7 @@ const ClinicAdminDoctors = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [clinicOperatingHours, setClinicOperatingHours] = useState<OperatingHour[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingClinic, setCheckingClinic] = useState(true);
   const [showAddDoctorModal, setShowAddDoctorModal] = useState(false);
@@ -105,6 +119,12 @@ const ClinicAdminDoctors = () => {
     price: '',
     availability: '',
   });
+  const [newAvailabilityDraft, setNewAvailabilityDraft] = useState({
+    day_of_week: '',
+    start_time: '',
+    end_time: '',
+  });
+  const [newDoctorAvailabilityEntries, setNewDoctorAvailabilityEntries] = useState<AvailabilityEntry[]>([]);
   const [editDoctor, setEditDoctor] = useState({
     name: '',
     email: '',
@@ -114,6 +134,12 @@ const ClinicAdminDoctors = () => {
     availability: '',
     price: '',
   });
+  const [editAvailabilityDraft, setEditAvailabilityDraft] = useState({
+    day_of_week: '',
+    start_time: '',
+    end_time: '',
+  });
+  const [editDoctorAvailabilityEntries, setEditDoctorAvailabilityEntries] = useState<AvailabilityEntry[]>([]);
   
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
   const [availableServices, setAvailableServices] = useState<string[]>([]);
@@ -130,6 +156,126 @@ const ClinicAdminDoctors = () => {
   });
   const [showTreatmentSpecialtyDropdown, setShowTreatmentSpecialtyDropdown] = useState(false);
   const [showTreatmentServiceDropdown, setShowTreatmentServiceDropdown] = useState(false);
+
+  const dayLabels: Record<number, string> = {
+    0: 'Sunday',
+    1: 'Monday',
+    2: 'Tuesday',
+    3: 'Wednesday',
+    4: 'Thursday',
+    5: 'Friday',
+    6: 'Saturday',
+  };
+
+  const formatDbTimeTo12h = (time?: string | null) => {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  const displayTimeToMinutes = (displayTime: string) => {
+    const [time, period] = displayTime.split(' ');
+    const [hourRaw, minuteRaw] = time.split(':').map(Number);
+    let hour24 = hourRaw % 12;
+    if (period === 'PM') hour24 += 12;
+    return hour24 * 60 + minuteRaw;
+  };
+
+  const minutesToDisplayTime = (totalMinutes: number) => {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  const dbTimeToMinutes = (dbTime: string) => {
+    const [h, m] = dbTime.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const getTimeSlotsForDay = (dayOfWeek: number) => {
+    const hours = clinicOperatingHours.find(
+      (h) => h.day_of_week === dayOfWeek && !h.is_closed && h.opening_time && h.closing_time
+    );
+    if (!hours?.opening_time || !hours?.closing_time) return [];
+
+    const startMinutes = dbTimeToMinutes(hours.opening_time);
+    const endMinutes = dbTimeToMinutes(hours.closing_time);
+    const slots: string[] = [];
+
+    for (let current = startMinutes; current <= endMinutes; current += 30) {
+      slots.push(minutesToDisplayTime(current));
+    }
+    return slots;
+  };
+
+  const getEndTimeSlots = (dayOfWeek: number, startTime: string) => {
+    if (!startTime) return [];
+    const startMinutes = displayTimeToMinutes(startTime);
+    return getTimeSlotsForDay(dayOfWeek).filter((slot) => displayTimeToMinutes(slot) > startMinutes);
+  };
+
+  const openClinicDays = clinicOperatingHours
+    .filter((h) => !h.is_closed && h.opening_time && h.closing_time)
+    .sort((a, b) => a.day_of_week - b.day_of_week);
+
+  const buildAvailabilityString = (entries: AvailabilityEntry[]) =>
+    entries
+      .sort((a, b) => a.day_of_week - b.day_of_week)
+      .map((entry) => `${dayLabels[entry.day_of_week]}: ${entry.start_time} - ${entry.end_time}`)
+      .join(' | ');
+
+  const parseAvailabilityString = (availability: string | null): AvailabilityEntry[] => {
+    if (!availability) return [];
+    const dayToNumber: Record<string, number> = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    };
+
+    return availability
+      .split('|')
+      .map((part) => part.trim())
+      .map((part) => {
+        const match = part.match(/^([A-Za-z]+):\s*(.+)\s-\s(.+)$/);
+        if (!match) return null;
+        const [, dayName, start, end] = match;
+        const day_of_week = dayToNumber[dayName];
+        if (day_of_week === undefined) return null;
+        return { day_of_week, start_time: start.trim(), end_time: end.trim() } as AvailabilityEntry;
+      })
+      .filter((entry): entry is AvailabilityEntry => entry !== null);
+  };
+
+  const addAvailabilityEntry = (
+    draft: { day_of_week: string; start_time: string; end_time: string },
+    existing: AvailabilityEntry[],
+    setEntries: React.Dispatch<React.SetStateAction<AvailabilityEntry[]>>,
+    setDraft: React.Dispatch<React.SetStateAction<{ day_of_week: string; start_time: string; end_time: string }>>
+  ) => {
+    if (!draft.day_of_week || !draft.start_time || !draft.end_time) {
+      toast.error(t('Please select day, start time, and end time'));
+      return;
+    }
+
+    const dayOfWeek = Number(draft.day_of_week);
+    const updatedEntries = existing.filter((entry) => entry.day_of_week !== dayOfWeek);
+    updatedEntries.push({
+      day_of_week: dayOfWeek,
+      start_time: draft.start_time,
+      end_time: draft.end_time,
+    });
+
+    setEntries(updatedEntries);
+    setDraft({ day_of_week: '', start_time: '', end_time: '' });
+  };
 
   // Fetch super admin specialties and services
   useEffect(() => {
@@ -247,9 +393,11 @@ const ClinicAdminDoctors = () => {
       const [
         { doctors: doctorsData },
         { treatments: treatmentsData },
+        { operatingHours: operatingHoursData },
       ] = await Promise.all([
         api.doctors.getDoctors(clinicId),
         api.clinicAdmin.getTreatments(),
+        api.clinicAdmin.getClinic(),
       ]);
 
       if (!doctorsData) {
@@ -271,10 +419,12 @@ const ClinicAdminDoctors = () => {
         status: t.status as 'active' | 'inactive',
       }));
       setTreatments(transformedTreatments);
+      setClinicOperatingHours(operatingHoursData || []);
     } catch (error) {
       console.error('❌ Error fetching clinic data:', error);
       setDoctors([]);
       setTreatments([]);
+      setClinicOperatingHours([]);
     } finally {
       setLoading(false);
     }
@@ -353,6 +503,11 @@ const ClinicAdminDoctors = () => {
         return;
       }
 
+      if (newDoctorAvailabilityEntries.length === 0) {
+        toast.error(t('Please add at least one availability slot'));
+        return;
+      }
+
       // Use the first specialty as primary for now (database structure)
       const primarySpecialty = newDoctor.specialties[0];
 
@@ -361,13 +516,15 @@ const ClinicAdminDoctors = () => {
         ? newDoctor.services.join(',') 
         : null;
 
+      const availabilityString = buildAvailabilityString(newDoctorAvailabilityEntries);
+
       await api.doctors.createDoctor({
         clinic_id: clinic.id,
         name: trimmedName,
         specialty: primarySpecialty, // Store first specialty as primary
         email: newDoctor.email?.trim() || null,
         phone: newDoctor.phone?.trim() || null,
-        availability: newDoctor.availability?.trim() || null,
+        availability: availabilityString || null,
         services: servicesString, // Store services as comma-separated string
         status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
         price: newDoctor.price?.trim() || null,
@@ -387,6 +544,8 @@ const ClinicAdminDoctors = () => {
         price: '',
         availability: '',
       });
+      setNewDoctorAvailabilityEntries([]);
+      setNewAvailabilityDraft({ day_of_week: '', start_time: '', end_time: '' });
       fetchDoctors(clinic.id);
     } catch (error) {
       console.error('❌ Error adding doctor:', error);
@@ -519,6 +678,8 @@ const ClinicAdminDoctors = () => {
 
   const handleOpenEditDoctor = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
+    setEditDoctorAvailabilityEntries(parseAvailabilityString(doctor.availability));
+    setEditAvailabilityDraft({ day_of_week: '', start_time: '', end_time: '' });
     setEditDoctor({
       name: doctor.name || '',
       email: doctor.email || '',
@@ -541,19 +702,23 @@ const ClinicAdminDoctors = () => {
         return;
       }
 
+      const availabilityString = buildAvailabilityString(editDoctorAvailabilityEntries);
+
       await api.doctors.updateDoctor(selectedDoctor.id, {
         name: trimmedName,
         email: editDoctor.email?.trim() || null,
         phone: editDoctor.phone?.trim() || null,
         specialty: editDoctor.specialty || null,
         status: editDoctor.status as 'active' | 'inactive' | 'on-leave',
-        availability: editDoctor.availability?.trim() || null,
+        availability: availabilityString || null,
         price: editDoctor.price?.trim() || null,
       });
 
       toast.success(t('Doctor updated successfully'));
       setShowEditDoctorModal(false);
       setSelectedDoctor(null);
+      setEditDoctorAvailabilityEntries([]);
+      setEditAvailabilityDraft({ day_of_week: '', start_time: '', end_time: '' });
       fetchDoctors(clinic.id);
     } catch (error) {
       console.error('❌ Error updating doctor:', error);
@@ -1574,13 +1739,116 @@ const ClinicAdminDoctors = () => {
                   <Label htmlFor="doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('Availability')}
                   </Label>
-                  <Input
-                    id="doctor-availability"
-                    value={newDoctor.availability}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, availability: e.target.value })}
-                    placeholder={t('e.g., 9:00 AM - 5:00 PM')}
-                    className="mt-1.5 h-10"
-                  />
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                      <Select
+                        value={newAvailabilityDraft.day_of_week}
+                        onValueChange={(value) =>
+                          setNewAvailabilityDraft({ day_of_week: value, start_time: '', end_time: '' })
+                        }
+                        disabled={openClinicDays.length === 0}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue
+                            placeholder={
+                              openClinicDays.length === 0 ? t('No clinic hours') : t('Day')
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {openClinicDays.map((day) => (
+                            <SelectItem key={day.day_of_week} value={String(day.day_of_week)}>
+                              {t(dayLabels[day.day_of_week])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={newAvailabilityDraft.start_time}
+                        onValueChange={(value) =>
+                          setNewAvailabilityDraft((prev) => ({ ...prev, start_time: value, end_time: '' }))
+                        }
+                        disabled={!newAvailabilityDraft.day_of_week}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder={t('Start time')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {newAvailabilityDraft.day_of_week &&
+                            getTimeSlotsForDay(Number(newAvailabilityDraft.day_of_week)).map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={newAvailabilityDraft.end_time}
+                        onValueChange={(value) =>
+                          setNewAvailabilityDraft((prev) => ({ ...prev, end_time: value }))
+                        }
+                        disabled={!newAvailabilityDraft.day_of_week || !newAvailabilityDraft.start_time}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder={t('End time')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {newAvailabilityDraft.day_of_week &&
+                            newAvailabilityDraft.start_time &&
+                            getEndTimeSlots(Number(newAvailabilityDraft.day_of_week), newAvailabilityDraft.start_time).map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10"
+                        onClick={() =>
+                          addAvailabilityEntry(
+                            newAvailabilityDraft,
+                            newDoctorAvailabilityEntries,
+                            setNewDoctorAvailabilityEntries,
+                            setNewAvailabilityDraft
+                          )
+                        }
+                        disabled={openClinicDays.length === 0}
+                      >
+                        {t('Add')}
+                      </Button>
+                    </div>
+
+                    {newDoctorAvailabilityEntries.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {[...newDoctorAvailabilityEntries]
+                          .sort((a, b) => a.day_of_week - b.day_of_week)
+                          .map((entry) => (
+                            <span
+                              key={`${entry.day_of_week}-${entry.start_time}-${entry.end_time}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
+                            >
+                              {`${t(dayLabels[entry.day_of_week])}: ${entry.start_time} - ${entry.end_time}`}
+                              <button
+                                type="button"
+                                className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors"
+                                onClick={() =>
+                                  setNewDoctorAvailabilityEntries((prev) =>
+                                    prev.filter((item) => item.day_of_week !== entry.day_of_week)
+                                  )
+                                }
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1695,13 +1963,116 @@ const ClinicAdminDoctors = () => {
                   <Label htmlFor="edit-doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('Availability')}
                   </Label>
-                  <Input
-                    id="edit-doctor-availability"
-                    value={editDoctor.availability}
-                    onChange={(e) => setEditDoctor({ ...editDoctor, availability: e.target.value })}
-                    placeholder={t('e.g., 9:00 AM - 5:00 PM')}
-                    className="mt-1.5 h-10"
-                  />
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                      <Select
+                        value={editAvailabilityDraft.day_of_week}
+                        onValueChange={(value) =>
+                          setEditAvailabilityDraft({ day_of_week: value, start_time: '', end_time: '' })
+                        }
+                        disabled={openClinicDays.length === 0}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue
+                            placeholder={
+                              openClinicDays.length === 0 ? t('No clinic hours') : t('Day')
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {openClinicDays.map((day) => (
+                            <SelectItem key={day.day_of_week} value={String(day.day_of_week)}>
+                              {t(dayLabels[day.day_of_week])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={editAvailabilityDraft.start_time}
+                        onValueChange={(value) =>
+                          setEditAvailabilityDraft((prev) => ({ ...prev, start_time: value, end_time: '' }))
+                        }
+                        disabled={!editAvailabilityDraft.day_of_week}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder={t('Start time')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {editAvailabilityDraft.day_of_week &&
+                            getTimeSlotsForDay(Number(editAvailabilityDraft.day_of_week)).map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={editAvailabilityDraft.end_time}
+                        onValueChange={(value) =>
+                          setEditAvailabilityDraft((prev) => ({ ...prev, end_time: value }))
+                        }
+                        disabled={!editAvailabilityDraft.day_of_week || !editAvailabilityDraft.start_time}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder={t('End time')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {editAvailabilityDraft.day_of_week &&
+                            editAvailabilityDraft.start_time &&
+                            getEndTimeSlots(Number(editAvailabilityDraft.day_of_week), editAvailabilityDraft.start_time).map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10"
+                        onClick={() =>
+                          addAvailabilityEntry(
+                            editAvailabilityDraft,
+                            editDoctorAvailabilityEntries,
+                            setEditDoctorAvailabilityEntries,
+                            setEditAvailabilityDraft
+                          )
+                        }
+                        disabled={openClinicDays.length === 0}
+                      >
+                        {t('Add')}
+                      </Button>
+                    </div>
+
+                    {editDoctorAvailabilityEntries.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {[...editDoctorAvailabilityEntries]
+                          .sort((a, b) => a.day_of_week - b.day_of_week)
+                          .map((entry) => (
+                            <span
+                              key={`${entry.day_of_week}-${entry.start_time}-${entry.end_time}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
+                            >
+                              {`${t(dayLabels[entry.day_of_week])}: ${entry.start_time} - ${entry.end_time}`}
+                              <button
+                                type="button"
+                                className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors"
+                                onClick={() =>
+                                  setEditDoctorAvailabilityEntries((prev) =>
+                                    prev.filter((item) => item.day_of_week !== entry.day_of_week)
+                                  )
+                                }
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300">
