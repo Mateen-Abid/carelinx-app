@@ -567,6 +567,23 @@ router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
     const userId = req.user.id;
     const { name, description, price, specialty, service, status, clinic_id } = req.body;
 
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const trimmedSpecialty = typeof specialty === 'string' ? specialty.trim() : '';
+    const trimmedService = typeof service === 'string' ? service.trim() : '';
+    const trimmedPrice = typeof price === 'string' ? price.trim() : price;
+
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Treatment name is required' });
+    }
+
+    if (!trimmedSpecialty) {
+      return res.status(400).json({ error: 'Specialty is required' });
+    }
+
+    if (!trimmedService) {
+      return res.status(400).json({ error: 'Service is required' });
+    }
+
     // Verify clinic belongs to user
     const { data: clinicData, error: clinicError } = await supabaseAdmin
       .from('clinics')
@@ -584,11 +601,11 @@ router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
     const { data, error } = await supabaseAdmin
       .from('treatments')
       .insert({
-        name,
-        description,
-        price,
-        specialty: specialty || null,
-        service: service || null,
+        name: trimmedName,
+        description: description || null,
+        price: trimmedPrice || null,
+        specialty: trimmedSpecialty,
+        service: trimmedService,
         status: status || 'active',
         clinic_id,
       })

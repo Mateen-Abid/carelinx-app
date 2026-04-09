@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { supabaseAdmin } from '../config/supabase';
+import { createSupabaseAdminClient } from '../config/supabase';
 import { optionalAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +10,7 @@ const router = Router();
  */
 router.get('/specialties', optionalAuth, async (req: AuthRequest, res) => {
   try {
+    const supabaseAdmin = createSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from('super_admin_specialties')
       .select('id, name')
@@ -31,6 +32,7 @@ router.get('/specialties', optionalAuth, async (req: AuthRequest, res) => {
  */
 router.get('/treatments', optionalAuth, async (req: AuthRequest, res) => {
   try {
+    const supabaseAdmin = createSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from('super_admin_services')
       .select(`
@@ -47,6 +49,47 @@ router.get('/treatments', optionalAuth, async (req: AuthRequest, res) => {
     res.json({ treatments: data });
   } catch (error: any) {
     console.error('Get treatments error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/services/clinic-treatments
+ * Get active clinic treatments for patient-facing matching
+ */
+router.get('/clinic-treatments', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const supabaseAdmin = createSupabaseAdminClient();
+    const clinicId = String(req.query.clinic_id || '').trim();
+
+    if (!clinicId) {
+      return res.status(400).json({ error: 'clinic_id is required' });
+    }
+
+    let query = supabaseAdmin
+      .from('treatments')
+      .select('id, clinic_id, name, price, specialty, service, status')
+      .eq('clinic_id', clinicId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    const specialty = String(req.query.specialty || '').trim();
+    if (specialty) {
+      query = query.ilike('specialty', `%${specialty}%`);
+    }
+
+    const service = String(req.query.service || '').trim();
+    if (service) {
+      query = query.ilike('service', `%${service}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    res.json({ treatments: data || [] });
+  } catch (error: any) {
+    console.error('Get clinic treatments error:', error);
     res.status(400).json({ error: error.message });
   }
 });

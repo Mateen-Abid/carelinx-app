@@ -250,6 +250,13 @@ export const servicesApi = {
   getTreatments: async () => {
     return fetchWithAuth('/services/treatments');
   },
+
+  getClinicTreatments: async (clinicId: string, options?: { specialty?: string; service?: string }) => {
+    const params = new URLSearchParams({ clinic_id: clinicId });
+    if (options?.specialty) params.append('specialty', options.specialty);
+    if (options?.service) params.append('service', options.service);
+    return fetchWithAuth(`/services/clinic-treatments?${params.toString()}`);
+  },
 };
 
 // User API

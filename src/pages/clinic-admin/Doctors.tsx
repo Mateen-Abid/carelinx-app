@@ -31,7 +31,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -49,13 +48,11 @@ interface Doctor {
 
 interface Treatment {
   id: string;
-  name: string; // Treatment/Machine name or Doctor name
+  name: string;
   specialty: string;
   service: string;
-  description: string; // Working hours or description
-  price: string; // Price or phone number
+  price: string;
   status: 'active' | 'inactive';
-  doctorId?: string; // Link to doctor if it's a doctor-based treatment
 }
 
 interface Clinic {
@@ -149,13 +146,12 @@ const ClinicAdminDoctors = () => {
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [newTreatment, setNewTreatment] = useState({
     name: '',
-    description: '',
-    price: '',
-    specialties: [] as string[],
+    specialty: '',
     services: [] as string[],
+    status: 'active' as 'active' | 'inactive',
+    price: '',
   });
-  const [showTreatmentSpecialtyDropdown, setShowTreatmentSpecialtyDropdown] = useState(false);
-  const [showTreatmentServiceDropdown, setShowTreatmentServiceDropdown] = useState(false);
+  const [newTreatmentServiceValue, setNewTreatmentServiceValue] = useState<string | undefined>(undefined);
 
   const dayLabels: Record<number, string> = {
     0: 'Sunday',
@@ -306,10 +302,11 @@ const ClinicAdminDoctors = () => {
   useEffect(() => {
     const fetchServicesForSpecialty = async () => {
       // Determine which specialties to use based on which modal is open
-      // If treatment modal is open, use treatment specialties; otherwise use doctor specialties
-      const specialtiesToUse = showAddTreatmentModal && newTreatment.specialties.length > 0
-        ? newTreatment.specialties
-        : newDoctor.specialties;
+      // If treatment modal is open, use the selected treatment specialty; otherwise use doctor specialties
+      const specialtiesToUse =
+        showAddTreatmentModal && newTreatment.specialty
+          ? [newTreatment.specialty]
+          : newDoctor.specialties;
 
       if (specialtiesToUse.length === 0) {
         setAvailableServices([]);
@@ -345,7 +342,7 @@ const ClinicAdminDoctors = () => {
     };
 
     fetchServicesForSpecialty();
-  }, [newDoctor.specialties, newTreatment.specialties, showAddTreatmentModal]);
+  }, [newDoctor.specialties, newTreatment.specialty, showAddTreatmentModal]);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -414,7 +411,6 @@ const ClinicAdminDoctors = () => {
         name: t.name,
         specialty: t.specialty || '',
         service: t.service || '',
-        description: t.description || '',
         price: t.price || '',
         status: t.status as 'active' | 'inactive',
       }));
@@ -466,7 +462,6 @@ const ClinicAdminDoctors = () => {
         name: t.name,
         specialty: t.specialty || '',
         service: t.service || '',
-        description: t.description || '',
         price: t.price || '',
         status: t.status as 'active' | 'inactive',
       }));
@@ -756,12 +751,12 @@ const ClinicAdminDoctors = () => {
     try {
       // Validate required fields
       if (!newTreatment.name.trim()) {
-        toast.error(t('Please enter treatment/machine name'));
+        toast.error(t('Please enter treatment name'));
         return;
       }
 
-      if (newTreatment.specialties.length === 0) {
-        toast.error(t('Please select at least one specialty'));
+      if (!newTreatment.specialty) {
+        toast.error(t('Please select a specialty'));
         return;
       }
 
@@ -774,49 +769,27 @@ const ClinicAdminDoctors = () => {
       await api.clinicAdmin.createTreatment({
         clinic_id: clinic.id,
         name: newTreatment.name.trim(),
-        description: newTreatment.description?.trim() || null,
         price: newTreatment.price?.trim() || null,
-        specialty: newTreatment.specialties.join(', '), // Comma-separated specialties
-        service: newTreatment.services.join(', '), // Comma-separated services
-        status: 'active',
+        specialty: newTreatment.specialty,
+        service: newTreatment.services.join(', '),
+        status: newTreatment.status,
       });
 
       toast.success(t('Treatment added successfully'));
       setShowAddTreatmentModal(false);
       setNewTreatment({
         name: '',
-        description: '',
-        price: '',
-        specialties: [],
+        specialty: '',
         services: [],
+        status: 'active',
+        price: '',
       });
+      setNewTreatmentServiceValue(undefined);
       fetchTreatments(clinic.id);
     } catch (error) {
       console.error('❌ Error adding treatment:', error);
       toast.error(t('Failed to add treatment'));
     }
-  };
-
-  const handleAddTreatmentSpecialty = (specialty: string) => {
-    if (!newTreatment.specialties.includes(specialty)) {
-      setNewTreatment({ ...newTreatment, specialties: [...newTreatment.specialties, specialty] });
-    }
-    setShowTreatmentSpecialtyDropdown(false);
-  };
-
-  const handleRemoveTreatmentSpecialty = (specialty: string) => {
-    setNewTreatment({ ...newTreatment, specialties: newTreatment.specialties.filter(s => s !== specialty) });
-  };
-
-  const handleAddTreatmentService = (service: string) => {
-    if (!newTreatment.services.includes(service)) {
-      setNewTreatment({ ...newTreatment, services: [...newTreatment.services, service] });
-    }
-    setShowTreatmentServiceDropdown(false);
-  };
-
-  const handleRemoveTreatmentService = (service: string) => {
-    setNewTreatment({ ...newTreatment, services: newTreatment.services.filter(s => s !== service) });
   };
 
   const handleSelectAll = () => {
@@ -1324,12 +1297,6 @@ const ClinicAdminDoctors = () => {
                           {t('Specialty and service')}
                         </TableSortHeader>
                         <TableSortHeader
-                          sortDirection={getTreatmentsSortDirection('description')}
-                          onSort={() => handleTreatmentsSort('description')}
-                        >
-                          {t('Description')}
-                        </TableSortHeader>
-                        <TableSortHeader
                           sortDirection={getTreatmentsSortDirection('price')}
                           onSort={() => handleTreatmentsSort('price')}
                         >
@@ -1368,11 +1335,6 @@ const ClinicAdminDoctors = () => {
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {treatment.specialty}{treatment.service ? `, ${treatment.service}` : ''}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {treatment.description}
                             </span>
                           </td>
                           <td className="py-4 px-6">
@@ -2151,32 +2113,143 @@ const ClinicAdminDoctors = () => {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Treatment / Machine Name */}
+            {/* Treatment Name */}
             <div>
               <Label htmlFor="treatment-name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                {t('Treatment / Machine Name')}
+                {t('Treatment Name')}
               </Label>
               <Input
                 id="treatment-name"
                 value={newTreatment.name}
                 onChange={(e) => setNewTreatment({ ...newTreatment, name: e.target.value })}
-                placeholder={t('e.g. Candela GentleMax Pro, HydraFacial MD, CO₂ Laser')}
+                placeholder={t('Enter treatment name')}
                 className="h-10"
               />
             </div>
 
-            {/* Description */}
+            {/* Specialty */}
             <div>
-              <Label htmlFor="treatment-description" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                {t('Description')}
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                {t('Specialty')}
               </Label>
-              <Input
-                id="treatment-description"
-                value={newTreatment.description}
-                onChange={(e) => setNewTreatment({ ...newTreatment, description: e.target.value })}
-                placeholder={t('e.g. 2023 Edition, Elite IQ')}
-                className="h-10"
-              />
+              <Select
+                value={newTreatment.specialty}
+                onValueChange={(value) =>
+                  {
+                    setNewTreatment((prev) => ({
+                      ...prev,
+                      specialty: value,
+                      services: [],
+                    }));
+                    setNewTreatmentServiceValue(undefined);
+                  }
+                }
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder={t('Select a speciality')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSpecialties.map((specialty) => (
+                    <SelectItem
+                      key={specialty}
+                      value={specialty}
+                    >
+                      {specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Services */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                {t('Services')}
+              </Label>
+              <Select
+                value={newTreatmentServiceValue}
+                onValueChange={(value) => {
+                  setNewTreatment((prev) => ({
+                    ...prev,
+                    services: prev.services.includes(value)
+                      ? prev.services
+                      : [...prev.services, value],
+                  }));
+                  setNewTreatmentServiceValue(undefined);
+                }}
+                disabled={!newTreatment.specialty}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue
+                    placeholder={
+                      newTreatment.specialty
+                        ? t('Select services')
+                        : t('Select a specialty first')
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableServices
+                    .filter((service) => !newTreatment.services.includes(service))
+                    .map((service) => (
+                    <SelectItem
+                      key={service}
+                      value={service}
+                    >
+                      {service}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {newTreatment.services.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {newTreatment.services.map((service) => (
+                    <div
+                      key={service}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    >
+                      <span>{service}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewTreatment((prev) => ({
+                            ...prev,
+                            services: prev.services.filter((item) => item !== service),
+                          }))
+                        }
+                        className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Status */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                {t('Status')}
+              </Label>
+              <Select
+                value={newTreatment.status}
+                onValueChange={(value) =>
+                  setNewTreatment((prev) => ({
+                    ...prev,
+                    status: value as 'active' | 'inactive',
+                  }))
+                }
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder={t('Select a status')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">{t('Active')}</SelectItem>
+                  <SelectItem value="inactive">{t('Inactive')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Price */}
@@ -2189,122 +2262,9 @@ const ClinicAdminDoctors = () => {
                 type="number"
                 value={newTreatment.price}
                 onChange={(e) => setNewTreatment({ ...newTreatment, price: e.target.value })}
-                placeholder={t('Enter Price')}
+                placeholder={t('Enter price')}
                 className="h-10"
               />
-            </div>
-
-            {/* USED FOR Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('USED FOR')}</h3>
-
-              {/* Specialty */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t('Specialty')}
-                </Label>
-                <div className="relative">
-                  <Select
-                    open={showTreatmentSpecialtyDropdown}
-                    onOpenChange={setShowTreatmentSpecialtyDropdown}
-                    onValueChange={(value) => {
-                      if (value) {
-                        handleAddTreatmentSpecialty(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder={t('Select a speciality')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSpecialties
-                        .filter(s => !newTreatment.specialties.includes(s))
-                        .map((specialty) => (
-                          <SelectItem
-                            key={specialty}
-                            value={specialty}
-                          >
-                            {specialty}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Selected Specialties Tags */}
-                  {newTreatment.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newTreatment.specialties.map((specialty) => (
-                        <div
-                          key={specialty}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300"
-                        >
-                          <span>{specialty}</span>
-                          <button
-                            onClick={() => handleRemoveTreatmentSpecialty(specialty)}
-                            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Service */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t('Service')}
-                </Label>
-                <div className="relative">
-                  <Select
-                    open={showTreatmentServiceDropdown}
-                    onOpenChange={setShowTreatmentServiceDropdown}
-                    onValueChange={(value) => {
-                      if (value) {
-                        handleAddTreatmentService(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder={t('Select the service')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableServices
-                        .filter(s => !newTreatment.services.includes(s))
-                        .map((service) => (
-                          <SelectItem
-                            key={service}
-                            value={service}
-                          >
-                            {service}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Selected Services Tags */}
-                  {newTreatment.services.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newTreatment.services.map((service) => (
-                        <div
-                          key={service}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300"
-                        >
-                          <span>{service}</span>
-                          <button
-                            onClick={() => handleRemoveTreatmentService(service)}
-                            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -2315,11 +2275,12 @@ const ClinicAdminDoctors = () => {
                 setShowAddTreatmentModal(false);
                 setNewTreatment({
                   name: '',
-                  description: '',
-                  price: '',
-                  specialties: [],
+                  specialty: '',
                   services: [],
+                  status: 'active',
+                  price: '',
                 });
+                setNewTreatmentServiceValue(undefined);
               }}
               className="flex-1 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >

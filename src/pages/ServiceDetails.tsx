@@ -131,6 +131,36 @@ const generateServiceDatabase = () => {
 // Create service database
 const serviceDatabase = generateServiceDatabase();
 
+type DatabaseDoctor = {
+  id: string;
+  name: string;
+  specialty: string;
+  email: string | null;
+  phone: string | null;
+  availability: string | null;
+  services?: string | null;
+  price?: string | number | null;
+  matchedTreatments?: string[];
+};
+
+type ClinicTreatmentRecord = {
+  id: string;
+  name: string;
+  price?: string | null;
+  specialty?: string | null;
+  service?: string | null;
+  status?: 'active' | 'inactive';
+};
+
+type DisplayDoctor = {
+  name: string;
+  specialization: string;
+  timeSlots: string[];
+  doctorId?: string;
+  price?: string | number | null;
+  treatments?: string[];
+};
+
 const ServiceDetails = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
@@ -188,7 +218,7 @@ const ServiceDetails = () => {
   // Database service state
   const [databaseService, setDatabaseService] = useState<any>(null);
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
-  const [databaseDoctors, setDatabaseDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>>([]);
+  const [databaseDoctors, setDatabaseDoctors] = useState<DatabaseDoctor[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Check if serviceId is a database service (starts with "doctor-")
@@ -213,6 +243,60 @@ const ServiceDetails = () => {
       doctorId = withoutPrefix.split('-')[0];
     }
   }
+
+  const normalizeMatchValue = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+  const splitStoredValues = (value?: string | null) =>
+    (value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const valuesOverlap = (leftValues: string[], rightValues: string[]) => {
+    if (leftValues.length === 0 || rightValues.length === 0) return false;
+
+    const normalizedLeft = leftValues.map(normalizeMatchValue);
+    const normalizedRight = rightValues.map(normalizeMatchValue);
+
+    return normalizedLeft.some((left) =>
+      normalizedRight.some(
+        (right) =>
+          left === right ||
+          left.includes(right) ||
+          right.includes(left)
+      )
+    );
+  };
+
+  const getMatchingTreatmentNames = (
+    doctor: DatabaseDoctor,
+    clinicTreatments: ClinicTreatmentRecord[],
+    selectedServiceName: string | null
+  ) => {
+    const doctorSpecialties = splitStoredValues(doctor.specialty);
+    const doctorServices = splitStoredValues(doctor.services);
+    const serviceTargets = selectedServiceName ? [selectedServiceName] : doctorServices;
+
+    if (doctorSpecialties.length === 0 || serviceTargets.length === 0) {
+      return [];
+    }
+
+    const matchedNames = clinicTreatments
+      .filter((treatment) => {
+        const treatmentSpecialties = splitStoredValues(treatment.specialty);
+        const treatmentServices = splitStoredValues(treatment.service);
+
+        return (
+          valuesOverlap(treatmentSpecialties, doctorSpecialties) &&
+          valuesOverlap(treatmentServices, serviceTargets)
+        );
+      })
+      .map((treatment) => treatment.name.trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(matchedNames));
+  };
 
   // Fetch database service data and all doctors providing this service
   useEffect(() => {
@@ -290,7 +374,8 @@ const ServiceDetails = () => {
 
         // Fetch ALL doctors from this clinic via backend
         console.log('📡 Fetching doctors from backend...');
-        const { doctors: allDoctors } = await api.doctors.getDoctors(clinicId);
+        const { doctors: allDoctorsRaw } = await api.doctors.getDoctors(clinicId);
+        const allDoctors = (allDoctorsRaw || []) as DatabaseDoctor[];
 
         if (!allDoctors) {
           console.error('Error fetching doctors');
@@ -307,13 +392,11 @@ const ServiceDetails = () => {
 
         // Filter doctors that provide this specific service AND match the specialty
         // Normalize service name for matching (case-insensitive, flexible)
-        const normalizeServiceName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
-        
-        let doctorsProvidingService: typeof allDoctors = [];
+        let doctorsProvidingService: DatabaseDoctor[] = [];
         
         if (serviceName) {
           // Filter doctors whose services column contains this service name AND specialty matches
-          const serviceNameNormalized = normalizeServiceName(serviceName);
+          const serviceNameNormalized = normalizeMatchValue(serviceName);
           
           doctorsProvidingService = allDoctors?.filter(doctor => {
             // First check: specialty must match (if we have a required specialty)
@@ -327,7 +410,7 @@ const ServiceDetails = () => {
             }
             
             // Third check: doctor's services must contain the service name (case-insensitive matching)
-            const doctorServices = doctor.services.split(',').map(s => normalizeServiceName(s));
+            const doctorServices = splitStoredValues(doctor.services).map(normalizeMatchValue);
             return doctorServices.some(ds => {
               // Exact match or contains match
               return ds === serviceNameNormalized || 
@@ -345,11 +428,24 @@ const ServiceDetails = () => {
           }
         }
 
+        let clinicTreatments: ClinicTreatmentRecord[] = [];
+        try {
+          const response = await api.services.getClinicTreatments(clinicId);
+          clinicTreatments = (response?.treatments || []) as ClinicTreatmentRecord[];
+        } catch (error) {
+          console.error('Error fetching clinic treatments:', error);
+        }
+
+        const doctorsWithTreatments = doctorsProvidingService.map((doctor) => ({
+          ...doctor,
+          matchedTreatments: getMatchingTreatmentNames(doctor, clinicTreatments, serviceName),
+        }));
+
         console.log('✅ Doctors providing service:', doctorsProvidingService.length, serviceName || 'all');
-        setDatabaseDoctors(doctorsProvidingService);
+        setDatabaseDoctors(doctorsWithTreatments);
 
         // Get specialty from first doctor (all should have same specialty for same service)
-        const firstDoctor = doctorsProvidingService[0];
+        const firstDoctor = doctorsWithTreatments[0];
         const specialty = firstDoctor?.specialty || 'General';
 
         // Create service object
@@ -379,7 +475,7 @@ const ServiceDetails = () => {
   const getHardcodedDoctors = () => {
     if (isDatabaseService || !service || !clinic) return [];
     
-    const doctors: Array<{name: string, specialization: string, timeSlots: string[]}> = [];
+    const doctors: DisplayDoctor[] = [];
     const doctorNames = new Set<string>();
     
     // Find the clinic in clinicsData
@@ -461,7 +557,16 @@ const ServiceDetails = () => {
     return trimmed;
   };
 
-  const serviceData = {
+  const serviceData: {
+    name: string;
+    specialty: string;
+    description: string;
+    clinic: string;
+    clinicLogo: string;
+    address: string;
+    schedule: Record<string, string>;
+    doctors: DisplayDoctor[];
+  } = {
     name: service.name,
     specialty: service.category,
     description: t(
@@ -488,7 +593,8 @@ const ServiceDetails = () => {
             ? [doctor.availability] 
             : ['10:00 AM – 2:00 PM', '2:00 PM – 6:00 PM'],
           doctorId: doctor.id,
-          price: doctor.price ?? null
+          price: doctor.price ?? null,
+          treatments: doctor.matchedTreatments || [],
         }))
       : getHardcodedDoctors()
   };
@@ -827,15 +933,10 @@ const ServiceDetails = () => {
                   </div>
                   
                   {/* Doctor Info */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-semibold text-gray-900 text-lg">{doctor.name}</h3>
-                      {formatDoctorPrice(doctor.price) ? (
-                        <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
-                          {t('Price')} {formatDoctorPrice(doctor.price)}
-                        </span>
-                      ) : null}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="min-w-0 break-words font-semibold text-gray-900 text-lg">
+                      {doctor.name}
+                    </h3>
                     
                     {/* Time Slot Badge */}
                     <div className="mt-2">
@@ -843,6 +944,32 @@ const ServiceDetails = () => {
                         {getDoctorAvailabilityLabelForDate(doctor.timeSlots, selectedDisplayDate)}
                       </span>
                     </div>
+
+                    {(formatDoctorPrice(doctor.price) || (doctor.treatments && doctor.treatments.length > 0)) ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-right">
+                        {formatDoctorPrice(doctor.price) ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
+                            {t('Price')} {formatDoctorPrice(doctor.price)}
+                          </span>
+                        ) : null}
+
+                        {doctor.treatments && doctor.treatments.length > 0 ? (
+                          <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+                            <span className="text-xs font-medium text-gray-500">
+                              {`${t('Treatment')}:`}
+                            </span>
+                            {doctor.treatments.map((treatment: string) => (
+                              <span
+                                key={treatment}
+                                className="inline-flex max-w-full items-center rounded-full bg-[#E8FFF5] px-3 py-1 text-xs font-medium text-[#0C2243] break-words whitespace-normal"
+                              >
+                                {treatment}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

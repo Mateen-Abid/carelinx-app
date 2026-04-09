@@ -9,12 +9,15 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 // Service role client - has full access, bypasses RLS
 // This is ONLY used on the backend, never exposed to frontend
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+export const createSupabaseAdminClient = () =>
+  createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+
+export const supabaseAdmin = createSupabaseAdminClient();
 
 console.log('✅ Supabase Admin client initialized (credentials hidden from frontend)');
 

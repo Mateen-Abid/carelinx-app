@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../config/supabase';
+import { createSupabaseAdminClient } from '../config/supabase';
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -46,8 +46,10 @@ export const authenticate = async (
 
     console.log('🔑 Token found in cookie (length:', token.length, ')');
 
-    // Validate token with Supabase (backend only, frontend can't see this)
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    // Use a request-scoped client for token validation so service-role DB
+    // queries on the shared client are never contaminated by a user session.
+    const authClient = createSupabaseAdminClient();
+    const { data: { user }, error } = await authClient.auth.getUser(token);
 
     if (error || !user) {
       console.log('❌ Auth: Invalid token:', error?.message);
@@ -78,7 +80,8 @@ export const optionalAuth = async (
     const token = req.cookies.access_token;
 
     if (token) {
-      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      const authClient = createSupabaseAdminClient();
+      const { data: { user } } = await authClient.auth.getUser(token);
       if (user) {
         req.user = user;
         console.log('✅ Optional Auth: User found:', user.email);
