@@ -152,6 +152,14 @@ type ClinicTreatmentRecord = {
   status?: 'active' | 'inactive';
 };
 
+type ApprovedClinicServiceRecord = {
+  id: string;
+  clinicId: string;
+  clinicName: string;
+  serviceName: string;
+  specialtyName: string;
+};
+
 type DisplayDoctor = {
   name: string;
   specialization: string;
@@ -221,15 +229,20 @@ const ServiceDetails = () => {
   const [databaseDoctors, setDatabaseDoctors] = useState<DatabaseDoctor[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Check if serviceId is a database service (starts with "doctor-")
-  const isDatabaseService = serviceId?.startsWith('doctor-');
+  const isDoctorBackedService = serviceId?.startsWith('doctor-');
+  const isClinicRequestedService = serviceId?.startsWith('clinic-service-');
+  // Check if serviceId is a database-backed service
+  const isDatabaseService = isDoctorBackedService || isClinicRequestedService;
   // Parse serviceId format: doctor-{doctorId}-{service-name}
   // UUID format is: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars including dashes)
   // So we extract first 36 chars after "doctor-" as doctorId, rest is service name
   let doctorId: string | null = null;
   let serviceNameFromId: string | null = null;
+  const approvedClinicServiceId = isClinicRequestedService && serviceId
+    ? serviceId.replace('clinic-service-', '')
+    : null;
   
-  if (isDatabaseService && serviceId) {
+  if (isDoctorBackedService && serviceId) {
     const withoutPrefix = serviceId.replace('doctor-', '');
     // UUID is 36 characters (including dashes)
     // Check if there's a service name after the UUID
@@ -298,6 +311,27 @@ const ServiceDetails = () => {
     return Array.from(new Set(matchedNames));
   };
 
+  const normalizeApprovedClinicService = (service: any): ApprovedClinicServiceRecord | null => {
+    if (!service) return null;
+
+    const clinicInfo = Array.isArray(service.clinics) ? service.clinics[0] : service.clinics;
+    const specialtyInfo = Array.isArray(service.specialties) ? service.specialties[0] : service.specialties;
+
+    const normalized = {
+      id: String(service.id || '').trim(),
+      clinicId: String(service.clinic_id || '').trim(),
+      clinicName: String(clinicInfo?.name || '').trim(),
+      serviceName: String(service.service_name || '').trim(),
+      specialtyName: String(specialtyInfo?.name || '').trim(),
+    };
+
+    if (!normalized.id || !normalized.clinicId || !normalized.clinicName || !normalized.serviceName || !normalized.specialtyName) {
+      return null;
+    }
+
+    return normalized;
+  };
+
   // Fetch database service data and all doctors providing this service
   useEffect(() => {
     const fetchDatabaseService = async () => {
@@ -313,12 +347,27 @@ const ServiceDetails = () => {
       try {
         setLoading(true);
         
-        // Extract service name from serviceId
-        const serviceName = serviceNameFromId 
-          ? serviceNameFromId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-          : null;
+        const selectedServiceNameFromState =
+          typeof location.state?.selectedServiceName === 'string' && location.state.selectedServiceName.trim()
+            ? location.state.selectedServiceName.trim()
+            : null;
+        let serviceName = isClinicRequestedService
+          ? selectedServiceNameFromState
+          : serviceNameFromId
+            ? serviceNameFromId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+            : null;
+        let selectedSpecialtyFromState =
+          typeof location.state?.selectedSpecialty === 'string' && location.state.selectedSpecialty.trim()
+            ? location.state.selectedSpecialty.trim()
+            : null;
 
-        console.log('🔍 Fetching database service:', { serviceId, serviceName, doctorId });
+        console.log('🔍 Fetching database service:', {
+          serviceId,
+          serviceName,
+          doctorId,
+          approvedClinicServiceId,
+          selectedSpecialtyFromState,
+        });
 
         // Get clinicId from location state (passed from navigation) or from doctor
         let clinicId: string | null = null;
@@ -338,6 +387,21 @@ const ServiceDetails = () => {
             } catch (error) {
               console.error('Error finding clinic by name:', error);
             }
+          }
+        }
+
+        if (isClinicRequestedService && approvedClinicServiceId) {
+          try {
+            const { services } = await api.services.getApprovedClinicServices({ id: approvedClinicServiceId });
+            const approvedClinicService = normalizeApprovedClinicService(services?.[0]);
+
+            if (approvedClinicService) {
+              clinicId = clinicId || approvedClinicService.clinicId;
+              serviceName = serviceName || approvedClinicService.serviceName;
+              selectedSpecialtyFromState = selectedSpecialtyFromState || approvedClinicService.specialtyName;
+            }
+          } catch (error) {
+            console.error('Error fetching approved clinic service:', error);
           }
         }
         
@@ -384,8 +448,8 @@ const ServiceDetails = () => {
         }
 
         // First, get the specialty from the original doctor (to filter by specialty)
-        let requiredSpecialty: string | null = null;
-        if (doctorId) {
+        let requiredSpecialty: string | null = selectedSpecialtyFromState;
+        if (!requiredSpecialty && doctorId) {
           const originalDoctor = allDoctors.find((d: any) => d.id === doctorId);
           requiredSpecialty = originalDoctor?.specialty || null;
         }
@@ -446,7 +510,7 @@ const ServiceDetails = () => {
 
         // Get specialty from first doctor (all should have same specialty for same service)
         const firstDoctor = doctorsWithTreatments[0];
-        const specialty = firstDoctor?.specialty || 'General';
+        const specialty = requiredSpecialty || firstDoctor?.specialty || 'General';
 
         // Create service object
         setDatabaseService({
@@ -585,7 +649,7 @@ const ServiceDetails = () => {
       'Sat': '09:00 - 14:00',
       'Sun': 'Closed'
     },
-    doctors: isDatabaseService && databaseDoctors.length > 0 
+    doctors: isDatabaseService
       ? databaseDoctors.map(doctor => ({
           name: doctor.name,
           specialization: `${doctor.specialty || 'General'} - Specialist`,
@@ -913,68 +977,86 @@ const ServiceDetails = () => {
       {/* Doctors Section */}
       <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="space-y-4">
-            {serviceData.doctors.map((doctor, index) => (
-              <div
-                key={index}
-                className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => {
-                  setSelectedDoctor(doctor.name);
-                  setSelectedDate(selectedDisplayDate);
-                  setIsTimeSlotModalOpen(true);
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Doctor Avatar */}
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  
-                  {/* Doctor Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="min-w-0 break-words font-semibold text-gray-900 text-lg">
-                      {doctor.name}
-                    </h3>
-                    
-                    {/* Time Slot Badge */}
-                    <div className="mt-2">
-                      <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-                        {getDoctorAvailabilityLabelForDate(doctor.timeSlots, selectedDisplayDate)}
-                      </span>
+          {serviceData.doctors.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+              <h3 className="text-lg font-semibold text-gray-900">{t('No doctors available for this service')}</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                {t('This service is approved for the clinic, but no doctor has been assigned yet.')}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {serviceData.doctors.map((doctor, index) => (
+                <div
+                  key={index}
+                  className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedDoctor(doctor.name);
+                    setSelectedDate(selectedDisplayDate);
+                    setIsTimeSlotModalOpen(true);
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Doctor Avatar */}
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
                     </div>
-
-                    {(formatDoctorPrice(doctor.price) || (doctor.treatments && doctor.treatments.length > 0)) ? (
-                      <div className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-right">
-                        {formatDoctorPrice(doctor.price) ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
-                            {t('Price')} {formatDoctorPrice(doctor.price)}
-                          </span>
-                        ) : null}
-
-                        {doctor.treatments && doctor.treatments.length > 0 ? (
-                          <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-                            <span className="text-xs font-medium text-gray-500">
-                              {`${t('Treatment')}:`}
-                            </span>
-                            {doctor.treatments.map((treatment: string) => (
-                              <span
-                                key={treatment}
-                                className="inline-flex max-w-full items-center rounded-full bg-[#E8FFF5] px-3 py-1 text-xs font-medium text-[#0C2243] break-words whitespace-normal"
-                              >
-                                {treatment}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
+                    
+                    {/* Doctor Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="min-w-0 break-words font-semibold text-gray-900 text-lg">
+                        {doctor.name}
+                      </h3>
+                      
+                      {/* Time Slot Badge */}
+                      <div className="mt-2">
+                        <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                          {getDoctorAvailabilityLabelForDate(doctor.timeSlots, selectedDisplayDate)}
+                        </span>
                       </div>
-                    ) : null}
+
+                      {(formatDoctorPrice(doctor.price) || (doctor.treatments && doctor.treatments.length > 0)) ? (
+                        <div
+                          className={`mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-2 ${
+                            isRtl ? 'justify-start' : 'justify-end'
+                          } text-right`}
+                        >
+                          {formatDoctorPrice(doctor.price) ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-xs font-medium text-gray-500">
+                                {`${t('Price')}:`}
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
+                                {formatDoctorPrice(doctor.price)}
+                              </span>
+                            </div>
+                          ) : null}
+
+                          {doctor.treatments && doctor.treatments.length > 0 ? (
+                            <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+                              <span className="text-xs font-medium text-gray-500">
+                                {`${t('Treatment')}:`}
+                              </span>
+                              {doctor.treatments.map((treatment: string) => (
+                                <span
+                                  key={treatment}
+                                  className="inline-flex max-w-full items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 break-words whitespace-normal"
+                                >
+                                  {treatment}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

@@ -71,6 +71,14 @@ interface ServiceCard {
   icon: string;
 }
 
+interface ClinicServiceRow {
+  id: string;
+  specialty: string;
+  service: string;
+  doctorName?: string;
+  doctorId?: string;
+}
+
 
 const ClinicDetails = () => {
   const { clinicId } = useParams();
@@ -80,7 +88,7 @@ const ClinicDetails = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
   const [clinicDoctors, setClinicDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>([]);
-  const [clinicServices, setClinicServices] = useState<Array<{specialty: string, service: string, doctorName: string, doctorId: string}>>([]);
+  const [clinicServices, setClinicServices] = useState<ClinicServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Check if clinicId is a UUID (database clinic) or a slug (hardcoded clinic)
@@ -115,7 +123,7 @@ const ClinicDetails = () => {
               setClinicDoctors(doctorsData || []);
 
               // Process services from doctors table (same logic as clinic admin)
-              const serviceRows: Array<{specialty: string, service: string, doctorName: string, doctorId: string}> = [];
+              const serviceRows: ClinicServiceRow[] = [];
               
               doctorsData?.forEach((doctor: any) => {
                 // Only process doctors that have services in the database
@@ -125,6 +133,7 @@ const ClinicDetails = () => {
                   
                   doctorServices.forEach((service: string) => {
                     serviceRows.push({
+                      id: `doctor-${doctor.id}-${service.toLowerCase().replace(/\s+/g, '-')}`,
                       specialty: doctor.specialty,
                       service: service,
                       doctorName: doctor.name,
@@ -133,6 +142,38 @@ const ClinicDetails = () => {
                   });
                 }
               });
+
+              try {
+                const { services: approvedClinicServices } = await api.services.getApprovedClinicServices({ clinicId: clinicData.id });
+
+                (approvedClinicServices || []).forEach((approvedService: any) => {
+                  const specialtyInfo = Array.isArray(approvedService.specialties)
+                    ? approvedService.specialties[0]
+                    : approvedService.specialties;
+                  const serviceName = String(approvedService.service_name || '').trim();
+                  const specialtyName = String(specialtyInfo?.name || '').trim();
+                  const approvedServiceId = String(approvedService.id || '').trim();
+
+                  if (!serviceName || !specialtyName || !approvedServiceId) {
+                    return;
+                  }
+
+                  const alreadyExists = serviceRows.some((row) =>
+                    row.service.trim().toLowerCase() === serviceName.toLowerCase() &&
+                    row.specialty.trim().toLowerCase() === specialtyName.toLowerCase()
+                  );
+
+                  if (!alreadyExists) {
+                    serviceRows.push({
+                      id: `clinic-service-${approvedServiceId}`,
+                      specialty: specialtyName,
+                      service: serviceName,
+                    });
+                  }
+                });
+              } catch (error) {
+                console.error('Error fetching approved clinic services:', error);
+              }
 
               console.log('✅ Fetched clinic services:', serviceRows);
               setClinicServices(serviceRows);
@@ -249,17 +290,13 @@ const ClinicDetails = () => {
       const specialty = serviceRow.specialty; // This is the actual specialty (e.g., "Dermatology", "Orthopedics")
       const uiCategory = mapSpecialtyToCategory(specialty); // This is the UI category (dermatology, dentistry, others)
       
-      // Generate service ID - format: doctor-{doctorId}-{service-name}
-      // This matches what ServiceDetails.tsx expects
-      const serviceId = `doctor-${serviceRow.doctorId}-${serviceRow.service.toLowerCase().replace(/\s+/g, '-')}`;
-      
       // Generate mock time and date data (for display purposes)
       const times = ['10:15 am - 10:30 am', '9:45 am - 10:00 am', '11:00 am - 11:15 am', '2:30 pm - 2:45 pm'];
       const dates = ['24 Aug, 2025', '15 Sep, 2026', '28 Aug, 2025', '5 Sep, 2025'];
       const icons = ['👋', '❤️', '🦷', '👁️', '🧠', '💉'];
       
       cards.push({
-        id: serviceId,
+        id: serviceRow.id,
         name: serviceRow.service, // Use actual service name from database (e.g., "Consultation", "Skin Biopsy")
         category: specialty, // Store the actual specialty (e.g., "Dermatology", "Orthopedics") for booking
         time: times[Math.floor(Math.random() * times.length)],
@@ -305,7 +342,9 @@ const ClinicDetails = () => {
       state: {
         clinicId: currentClinic.id,
         clinicName: currentClinic.name,
-        isDatabaseService: service.id.startsWith('doctor-'),
+        isDatabaseService: service.id.startsWith('doctor-') || service.id.startsWith('clinic-service-'),
+        selectedSpecialty: service.category,
+        selectedServiceName: service.name,
         from: `${location.pathname}${location.search}`,
       }
     });
@@ -324,7 +363,9 @@ const ClinicDetails = () => {
         state: {
           clinicId: currentClinic.id,
           clinicName: currentClinic.name,
-          isDatabaseService: option.id.startsWith('doctor-'),
+          isDatabaseService: option.id.startsWith('doctor-') || option.id.startsWith('clinic-service-'),
+          selectedSpecialty: option.category,
+          selectedServiceName: option.name,
           from: `${location.pathname}${location.search}`,
         }
       });
@@ -399,10 +440,8 @@ const ClinicDetails = () => {
         
         // Only include if it matches the selected UI category
         if (uiCategory === selectedCategory) {
-          const serviceId = `doctor-${serviceRow.doctorId}-${serviceRow.service.toLowerCase().replace(/\s+/g, '-')}`;
-          
           services.push({
-            id: serviceId,
+            id: serviceRow.id,
             name: serviceRow.service, // Use actual service name from database
             category: specialty, // Store actual specialty (e.g., "Dermatology") for booking
             type: 'subcategory'

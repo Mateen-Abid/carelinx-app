@@ -94,5 +94,57 @@ router.get('/clinic-treatments', optionalAuth, async (req: AuthRequest, res) => 
   }
 });
 
+/**
+ * GET /api/services/approved-clinic-services
+ * Get approved clinic-requested services for patient-facing real clinic flows
+ */
+router.get('/approved-clinic-services', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const supabaseAdmin = createSupabaseAdminClient();
+    const requestId = String(req.query.id || '').trim();
+    const clinicId = String(req.query.clinic_id || '').trim();
+
+    let query = supabaseAdmin
+      .from('service_requests')
+      .select(`
+        id,
+        clinic_id,
+        specialty_id,
+        service_name,
+        status,
+        requested_at,
+        clinics:clinic_id (
+          id,
+          name,
+          status
+        ),
+        specialties:specialty_id (
+          name
+        )
+      `)
+      .eq('status', 'approved')
+      .order('requested_at', { ascending: false });
+
+    if (requestId) {
+      query = query.eq('id', requestId);
+    }
+
+    if (clinicId) {
+      query = query.eq('clinic_id', clinicId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const services = (data || []).filter((item: any) => item?.clinics?.status === 'active');
+
+    res.json({ services });
+  } catch (error: any) {
+    console.error('Get approved clinic services error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
 

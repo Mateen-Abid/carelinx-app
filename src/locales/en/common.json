@@ -288,7 +288,9 @@
   "Service not found": "Service not found",
   "The requested service could not be found.": "The requested service could not be found.",
   "Please choose a date": "Please choose a date",
-  "Today": "Today"
+  "Today": "Today",
+  "Not available": "Not available",
+  "Not available on selected date": "Not available on selected date"
   ,
   "Date & Time": "Date & Time",
   "Status": "Status"
@@ -475,6 +477,8 @@
   "Doctor Details": "Doctor Details",
   "View detailed information about the doctor": "View detailed information about the doctor",
   "No doctors found": "No doctors found",
+  "No doctors available for this service": "No doctors available for this service",
+  "This service is approved for the clinic, but no doctor has been assigned yet.": "This service is approved for the clinic, but no doctor has been assigned yet.",
   "Change Status": "Change Status",
   "Doctor deleted successfully": "Doctor deleted successfully",
   "Failed to delete doctor: ": "Failed to delete doctor: ",
@@ -764,6 +768,7 @@
   "Add New Doctor": "Add New Doctor",
   "Click \"Add New Doctor\" to add your first doctor.": "Click \"Add New Doctor\" to add your first doctor.",
   "Click \"Add a Treatment\" to add your first treatment.": "Click \"Add a Treatment\" to add your first treatment.",
+  "No specialties found": "No specialties found",
   "Select a specialty first": "Select a specialty first",
   "Select the service": "Select the service",
   "Please select a specialty first": "Please select a specialty first",

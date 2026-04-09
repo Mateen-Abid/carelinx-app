@@ -143,7 +143,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
 
     return options;
-  }, [selectedCategory, clinicServices]);
+  }, [selectedCategory, clinicServices, superAdminServices, superAdminSpecialties]);
 
   const getCategorySubcategories = () => {
     if (selectedCategory === 'all') {
@@ -208,10 +208,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
         option.name.toLowerCase().includes(value.toLowerCase()) ||
         option.category.toLowerCase().includes(value.toLowerCase())
       );
-      setFilteredOptions(filtered.slice(0, 12));
+      setFilteredOptions(filtered);
     } else {
       // Show all available options when no search term
-      setFilteredOptions(searchOptions.slice(0, 12));
+      setFilteredOptions(searchOptions);
     }
     setShowDropdown(true);
   };
@@ -237,10 +237,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
         option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
         option.category.toLowerCase().includes(searchValue.toLowerCase())
       );
-      setFilteredOptions(filtered.slice(0, 12));
+      setFilteredOptions(filtered);
     } else {
       // Show all available options when no search term
-      setFilteredOptions(searchOptions.slice(0, 12));
+      setFilteredOptions(searchOptions);
     }
     setShowDropdown(true);
   };
@@ -263,7 +263,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const showAllSubcategories = () => {
     setShowDropdown(true);
     // Show all available options based on selected category
-    setFilteredOptions(searchOptions.slice(0, 12));
+    setFilteredOptions(searchOptions);
   };
 
   return (

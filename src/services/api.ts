@@ -251,6 +251,14 @@ export const servicesApi = {
     return fetchWithAuth('/services/treatments');
   },
 
+  getApprovedClinicServices: async (options?: { id?: string; clinicId?: string }) => {
+    const params = new URLSearchParams();
+    if (options?.id) params.append('id', options.id);
+    if (options?.clinicId) params.append('clinic_id', options.clinicId);
+    const query = params.toString();
+    return fetchWithAuth(`/services/approved-clinic-services${query ? `?${query}` : ''}`);
+  },
+
   getClinicTreatments: async (clinicId: string, options?: { specialty?: string; service?: string }) => {
     const params = new URLSearchParams({ clinic_id: clinicId });
     if (options?.specialty) params.append('specialty', options.specialty);

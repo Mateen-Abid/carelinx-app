@@ -288,7 +288,9 @@
   "Service not found": "الخدمة غير موجودة",
   "The requested service could not be found.": "تعذر العثور على الخدمة المطلوبة.",
   "Please choose a date": "يرجى اختيار تاريخ",
-  "Today": "اليوم"
+  "Today": "اليوم",
+  "Not available": "غير متاح",
+  "Not available on selected date": "غير متاح في التاريخ المحدد"
   ,
   "Date & Time": "التاريخ والوقت",
   "Status": "الحالة"
@@ -475,6 +477,8 @@
   "Doctor Details": "تفاصيل الطبيب",
   "View detailed information about the doctor": "عرض معلومات مفصلة عن الطبيب",
   "No doctors found": "لم يتم العثور على أطباء",
+  "No doctors available for this service": "لا يوجد أطباء متاحون لهذه الخدمة",
+  "This service is approved for the clinic, but no doctor has been assigned yet.": "تمت الموافقة على هذه الخدمة للعيادة، ولكن لم يتم تعيين أي طبيب لها بعد.",
   "Change Status": "تغيير الحالة",
   "Doctor deleted successfully": "تم حذف الطبيب بنجاح",
   "Failed to delete doctor: ": "فشل حذف الطبيب: ",
@@ -764,6 +768,7 @@
   "Add New Doctor": "إضافة طبيب جديد",
   "Click \"Add New Doctor\" to add your first doctor.": "اضغط \"إضافة طبيب جديد\" لإضافة أول طبيب لديك.",
   "Click \"Add a Treatment\" to add your first treatment.": "اضغط \"إضافة علاج\" لإضافة أول علاج لديك.",
+  "No specialties found": "لا توجد تخصصات متاحة",
   "Select a specialty first": "اختر تخصصًا أولاً",
   "Select the service": "اختر الخدمة",
   "Please select a specialty first": "يرجى اختيار تخصص أولاً",

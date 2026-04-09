@@ -59,6 +59,7 @@ interface Clinic {
   id: string;
   name: string;
   logo_url: string | null;
+  specialties?: string[] | null;
 }
 
 interface OperatingHour {
@@ -162,6 +163,31 @@ const ClinicAdminDoctors = () => {
     5: 'Friday',
     6: 'Saturday',
   };
+
+  const normalizeValue = (value: string) => value.trim().toLowerCase();
+  const parseCommaSeparatedValues = (value?: string | null) =>
+    (value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  // Restrict treatment mapping inputs to the current clinic's own data.
+  const clinicTreatmentSpecialties = Array.from(
+    new Set([
+      ...((clinic?.specialties || []).map((specialty) => specialty?.trim()).filter(Boolean) as string[]),
+      ...(doctors.map((doctor) => doctor.specialty?.trim()).filter(Boolean) as string[]),
+    ])
+  ).sort();
+
+  const clinicTreatmentServices = !newTreatment.specialty
+    ? []
+    : Array.from(
+        new Set(
+          doctors
+            .filter((doctor) => normalizeValue(doctor.specialty || '') === normalizeValue(newTreatment.specialty))
+            .flatMap((doctor) => parseCommaSeparatedValues(doctor.services))
+        )
+      ).sort();
 
   const formatDbTimeTo12h = (time?: string | null) => {
     if (!time) return '';
@@ -2134,6 +2160,7 @@ const ClinicAdminDoctors = () => {
               </Label>
               <Select
                 value={newTreatment.specialty}
+                disabled={clinicTreatmentSpecialties.length === 0}
                 onValueChange={(value) =>
                   {
                     setNewTreatment((prev) => ({
@@ -2146,10 +2173,16 @@ const ClinicAdminDoctors = () => {
                 }
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder={t('Select a speciality')} />
+                  <SelectValue
+                    placeholder={
+                      clinicTreatmentSpecialties.length > 0
+                        ? t('Select a speciality')
+                        : t('No specialties found')
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableSpecialties.map((specialty) => (
+                  {clinicTreatmentSpecialties.map((specialty) => (
                     <SelectItem
                       key={specialty}
                       value={specialty}
@@ -2177,19 +2210,21 @@ const ClinicAdminDoctors = () => {
                   }));
                   setNewTreatmentServiceValue(undefined);
                 }}
-                disabled={!newTreatment.specialty}
+                disabled={!newTreatment.specialty || clinicTreatmentServices.length === 0}
               >
                 <SelectTrigger className="h-10">
                   <SelectValue
                     placeholder={
-                      newTreatment.specialty
-                        ? t('Select services')
-                        : t('Select a specialty first')
+                      !newTreatment.specialty
+                        ? t('Select a specialty first')
+                        : clinicTreatmentServices.length > 0
+                          ? t('Select services')
+                          : t('No services available for selected specialty')
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableServices
+                  {clinicTreatmentServices
                     .filter((service) => !newTreatment.services.includes(service))
                     .map((service) => (
                     <SelectItem

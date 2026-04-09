@@ -25,6 +25,15 @@ interface DatabaseClinic {
   status: string;
 }
 
+interface ApprovedClinicService {
+  id: string;
+  clinicId: string;
+  clinicName: string;
+  serviceName: string;
+  specialtyId: string | null;
+  specialtyName: string;
+}
+
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
@@ -43,6 +52,7 @@ const Index = () => {
   const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>>>({});
   const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
   const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
+  const [approvedClinicServices, setApprovedClinicServices] = useState<ApprovedClinicService[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -308,15 +318,19 @@ const Index = () => {
 
     const fetchSuperAdminData = async () => {
       try {
-        // Fetch specialties from backend
-        console.log('📡 Fetching specialties from backend...');
-        const { specialties: specialtiesData } = await api.services.getSpecialties();
+        console.log('📡 Fetching specialties and approved clinic services from backend...');
+        const [
+          { specialties: specialtiesData },
+          { treatments: servicesData },
+          { services: approvedClinicServicesData },
+        ] = await Promise.all([
+          api.services.getSpecialties(),
+          api.services.getTreatments(),
+          api.services.getApprovedClinicServices(),
+        ]);
+
         console.log('✅ Fetched specialties:', specialtiesData?.length || 0);
         setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name })));
-
-        // Fetch treatments from backend
-        console.log('📡 Fetching treatments from backend...');
-        const { treatments: servicesData } = await api.services.getTreatments();
         console.log('✅ Fetched treatments:', servicesData?.length || 0);
         const transformedServices = (servicesData || []).map((service: any) => ({
           id: service.id,
@@ -325,6 +339,25 @@ const Index = () => {
           specialty_name: service.specialties?.name || 'Unknown'
         }));
         setSuperAdminServices(transformedServices);
+
+        const transformedApprovedClinicServices: ApprovedClinicService[] = (approvedClinicServicesData || [])
+          .map((service: any) => {
+            const clinicInfo = Array.isArray(service.clinics) ? service.clinics[0] : service.clinics;
+            const specialtyInfo = Array.isArray(service.specialties) ? service.specialties[0] : service.specialties;
+
+            return {
+              id: String(service.id || '').trim(),
+              clinicId: String(service.clinic_id || '').trim(),
+              clinicName: String(clinicInfo?.name || '').trim(),
+              serviceName: String(service.service_name || '').trim(),
+              specialtyId: service.specialty_id || null,
+              specialtyName: String(specialtyInfo?.name || '').trim(),
+            };
+          })
+          .filter((service) => service.id && service.clinicId && service.clinicName && service.serviceName && service.specialtyName);
+
+        console.log('✅ Fetched approved clinic services:', transformedApprovedClinicServices.length);
+        setApprovedClinicServices(transformedApprovedClinicServices);
       } catch (error) {
         console.error('Error fetching super admin data:', error);
       }
@@ -347,6 +380,33 @@ const Index = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const mapSpecialtyToCategory = (specialty: string) => {
+    const specialtyLower = specialty.toLowerCase();
+
+    if (
+      specialtyLower.includes('dermatology') ||
+      specialtyLower.includes('skin') ||
+      specialtyLower.includes('facial') ||
+      specialtyLower.includes('acne') ||
+      specialtyLower.includes('cosmetic dermatology')
+    ) {
+      return 'dermatology';
+    }
+
+    if (
+      specialtyLower.includes('dental') ||
+      specialtyLower.includes('dentistry') ||
+      specialtyLower.includes('orthodontics') ||
+      specialtyLower.includes('oral') ||
+      specialtyLower.includes('tooth') ||
+      specialtyLower.includes('teeth')
+    ) {
+      return 'dentistry';
+    }
+
+    return 'others';
+  };
 
   // Generate service cards from database clinics and doctors, with fallback to hardcoded data
   const serviceCards = useMemo(() => {
@@ -500,6 +560,130 @@ const Index = () => {
     return mapping;
   }, []);
 
+  const matchesSelectedCategory = (specialty: string, serviceName: string) => {
+    if (!selectedCategory || selectedCategory === 'all') return true;
+
+    const allowedItems = serviceMapping[selectedCategory] || [];
+    const selectedSpecialty = superAdminSpecialties.find(
+      (item) =>
+        item.id === selectedCategory ||
+        item.name.toLowerCase() === selectedCategory.toLowerCase()
+    );
+    const isMainCategory =
+      allowedItems.length === 1 &&
+      (allowedItems[0] === 'Dermatology' || allowedItems[0] === 'Dental');
+
+    if (isMainCategory) {
+      return mapSpecialtyToCategory(specialty) === selectedCategory;
+    }
+
+    if (allowedItems.length > 0) {
+      return allowedItems.includes(serviceName);
+    }
+
+    if (selectedSpecialty) {
+      return specialty.trim().toLowerCase() === selectedSpecialty.name.trim().toLowerCase();
+    }
+
+    return true;
+  };
+
+  const realClinicSearchOptions = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') {
+      return [];
+    }
+
+    const selectedSpecialty = superAdminSpecialties.find(
+      (specialty) =>
+        specialty.id === selectedCategory ||
+        specialty.name.toLowerCase() === selectedCategory.toLowerCase()
+    );
+
+    const targetSpecialtyName = (selectedSpecialty?.name || selectedCategory).trim().toLowerCase();
+    const isMainCategorySelected =
+      selectedCategory === 'dermatology' || selectedCategory === 'dentistry';
+    const seenServiceNames = new Set<string>();
+    const options: Array<{ id: string; name: string; category: string; type: 'subcategory' }> = [];
+
+    serviceCards
+      .filter((card) => {
+        if (!card.serviceId.startsWith('doctor-')) {
+          return false;
+        }
+
+        if (isMainCategorySelected) {
+          return mapSpecialtyToCategory(card.specialty) === selectedCategory;
+        }
+
+        return card.specialty.trim().toLowerCase() === targetSpecialtyName;
+      })
+      .filter((card) => {
+        const normalizedServiceName = card.serviceName.trim().toLowerCase();
+        if (!normalizedServiceName || seenServiceNames.has(normalizedServiceName)) {
+          return false;
+        }
+
+        seenServiceNames.add(normalizedServiceName);
+        return true;
+      })
+      .forEach((card) => {
+        options.push({
+          id: card.serviceId,
+          name: card.serviceName,
+          category: card.specialty,
+          type: 'subcategory',
+        });
+      });
+
+    approvedClinicServices
+      .filter((service) => {
+        if (isMainCategorySelected) {
+          return mapSpecialtyToCategory(service.specialtyName) === selectedCategory;
+        }
+
+        return service.specialtyName.trim().toLowerCase() === targetSpecialtyName;
+      })
+      .forEach((service) => {
+        const normalizedServiceName = service.serviceName.trim().toLowerCase();
+        if (!normalizedServiceName || seenServiceNames.has(normalizedServiceName)) {
+          return;
+        }
+
+        seenServiceNames.add(normalizedServiceName);
+        options.push({
+          id: `clinic-service-${service.id}`,
+          name: service.serviceName,
+          category: service.specialtyName,
+          type: 'subcategory',
+        });
+      });
+
+    superAdminServices
+      .filter((service) => {
+        if (isMainCategorySelected) {
+          return mapSpecialtyToCategory(service.specialty_name) === selectedCategory;
+        }
+
+        return service.specialty_name.trim().toLowerCase() === targetSpecialtyName;
+      })
+      .forEach((service) => {
+        const normalizedServiceName = service.name.trim().toLowerCase();
+        if (!normalizedServiceName || seenServiceNames.has(normalizedServiceName)) {
+          return;
+        }
+
+        seenServiceNames.add(normalizedServiceName);
+        options.push({
+          id: `super-${service.id}`,
+          name: service.name,
+          category: service.specialty_name,
+          type: 'subcategory',
+        });
+      });
+
+    return options.sort((left, right) => left.name.localeCompare(right.name));
+  }, [approvedClinicServices, selectedCategory, serviceCards, superAdminServices, superAdminSpecialties]);
+
   const handleCategoryChange = (categoryId: string) => {
     // Clear search query when switching categories to reset subcategory selection
     setSearchQuery('');
@@ -540,23 +724,48 @@ const Index = () => {
     if (selectedService && selectedService.trim() && selectedServiceId && selectedServiceId.trim()) {
       console.log('✅ Service is selected, navigating to ServiceDetails...');
       
-      // Find the service card that matches the selected service name and clinic
-      const matchingServiceCard = serviceCards.find(card => 
-        card.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+      // Prefer the exact selected service id if it already belongs to this clinic.
+      const exactServiceCard = serviceCards.find(card =>
+        card.serviceId === selectedServiceId &&
         card.clinicName.toLowerCase() === clinicName.toLowerCase()
       );
+
+      // Fall back to clinic + service matching, constrained by the current specialty.
+      const matchingServiceCard = exactServiceCard || serviceCards.find(card =>
+        card.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+        card.clinicName.toLowerCase() === clinicName.toLowerCase() &&
+        matchesSelectedCategory(card.specialty, card.serviceName)
+      );
+
+      const matchingApprovedClinicService = approvedClinicServices.find((service) =>
+        service.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+        service.clinicName.toLowerCase() === clinicName.toLowerCase() &&
+        matchesSelectedCategory(service.specialtyName, service.serviceName)
+      );
+
+      const selectedSpecialtyForNavigation =
+        matchingServiceCard?.specialty ||
+        matchingApprovedClinicService?.specialtyName ||
+        (selectedCategory === 'dentistry'
+          ? 'Dental'
+          : selectedCategory === 'dermatology'
+            ? 'Dermatology'
+            : undefined);
       
       // Use the stored serviceId or the one from matching card
-      const serviceIdToUse = matchingServiceCard?.serviceId || selectedServiceId;
+      const serviceIdToUse =
+        matchingServiceCard?.serviceId ||
+        (matchingApprovedClinicService ? `clinic-service-${matchingApprovedClinicService.id}` : selectedServiceId);
       
       console.log('🔍 Service ID to use:', serviceIdToUse);
       console.log('🔍 Matching service card:', matchingServiceCard);
       
       if (serviceIdToUse) {
         // Get the actual clinic ID (UUID) if it's a database clinic, otherwise use clinic name
-        const actualClinicId = clinicCard?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicCard.id)
-          ? clinicCard.id
-          : clinicName; // For hardcoded clinics, use name as fallback
+        const actualClinicId = matchingApprovedClinicService?.clinicId ||
+          (clinicCard?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicCard.id)
+            ? clinicCard.id
+            : clinicName); // For hardcoded clinics, use name as fallback
         
         console.log('✅ Navigating to ServiceDetails with:', {
           serviceId: serviceIdToUse,
@@ -569,7 +778,9 @@ const Index = () => {
           state: {
             clinicId: actualClinicId, // Pass actual clinic ID (UUID) or name
             clinicName: clinicName,
-            isDatabaseService: serviceIdToUse.startsWith('doctor-')
+            isDatabaseService: serviceIdToUse.startsWith('doctor-') || serviceIdToUse.startsWith('clinic-service-'),
+            selectedSpecialty: selectedSpecialtyForNavigation,
+            selectedServiceName: selectedService,
           }
         });
         return;
@@ -670,7 +881,9 @@ const Index = () => {
         }
         
         console.log('✅ Final services list:', services);
-        return services;
+        return services.filter((service) =>
+          matchesSelectedCategory(service.category, service.name)
+        );
       }
       
       console.log('⚠️ No doctors found in database for clinic:', dbClinic.name);
@@ -692,7 +905,9 @@ const Index = () => {
             });
           });
         });
-        return services;
+        return services.filter((service) =>
+          matchesSelectedCategory(service.category, service.name)
+        );
       }
       
       console.log('❌ No services found (no doctors, no hardcoded data)');
@@ -722,8 +937,10 @@ const Index = () => {
         });
       });
     });
-    return services;
-  }, [selectedClinic, databaseClinics, clinicDoctors]);
+    return services.filter((service) =>
+      matchesSelectedCategory(service.category, service.name)
+    );
+  }, [selectedClinic, databaseClinics, clinicDoctors, matchesSelectedCategory]);
 
   // Convert timeSchedule string to schedule object
   const parseTimeSchedule = (timeSchedule: string): Record<string, string> => {
@@ -891,8 +1108,10 @@ const Index = () => {
             (allowedItems[0] === 'Dermatology' || allowedItems[0] === 'Dental');
           
           if (isMainCategory) {
-            // If main category is selected, show empty state (no services until subcategory is selected)
-            filtered = [];
+            // Main category selection should represent all services in that specialty.
+            filtered = filtered.filter(card =>
+              mapSpecialtyToCategory(card.specialty) === selectedCategory
+            );
           } else {
             // Filter by specific service name (subcategory selected)
             filtered = filtered.filter(card => 
@@ -915,15 +1134,27 @@ const Index = () => {
     
     // First filter by selected service if one is selected
     if (selectedService.trim()) {
+      const shouldUseDatabaseServicesOnly =
+        selectedServiceId.trim().startsWith('doctor-') ||
+        selectedServiceId.trim().startsWith('clinic-service-');
+
       // Get all service cards that match the selected service
       const matchingServiceCards = serviceCards.filter(card => 
-        card.serviceName.toLowerCase() === selectedService.toLowerCase()
+        card.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+        matchesSelectedCategory(card.specialty, card.serviceName) &&
+        (!shouldUseDatabaseServicesOnly || card.serviceId.startsWith('doctor-'))
+      );
+
+      const matchingApprovedClinicServices = approvedClinicServices.filter((service) =>
+        service.serviceName.toLowerCase() === selectedService.toLowerCase() &&
+        matchesSelectedCategory(service.specialtyName, service.serviceName)
       );
       
       // Get unique clinic names from matching service cards
-      const clinicNamesWithService = new Set(
-        matchingServiceCards.map(card => card.clinicName.toLowerCase())
-      );
+      const clinicNamesWithService = new Set([
+        ...matchingServiceCards.map(card => card.clinicName.toLowerCase()),
+        ...matchingApprovedClinicServices.map(service => service.clinicName.toLowerCase()),
+      ]);
       
       // Filter clinics to only show those offering the selected service
       filtered = filtered.filter(clinic =>
@@ -935,6 +1166,9 @@ const Index = () => {
     if (clinicSearchQuery.trim()) {
       const normalizedQuery = clinicSearchQuery.toLowerCase().trim();
       const selectedServiceName = selectedService.trim().toLowerCase();
+      const shouldUseDatabaseServicesOnly =
+        selectedServiceId.trim().startsWith('doctor-') ||
+        selectedServiceId.trim().startsWith('clinic-service-');
       filtered = filtered.filter(clinic => {
         const matchesClinicFields =
           clinic.name.toLowerCase().includes(normalizedQuery) ||
@@ -967,6 +1201,8 @@ const Index = () => {
         const serviceDoctorMatch = serviceCards.some((card) => {
           if (card.clinicName.toLowerCase() !== clinic.name.toLowerCase()) return false;
           if (selectedServiceName && card.serviceName.toLowerCase() !== selectedServiceName) return false;
+          if (selectedServiceName && !matchesSelectedCategory(card.specialty, card.serviceName)) return false;
+          if (shouldUseDatabaseServicesOnly && !card.serviceId.startsWith('doctor-')) return false;
           return (card.doctorName || '').toLowerCase().includes(normalizedQuery);
         });
 
@@ -975,7 +1211,7 @@ const Index = () => {
     }
     
     return filtered;
-  }, [clinicCards, clinicDoctors, clinicSearchQuery, selectedService, serviceCards]);
+  }, [approvedClinicServices, clinicCards, clinicDoctors, clinicSearchQuery, selectedCategory, selectedService, selectedServiceId, serviceCards]);
 
   const parseNumericPrice = (price: string | number | null | undefined): number | null => {
     if (price === null || price === undefined) return null;
@@ -1059,6 +1295,7 @@ const Index = () => {
                     onOptionSelect={handleOptionSelect}
                     selectedCategory={selectedCategory}
                     currentSearchQuery={searchQuery}
+                    clinicServices={realClinicSearchOptions}
                     superAdminServices={superAdminServices}
                     superAdminSpecialties={superAdminSpecialties}
                   />
