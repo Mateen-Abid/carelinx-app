@@ -63,7 +63,7 @@ export const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
           {appointmentDetails && (
             <div className="bg-gray-50 rounded-lg p-3 mb-4 text-left text-sm">
               <h4 className="font-medium text-gray-900 mb-2">{t('Appointment Details')}:</h4>
-              <p><strong>{t('Service')}:</strong> {appointmentDetails.specialty}</p>
+              <p><strong>{t('Specialty')}:</strong> {appointmentDetails.specialty}</p>
               <p><strong>{t('Doctor')}:</strong> {appointmentDetails.doctorName}</p>
               <p><strong>{t('Clinic')}:</strong> {appointmentDetails.clinic}</p>
               <p><strong>{t('Date & Time')}:</strong> {appointmentDetails.date} {t('at')} {appointmentDetails.time}</p>

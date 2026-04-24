@@ -294,9 +294,6 @@ const ClinicAdminServices = () => {
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white">
                           {t('Services')}
                         </th>
-                        <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
-                          {t("Doctor's Name")}
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -359,9 +356,6 @@ const ClinicAdminServices = () => {
                                   );
                                 })}
                               </div>
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400 align-middle w-1/5">
-                              {Array.from(specialtyData.doctors).join(', ')}
                             </td>
                           </tr>
                         );

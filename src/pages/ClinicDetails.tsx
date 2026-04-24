@@ -91,6 +91,8 @@ const ClinicDetails = () => {
   const [clinicServices, setClinicServices] = useState<ClinicServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeServiceValue = (value: string) => value.trim().toLowerCase();
+
   // Check if clinicId is a UUID (database clinic) or a slug (hardcoded clinic)
   const isUUID = clinicId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicId);
 
@@ -117,6 +119,28 @@ const ClinicDetails = () => {
             // Fetch doctors for this clinic via backend
             console.log('📡 Fetching doctors from backend...');
             const { doctors: doctorsData } = await api.doctors.getDoctors(clinicData.id);
+            const { treatments: activeServicesData } = await api.services.getTreatments();
+
+            const activeServiceKeys = new Set(
+              (activeServicesData || [])
+                .map((service: any) => {
+                  const specialtyInfo = Array.isArray(service.specialties) ? service.specialties[0] : service.specialties;
+                  const specialtyKey = normalizeServiceValue(String(specialtyInfo?.name || ''));
+                  const serviceKey = normalizeServiceValue(String(service.name || ''));
+
+                  return specialtyKey && serviceKey ? `${specialtyKey}::${serviceKey}` : '';
+                })
+                .filter(Boolean)
+            );
+
+            const isServiceActiveForPatient = (specialty: string, serviceName: string) => {
+              const specialtyKey = normalizeServiceValue(specialty || '');
+              const serviceKey = normalizeServiceValue(serviceName || '');
+
+              if (!specialtyKey || !serviceKey) return false;
+
+              return activeServiceKeys.has(`${specialtyKey}::${serviceKey}`);
+            };
 
             if (doctorsData) {
               console.log('✅ Fetched doctors from backend:', doctorsData);
@@ -132,6 +156,10 @@ const ClinicDetails = () => {
                   const doctorServices = doctor.services.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
                   
                   doctorServices.forEach((service: string) => {
+                    if (!isServiceActiveForPatient(doctor.specialty, service)) {
+                      return;
+                    }
+
                     serviceRows.push({
                       id: `doctor-${doctor.id}-${service.toLowerCase().replace(/\s+/g, '-')}`,
                       specialty: doctor.specialty,
@@ -155,6 +183,10 @@ const ClinicDetails = () => {
                   const approvedServiceId = String(approvedService.id || '').trim();
 
                   if (!serviceName || !specialtyName || !approvedServiceId) {
+                    return;
+                  }
+
+                  if (!isServiceActiveForPatient(specialtyName, serviceName)) {
                     return;
                   }
 

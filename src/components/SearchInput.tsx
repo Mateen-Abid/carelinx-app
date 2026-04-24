@@ -7,6 +7,7 @@ interface SearchOption {
   name: string;
   category: string;
   type: 'category' | 'subcategory';
+  bookingType?: 'service' | 'treatment';
 }
 
 interface SearchInputProps {
@@ -86,7 +87,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   id: `super-${service.id}`,
                   name: service.name,
                   category: service.specialty_name,
-                  type: 'subcategory'
+                  type: 'subcategory',
+                  bookingType: 'service',
                 });
               }
             });
@@ -104,7 +106,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   id: service.id,
                   name: service.name,
                   category: service.category,
-                  type: 'subcategory'
+                  type: 'subcategory',
+                  bookingType: 'service',
                 });
               }
             });
@@ -124,7 +127,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
                 id: `super-${service.id}`,
                 name: service.name,
                 category: service.specialty_name,
-                type: 'subcategory'
+                type: 'subcategory',
+                bookingType: 'service',
               });
             }
           });
@@ -340,7 +344,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                       </div>
                     </div>
                     <div className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                      Service
+                      {option.bookingType === 'treatment' ? t('Treatment') : t('Service')}
                     </div>
                   </div>
                 </button>

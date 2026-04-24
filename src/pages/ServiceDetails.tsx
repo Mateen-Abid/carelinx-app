@@ -149,7 +149,15 @@ type ClinicTreatmentRecord = {
   price?: string | null;
   specialty?: string | null;
   service?: string | null;
+  availability?: string | null;
   status?: 'active' | 'inactive';
+};
+
+type BookableTreatmentRecord = ClinicTreatmentRecord & {
+  clinicId: string;
+  clinicName: string;
+  clinicAddress?: string;
+  clinicLogo?: string;
 };
 
 type ApprovedClinicServiceRecord = {
@@ -215,6 +223,7 @@ const ServiceDetails = () => {
   const [isBookingConfirmationOpen, setIsBookingConfirmationOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+  const [selectedTreatment, setSelectedTreatment] = useState<ClinicTreatmentRecord | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
@@ -227,12 +236,14 @@ const ServiceDetails = () => {
   const [databaseService, setDatabaseService] = useState<any>(null);
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
   const [databaseDoctors, setDatabaseDoctors] = useState<DatabaseDoctor[]>([]);
+  const [availableTreatments, setAvailableTreatments] = useState<ClinicTreatmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isDoctorBackedService = serviceId?.startsWith('doctor-');
   const isClinicRequestedService = serviceId?.startsWith('clinic-service-');
+  const isTreatmentBackedService = serviceId?.startsWith('treatment-');
   // Check if serviceId is a database-backed service
-  const isDatabaseService = isDoctorBackedService || isClinicRequestedService;
+  const isDatabaseService = isDoctorBackedService || isClinicRequestedService || isTreatmentBackedService;
   // Parse serviceId format: doctor-{doctorId}-{service-name}
   // UUID format is: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars including dashes)
   // So we extract first 36 chars after "doctor-" as doctorId, rest is service name
@@ -240,6 +251,9 @@ const ServiceDetails = () => {
   let serviceNameFromId: string | null = null;
   const approvedClinicServiceId = isClinicRequestedService && serviceId
     ? serviceId.replace('clinic-service-', '')
+    : null;
+  const treatmentRecordId = isTreatmentBackedService && serviceId
+    ? serviceId.replace('treatment-', '')
     : null;
   
   if (isDoctorBackedService && serviceId) {
@@ -332,6 +346,31 @@ const ServiceDetails = () => {
     return normalized;
   };
 
+  const normalizeBookableTreatment = (treatment: any): BookableTreatmentRecord | null => {
+    if (!treatment) return null;
+
+    const clinicInfo = Array.isArray(treatment.clinics) ? treatment.clinics[0] : treatment.clinics;
+    const normalized = {
+      id: String(treatment.id || '').trim(),
+      clinicId: String(treatment.clinic_id || '').trim(),
+      clinicName: String(clinicInfo?.name || '').trim(),
+      clinicAddress: String(clinicInfo?.address || '').trim(),
+      clinicLogo: String(clinicInfo?.logo_url || '').trim(),
+      name: String(treatment.name || '').trim(),
+      price: treatment.price ? String(treatment.price) : null,
+      specialty: String(treatment.specialty || '').trim(),
+      service: String(treatment.service || '').trim(),
+      availability: typeof treatment.availability === 'string' ? treatment.availability.trim() : null,
+      status: treatment.status,
+    };
+
+    if (!normalized.id || !normalized.clinicId || !normalized.clinicName || !normalized.name || !normalized.specialty) {
+      return null;
+    }
+
+    return normalized;
+  };
+
   // Fetch database service data and all doctors providing this service
   useEffect(() => {
     const fetchDatabaseService = async () => {
@@ -360,6 +399,7 @@ const ServiceDetails = () => {
           typeof location.state?.selectedSpecialty === 'string' && location.state.selectedSpecialty.trim()
             ? location.state.selectedSpecialty.trim()
             : null;
+        let selectedTreatmentRecord: BookableTreatmentRecord | null = null;
 
         console.log('🔍 Fetching database service:', {
           serviceId,
@@ -402,6 +442,21 @@ const ServiceDetails = () => {
             }
           } catch (error) {
             console.error('Error fetching approved clinic service:', error);
+          }
+        }
+
+        if (isTreatmentBackedService && treatmentRecordId) {
+          try {
+            const { treatments } = await api.services.getBookableTreatments({ id: treatmentRecordId });
+            selectedTreatmentRecord = normalizeBookableTreatment(treatments?.[0]);
+
+            if (selectedTreatmentRecord) {
+              clinicId = clinicId || selectedTreatmentRecord.clinicId;
+              serviceName = selectedTreatmentRecord.name;
+              selectedSpecialtyFromState = selectedSpecialtyFromState || selectedTreatmentRecord.specialty || null;
+            }
+          } catch (error) {
+            console.error('Error fetching treatment:', error);
           }
         }
         
@@ -458,7 +513,22 @@ const ServiceDetails = () => {
         // Normalize service name for matching (case-insensitive, flexible)
         let doctorsProvidingService: DatabaseDoctor[] = [];
         
-        if (serviceName) {
+        if (isTreatmentBackedService && selectedTreatmentRecord) {
+          const treatmentSpecialties = splitStoredValues(selectedTreatmentRecord.specialty);
+          const treatmentServices = splitStoredValues(selectedTreatmentRecord.service);
+
+          doctorsProvidingService = allDoctors.filter((doctor) => {
+            const doctorSpecialties = splitStoredValues(doctor.specialty);
+            const doctorServices = splitStoredValues(doctor.services);
+
+            const specialtyMatches =
+              treatmentSpecialties.length === 0 || valuesOverlap(treatmentSpecialties, doctorSpecialties);
+            const serviceMatches =
+              treatmentServices.length === 0 || valuesOverlap(treatmentServices, doctorServices);
+
+            return specialtyMatches && serviceMatches;
+          });
+        } else if (serviceName) {
           // Filter doctors whose services column contains this service name AND specialty matches
           const serviceNameNormalized = normalizeMatchValue(serviceName);
           
@@ -502,11 +572,29 @@ const ServiceDetails = () => {
 
         const doctorsWithTreatments = doctorsProvidingService.map((doctor) => ({
           ...doctor,
-          matchedTreatments: getMatchingTreatmentNames(doctor, clinicTreatments, serviceName),
+          matchedTreatments: isTreatmentBackedService && selectedTreatmentRecord
+            ? [selectedTreatmentRecord.name]
+            : getMatchingTreatmentNames(doctor, clinicTreatments, serviceName),
         }));
+
+        const relevantTreatments = isTreatmentBackedService
+          ? []
+          : clinicTreatments.filter((treatment) => {
+              if (treatment.status === 'inactive') return false;
+
+              const treatmentSpecialties = splitStoredValues(treatment.specialty);
+              const treatmentServices = splitStoredValues(treatment.service);
+              const specialtyMatches =
+                !requiredSpecialty || valuesOverlap(treatmentSpecialties, [requiredSpecialty]);
+              const serviceMatches =
+                !serviceName || valuesOverlap(treatmentServices, [serviceName]);
+
+              return specialtyMatches && serviceMatches;
+            });
 
         console.log('✅ Doctors providing service:', doctorsProvidingService.length, serviceName || 'all');
         setDatabaseDoctors(doctorsWithTreatments);
+        setAvailableTreatments(relevantTreatments);
 
         // Get specialty from first doctor (all should have same specialty for same service)
         const firstDoctor = doctorsWithTreatments[0];
@@ -515,10 +603,13 @@ const ServiceDetails = () => {
         // Create service object
         setDatabaseService({
           id: serviceId,
-          name: serviceName || 'General Consultation',
-          category: specialty,
+          name: selectedTreatmentRecord?.name || serviceName || 'General Consultation',
+          category: selectedTreatmentRecord?.specialty || specialty,
           doctorName: firstDoctor?.name || 'Available Doctor',
-          doctorId: firstDoctor?.id || ''
+          doctorId: firstDoctor?.id || '',
+          bookingType: isTreatmentBackedService ? 'treatment' : 'service',
+          treatmentId: selectedTreatmentRecord?.id || null,
+          price: selectedTreatmentRecord?.price || null,
         });
 
       } catch (error) {
@@ -529,7 +620,7 @@ const ServiceDetails = () => {
     };
 
     fetchDatabaseService();
-  }, [serviceId, isDatabaseService, doctorId, serviceNameFromId, location.state]);
+  }, [approvedClinicServiceId, doctorId, isClinicRequestedService, isDatabaseService, isTreatmentBackedService, location.state, serviceId, serviceNameFromId, treatmentRecordId]);
 
   // Get service and clinic data - prioritize database, fallback to hardcoded
   const service = isDatabaseService ? databaseService : getServiceById(serviceId || '');
@@ -667,6 +758,13 @@ const ServiceDetails = () => {
     setIsBookingConfirmationOpen(true);
   };
 
+  const handleTreatmentSelect = (treatment: ClinicTreatmentRecord) => {
+    setSelectedTreatment(treatment);
+    setSelectedDoctor('');
+    setSelectedDate(selectedDisplayDate);
+    setIsTimeSlotModalOpen(true);
+  };
+
   const handleDateSelect = (date: Date) => {
     // Check if user is authenticated before allowing date selection
     if (!user) {
@@ -697,6 +795,11 @@ const ServiceDetails = () => {
     // Create pending booking
     if (selectedDate && serviceData) {
       try {
+        const isTreatmentBooking =
+          isTreatmentBackedService ||
+          !!selectedTreatment ||
+          location.state?.bookingType === 'treatment' ||
+          databaseService?.bookingType === 'treatment';
         const selectedDoctorData = serviceData.doctors.find((d: any) => d.name === selectedDoctor) || serviceData.doctors[0];
         // Get the selected doctor from databaseDoctors array to get specialty
         const selectedDoctorFromDb = isDatabaseService 
@@ -707,7 +810,7 @@ const ServiceDetails = () => {
         // For database services, category contains the doctor's specialty
         // For hardcoded services, we'll use the service name as specialty (backward compatibility)
         const specialty = isDatabaseService 
-          ? (selectedDoctorFromDb?.specialty || serviceData.category || serviceData.name)
+          ? (selectedTreatment?.specialty || selectedDoctorFromDb?.specialty || serviceData.specialty || serviceData.name)
           : serviceData.name;
         
         const finalDoctorId = isDatabaseService 
@@ -727,11 +830,18 @@ const ServiceDetails = () => {
         const bookingId = await addAppointment({
           doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
           specialty: specialty,
+          serviceName: isTreatmentBooking
+            ? serviceData.name
+            : serviceData.name,
           clinic: serviceData.clinic,
+          clinicId: isDatabaseService ? databaseClinic?.id : undefined,
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: timeSlot,
           status: 'pending',
-          doctorId: finalDoctorId
+          doctorId: finalDoctorId,
+          bookingType: isTreatmentBooking ? 'treatment' : 'doctor',
+          treatmentId: isTreatmentBooking ? (selectedTreatment?.id || databaseService?.treatmentId || treatmentRecordId || undefined) : undefined,
+          treatmentName: isTreatmentBooking ? (selectedTreatment?.name || serviceData.name) : undefined,
         });
         
         setPendingBookingId(bookingId);
@@ -748,6 +858,7 @@ const ServiceDetails = () => {
     // Just close the modal
     setPendingBookingId('');
     setIsBookingConfirmationOpen(false);
+    setSelectedTreatment(null);
   };
 
   const generateSlotsFromRange = (range: string): string[] => {
@@ -974,9 +1085,68 @@ const ServiceDetails = () => {
         </div>
       </section>
 
+      {/* Treatments Section */}
+      {!isTreatmentBackedService && availableTreatments.length > 0 && (
+        <section className="py-2 px-4 sm:px-8 bg-white">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('Available Treatments')}</h2>
+            <div className="space-y-4">
+              {availableTreatments.map((treatment) => (
+                <div
+                  key={treatment.id}
+                  className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => handleTreatmentSelect(treatment)}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="min-w-0 break-words font-semibold text-gray-900 text-lg">
+                        {treatment.name}
+                      </h3>
+
+                      <div className="mt-2">
+                        <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                          {getDoctorAvailabilityLabelForDate(
+                            treatment.availability ? [treatment.availability] : undefined,
+                            selectedDisplayDate
+                          )}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-2 ${
+                          isRtl ? 'justify-start' : 'justify-end'
+                        } text-right`}
+                      >
+                        {formatDoctorPrice(treatment.price) ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-xs font-medium text-gray-500">
+                              {`${t('Price')}:`}
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
+                              {formatDoctorPrice(treatment.price)}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Doctors Section */}
       <section className="py-6 px-4 sm:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('Available Doctors')}</h2>
           {serviceData.doctors.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
               <h3 className="text-lg font-semibold text-gray-900">{t('No doctors available for this service')}</h3>
@@ -991,6 +1161,7 @@ const ServiceDetails = () => {
                   key={index}
                   className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => {
+                    setSelectedTreatment(null);
                     setSelectedDoctor(doctor.name);
                     setSelectedDate(selectedDisplayDate);
                     setIsTimeSlotModalOpen(true);
@@ -1017,7 +1188,7 @@ const ServiceDetails = () => {
                         </span>
                       </div>
 
-                      {(formatDoctorPrice(doctor.price) || (doctor.treatments && doctor.treatments.length > 0)) ? (
+                      {formatDoctorPrice(doctor.price) ? (
                         <div
                           className={`mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-2 ${
                             isRtl ? 'justify-start' : 'justify-end'
@@ -1031,22 +1202,6 @@ const ServiceDetails = () => {
                               <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">
                                 {formatDoctorPrice(doctor.price)}
                               </span>
-                            </div>
-                          ) : null}
-
-                          {doctor.treatments && doctor.treatments.length > 0 ? (
-                            <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-                              <span className="text-xs font-medium text-gray-500">
-                                {`${t('Treatment')}:`}
-                              </span>
-                              {doctor.treatments.map((treatment: string) => (
-                                <span
-                                  key={treatment}
-                                  className="inline-flex max-w-full items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 break-words whitespace-normal"
-                                >
-                                  {treatment}
-                                </span>
-                              ))}
                             </div>
                           ) : null}
                         </div>
@@ -1067,7 +1222,7 @@ const ServiceDetails = () => {
         bookingDetails={{
           date: selectedDate ? format(selectedDate, 'MMMM d, yyyy') : '',
           time: selectedTimeSlot,
-          service: serviceData.name,
+          service: selectedTreatment?.name || serviceData.name,
           clinic: serviceData.clinic
         }}
       />
@@ -1078,7 +1233,8 @@ const ServiceDetails = () => {
         selectedDate={selectedDate}
         timeSlots={selectedDate ? getTimeSlots(
           selectedDate,
-          serviceData.doctors.find((doctor) => doctor.name === selectedDoctor)?.timeSlots?.[0]
+          selectedTreatment?.availability ||
+            serviceData.doctors.find((doctor) => doctor.name === selectedDoctor)?.timeSlots?.[0]
         ) : []}
         onBookAppointment={handleTimeSlotBook}
       />

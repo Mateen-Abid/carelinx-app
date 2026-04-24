@@ -17,7 +17,7 @@ interface BookingModalProps {
   clinicName?: string;
   serviceName?: string;
   serviceSchedule?: Record<string, string>; // Add schedule data
-  clinicServices?: Array<{id: string, name: string, category: string, doctorName: string, doctorId?: string}>; // Add clinic services
+  clinicServices?: Array<{id: string, name: string, category: string, doctorName: string, doctorId?: string, bookingType?: 'service' | 'treatment'}>; // Add clinic services
 }
 
 interface TimeSlot {
@@ -53,7 +53,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string, doctorId?: string} | null>(null);
+  const [selectedService, setSelectedService] = useState<{id: string, name: string, category: string, doctorName: string, doctorId?: string, bookingType?: 'service' | 'treatment'} | null>(null);
   const [step, setStep] = useState<'service' | 'date' | 'confirmation'>('service');
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -99,6 +99,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           time: time,
           status: 'pending', // Start as pending, will be confirmed by edge function
           doctorId: selectedService.doctorId || undefined,
+          bookingType: 'doctor',
         });
       } catch (error) {
         console.error('Error booking appointment:', error);
@@ -116,10 +117,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     onClose();
   };
 
-  const handleServiceSelect = (service: {id: string, name: string, category: string, doctorName: string, doctorId?: string}) => {
+  const handleServiceSelect = (service: {id: string, name: string, category: string, doctorName: string, doctorId?: string, bookingType?: 'service' | 'treatment'}) => {
     // Check authentication before proceeding to date selection
     if (!user) {
       setIsAuthPromptOpen(true);
+      return;
+    }
+
+    if (service.bookingType === 'treatment' || service.id.startsWith('clinic-service-') || service.id.startsWith('treatment-')) {
+      handleClose();
+      navigate(`/service/${service.id}`, {
+        state: {
+          clinicName,
+          selectedSpecialty: service.category,
+          selectedServiceName: service.name,
+          bookingType: service.bookingType || 'service',
+          isDatabaseService: true,
+        }
+      });
       return;
     }
     

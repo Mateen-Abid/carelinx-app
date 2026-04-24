@@ -38,6 +38,7 @@ interface Appointment {
   patientContact?: string;
   doctorName: string;
   service: string;
+  serviceName?: string | null;
   clinic: string;
   date: string;
   time: string;
@@ -49,6 +50,9 @@ interface Appointment {
   updated_at: string;
   note?: string;
   doctor_id?: string | null;
+  bookingType?: 'doctor' | 'treatment';
+  treatmentName?: string | null;
+  treatmentId?: string | null;
 }
 
 interface DoctorDetails {
@@ -282,6 +286,11 @@ const AdminAppointments = () => {
           status = 'pending';
         }
 
+        const appointmentLabel =
+          booking.booking_type === 'treatment' && booking.treatment_name
+            ? booking.treatment_name
+            : booking.doctor_name || t('Unknown Doctor');
+
         return {
           id: booking.id,
           user_id: booking.user_id,
@@ -289,8 +298,9 @@ const AdminAppointments = () => {
           patientEmail: profile?.email || '',
           patientGender: profile?.gender || profile?.sex || t('N/A'),
           patientContact: profile?.phone || profile?.contact || profile?.phone_number || t('N/A'),
-          doctorName: booking.doctor_name || t('Unknown Doctor'),
+          doctorName: appointmentLabel,
           service: booking.specialty || t('Unknown Service'),
+          serviceName: booking.service_name || null,
           clinic: clinicName,
           date: formattedDate,
           time: formattedTime,
@@ -302,6 +312,9 @@ const AdminAppointments = () => {
           updated_at: booking.updated_at,
           note: booking.note || booking.notes || booking.comment || '',
           doctor_id: booking.doctor_id || null,
+          bookingType: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
+          treatmentName: booking.treatment_name || null,
+          treatmentId: booking.treatment_id || null,
         };
       });
 
@@ -441,7 +454,7 @@ const AdminAppointments = () => {
       [t('Patient Name')]: appointment.patientName,
       [t('Patient Email')]: appointment.patientEmail || t('N/A'),
       [t('Patient Contact')]: appointment.patientContact || t('N/A'),
-      [t('Doctor Name')]: appointment.doctorName,
+      [t('Doctor / Treatment')]: appointment.doctorName,
       [t('Service')]: appointment.service,
       [t('Clinic')]: appointment.clinic,
       [t('Requested Date/Time')]: new Date(appointment.created_at).toLocaleString('en-US', { 
@@ -463,12 +476,38 @@ const AdminAppointments = () => {
   };
 
   const fetchDoctorDetails = async (appointment: Appointment) => {
+    if (appointment.bookingType === 'treatment' && appointment.treatmentId) {
+      try {
+        setLoadingDoctorDetails(true);
+        const { treatments } = await api.services.getBookableTreatments({ id: appointment.treatmentId });
+        const treatmentData = treatments?.[0];
+
+        setDoctorDetails({
+          name: appointment.treatmentName || appointment.doctorName,
+          specialty: treatmentData?.specialty || appointment.service,
+          service: appointment.serviceName || treatmentData?.service || t('N/A'),
+          availability: treatmentData?.availability || t('N/A'),
+        });
+      } catch (error) {
+        console.error('❌ Error fetching treatment details:', error);
+        setDoctorDetails({
+          name: appointment.treatmentName || appointment.doctorName,
+          specialty: appointment.service,
+          service: appointment.serviceName || t('N/A'),
+          availability: t('N/A'),
+        });
+      } finally {
+        setLoadingDoctorDetails(false);
+      }
+      return;
+    }
+
     if (!appointment.doctor_id) {
       // If no doctor_id, use basic info from appointment
       setDoctorDetails({
         name: appointment.doctorName,
         specialty: appointment.service,
-        service: appointment.service,
+        service: appointment.serviceName || t('N/A'),
         availability: t('N/A'),
       });
       return;
@@ -484,9 +523,12 @@ const AdminAppointments = () => {
 
       if (doctorData) {
         setDoctorDetails({
-          name: doctorData.name || appointment.doctorName,
+          name:
+            appointment.bookingType === 'treatment' && appointment.treatmentName
+              ? appointment.treatmentName
+              : doctorData.name || appointment.doctorName,
           specialty: doctorData.specialty || appointment.service,
-          service: doctorData.services || appointment.service,
+          service: appointment.serviceName || t('N/A'),
           availability: doctorData.availability || t('N/A'),
         });
       } else {
@@ -494,7 +536,7 @@ const AdminAppointments = () => {
         setDoctorDetails({
           name: appointment.doctorName,
           specialty: appointment.service,
-          service: appointment.service,
+          service: appointment.serviceName || t('N/A'),
           availability: t('N/A'),
         });
       }
@@ -504,7 +546,7 @@ const AdminAppointments = () => {
       setDoctorDetails({
         name: appointment.doctorName,
         specialty: appointment.service,
-        service: appointment.service,
+        service: appointment.serviceName || t('N/A'),
         availability: t('N/A'),
       });
     } finally {
@@ -564,7 +606,7 @@ const AdminAppointments = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  placeholder={t('Search by patient, doctor, or service...')}
+                  placeholder={t('Search by patient, doctor/treatment, or service...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-full h-10"
@@ -619,13 +661,13 @@ const AdminAppointments = () => {
                         sortDirection={getSortDirection('doctorName')}
                         onSort={() => handleSort('doctorName')}
                       >
-                        {t("Doctor's Name")}
+                        {t('Doctor / Treatment')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('service')}
                         onSort={() => handleSort('service')}
                       >
-                        Service
+                        {t('Specialty')}
                       </TableSortHeader>
                       <TableSortHeader
                         sortDirection={getSortDirection('clinic')}
@@ -750,7 +792,11 @@ const AdminAppointments = () => {
                     onClick={() => {
                       const dateInput = document.getElementById('filter-date-input') as HTMLInputElement;
                       if (dateInput) {
-                        dateInput.showPicker?.() || dateInput.click();
+                          if (typeof dateInput.showPicker === 'function') {
+                            dateInput.showPicker();
+                          } else {
+                            dateInput.click();
+                          }
                       }
                     }}
                   />
@@ -859,7 +905,7 @@ const AdminAppointments = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                    {t("Doctor's / Treatment Information")}
+                    {t('Doctor / Treatment Information')}
                   </h3>
                   {loadingDoctorDetails ? (
                     <div className="text-center py-4">
@@ -877,7 +923,7 @@ const AdminAppointments = () => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.service || selectedAppointment.service}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.service || t('N/A')}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
@@ -891,11 +937,11 @@ const AdminAppointments = () => {
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.doctorName}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('N/A')}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
                       </div>
                       <div>
@@ -975,42 +1021,46 @@ const AdminAppointments = () => {
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-3 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsCancelConfirmModalOpen(true);
-                }}
-                className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-              >
-                <Ban className="w-4 h-4 mr-2" />
-                {t('Cancel Appointment')}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (selectedAppointment) {
-                    // Set initial values to current appointment date/time
-                    setNewAppointmentDate(selectedAppointment.appointment_date);
-                    setNewAppointmentTime(selectedAppointment.appointment_time);
-                    setIsRescheduleModalOpen(true);
-                  }
-                }}
-                className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t('Reschedule')}
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsApproveConfirmModalOpen(true);
-                }}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                {t('Approve Appointment')}
-              </Button>
-            </div>
+            {selectedAppointment?.status !== 'cancelled' && (
+              <div className="flex items-center gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCancelConfirmModalOpen(true);
+                  }}
+                  className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  {t('Cancel Appointment')}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedAppointment) {
+                      // Set initial values to current appointment date/time
+                      setNewAppointmentDate(selectedAppointment.appointment_date);
+                      setNewAppointmentTime(selectedAppointment.appointment_time);
+                      setIsRescheduleModalOpen(true);
+                    }
+                  }}
+                  className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {t('Reschedule')}
+                </Button>
+                {selectedAppointment?.status === 'pending' && (
+                  <Button
+                    onClick={() => {
+                      setIsApproveConfirmModalOpen(true);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    {t('Approve Appointment')}
+                  </Button>
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
@@ -1139,7 +1189,11 @@ const AdminAppointments = () => {
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
                       onClick={() => {
                         const dateInput = document.getElementById('reschedule-date') as HTMLInputElement;
-                        dateInput?.showPicker?.() || dateInput?.click();
+                        if (dateInput && typeof dateInput.showPicker === 'function') {
+                          dateInput.showPicker();
+                        } else {
+                          dateInput?.click();
+                        }
                       }}
                     />
                     <Input
@@ -1161,7 +1215,11 @@ const AdminAppointments = () => {
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 cursor-pointer z-10" 
                       onClick={() => {
                         const timeInput = document.getElementById('reschedule-time') as HTMLInputElement;
-                        timeInput?.showPicker?.() || timeInput?.click();
+                        if (timeInput && typeof timeInput.showPicker === 'function') {
+                          timeInput.showPicker();
+                        } else {
+                          timeInput?.click();
+                        }
                       }}
                     />
                     <Input

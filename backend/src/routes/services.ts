@@ -68,7 +68,7 @@ router.get('/clinic-treatments', optionalAuth, async (req: AuthRequest, res) => 
 
     let query = supabaseAdmin
       .from('treatments')
-      .select('id, clinic_id, name, price, specialty, service, status')
+      .select('id, clinic_id, name, price, specialty, service, availability, status')
       .eq('clinic_id', clinicId)
       .eq('status', 'active')
       .order('created_at', { ascending: false });
@@ -142,6 +142,64 @@ router.get('/approved-clinic-services', optionalAuth, async (req: AuthRequest, r
     res.json({ services });
   } catch (error: any) {
     console.error('Get approved clinic services error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/services/bookable-treatments
+ * Get active clinic treatments for patient booking flows
+ */
+router.get('/bookable-treatments', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const supabaseAdmin = createSupabaseAdminClient();
+    const treatmentId = String(req.query.id || '').trim();
+    const clinicId = String(req.query.clinic_id || '').trim();
+    const specialty = String(req.query.specialty || '').trim();
+
+    let query = supabaseAdmin
+      .from('treatments')
+      .select(`
+        id,
+        clinic_id,
+        name,
+        price,
+        specialty,
+        service,
+        availability,
+        status,
+        clinics:clinic_id (
+          id,
+          name,
+          address,
+          logo_url,
+          status
+        )
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (treatmentId) {
+      query = query.eq('id', treatmentId);
+    }
+
+    if (clinicId) {
+      query = query.eq('clinic_id', clinicId);
+    }
+
+    if (specialty) {
+      query = query.ilike('specialty', `%${specialty}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const treatments = (data || []).filter((item: any) => item?.clinics?.status === 'active');
+
+    res.json({ treatments });
+  } catch (error: any) {
+    console.error('Get bookable treatments error:', error);
     res.status(400).json({ error: error.message });
   }
 });

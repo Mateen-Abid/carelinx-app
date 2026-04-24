@@ -8,7 +8,9 @@ export interface Appointment {
   id: string;
   doctorName: string;
   specialty?: string;
+  serviceName?: string;
   clinic: string;
+  clinicId?: string;
   clinicLogo?: string;
   clinicAddress?: string;
   date: string;
@@ -16,6 +18,9 @@ export interface Appointment {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled';
   bookedAt: Date;
   doctorId?: string;
+  bookingType?: 'doctor' | 'treatment';
+  treatmentId?: string;
+  treatmentName?: string;
 }
 
 interface BookingContextType {
@@ -136,14 +141,19 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
           id: booking.id,
           doctorName: booking.doctor_name,
           specialty: booking.specialty,
+          serviceName: booking.service_name || undefined,
           clinic: booking.clinic,
+          clinicId: booking.clinic_id || undefined,
           clinicLogo: clinicLogo,
           clinicAddress: clinicAddress || 'Location not specified',
           date: booking.appointment_date,
           time: booking.appointment_time,
           status: bookingStatus as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rescheduled',
           bookedAt: new Date(booking.created_at),
-          doctorId: booking.doctor_id || undefined
+          doctorId: booking.doctor_id || undefined,
+          bookingType: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
+          treatmentId: booking.treatment_id || undefined,
+          treatmentName: booking.treatment_name || undefined,
         };
       });
 
@@ -165,10 +175,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const bookingPayload = {
         doctor_name: appointmentData.doctorName,
         specialty: appointmentData.specialty || 'General',
+        service_name: appointmentData.serviceName || null,
         clinic: appointmentData.clinic,
+        clinic_id: appointmentData.clinicId || null,
         appointment_date: appointmentData.date,
         appointment_time: appointmentData.time,
-        doctor_id: appointmentData.doctorId || null
+        doctor_id: appointmentData.doctorId || null,
+        booking_type: appointmentData.bookingType || 'doctor',
+        treatment_id: appointmentData.treatmentId || null,
+        treatment_name: appointmentData.treatmentName || null,
       };
       
       console.log('📤 Sending booking request to backend:', {

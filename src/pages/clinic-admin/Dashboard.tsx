@@ -25,6 +25,8 @@ interface Appointment {
   patient_name: string;
   doctor_name: string;
   specialty: string;
+  booking_type?: 'doctor' | 'treatment';
+  treatment_name?: string | null;
   appointment_date: string;
   appointment_time: string;
   status: 'pending' | 'confirmed' | 'cancelled';
@@ -275,8 +277,13 @@ const ClinicAdminDashboard = () => {
         return bookings.map((booking: any) => ({
           id: booking.id,
           patient_name: booking.profile?.full_name || t('Unknown Patient'),
-          doctor_name: booking.doctor_name,
+          doctor_name:
+            booking.booking_type === 'treatment' && booking.treatment_name
+              ? booking.treatment_name
+              : booking.doctor_name,
           specialty: booking.specialty,
+          booking_type: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
+          treatment_name: booking.treatment_name || null,
           appointment_date: booking.appointment_date,
           appointment_time: booking.appointment_time,
           status: booking.status as 'pending' | 'confirmed' | 'cancelled',
@@ -434,8 +441,13 @@ const ClinicAdminDashboard = () => {
       setUpcomingAppointments(upcoming.map((booking: any) => ({
         id: booking.id,
         patient_name: booking.profile?.full_name || t('Unknown Patient'),
-        doctor_name: booking.doctor_name,
+        doctor_name:
+          booking.booking_type === 'treatment' && booking.treatment_name
+            ? booking.treatment_name
+            : booking.doctor_name,
         specialty: booking.specialty,
+        booking_type: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
+        treatment_name: booking.treatment_name || null,
         appointment_date: booking.appointment_date,
         appointment_time: booking.appointment_time,
         status: booking.status as 'pending' | 'confirmed' | 'cancelled',
@@ -558,6 +570,23 @@ const ClinicAdminDashboard = () => {
         doctorData = doctors.find((d: any) => d.id === bookingData.doctor_id);
       }
 
+      let treatmentData: any = null;
+      if (bookingData.booking_type === 'treatment' && bookingData.treatment_id) {
+        try {
+          const { treatments } = await api.services.getBookableTreatments({ id: bookingData.treatment_id });
+          treatmentData = treatments?.[0] || null;
+        } catch (error) {
+          console.error('Error fetching treatment details:', error);
+        }
+      }
+
+      const isTreatmentBooking = bookingData.booking_type === 'treatment';
+      const resolvedSpecialty =
+        treatmentData?.specialty || doctorData?.specialty || bookingData.specialty || appointment.specialty || t('General');
+      const resolvedService = isTreatmentBooking
+        ? bookingData.service_name || treatmentData?.service || t('N/A')
+        : bookingData.service_name || t('N/A');
+
       // Build appointment details
       const details: AppointmentDetails = {
         id: appointment.id,
@@ -568,10 +597,13 @@ const ClinicAdminDashboard = () => {
           email: profileData?.email || t('Not provided'),
         },
         doctor: {
-          name: doctorData?.name || bookingData.doctor_name || appointment.doctor_name || t('Unknown Doctor'),
-          specialty: doctorData?.specialty || bookingData.specialty || appointment.specialty || t('General'),
-          service: bookingData.specialty || appointment.specialty || t('General Consultation'),
-          availability: doctorData?.availability || '9:00 AM - 5:00 PM',
+          name:
+            isTreatmentBooking && bookingData.treatment_name
+              ? bookingData.treatment_name
+              : doctorData?.name || bookingData.doctor_name || appointment.doctor_name || t('Unknown Doctor'),
+          specialty: resolvedSpecialty,
+          service: resolvedService,
+          availability: treatmentData?.availability || doctorData?.availability || '9:00 AM - 5:00 PM',
         },
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
@@ -856,7 +888,7 @@ const ClinicAdminDashboard = () => {
                               {appointment.patient_name}
                             </td>
                             <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                              {appointment.doctor_name} / {appointment.specialty}
+                              {appointment.doctor_name}
                             </td>
                             <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
                               {formatDate(appointment.appointment_date)} {t('at')} {formatTime(appointment.appointment_time)}
@@ -1042,27 +1074,27 @@ const ClinicAdminDashboard = () => {
 
                 {/* Action Buttons - Only show for pending appointments */}
                 {selectedAppointmentDetails.status === 'pending' && (
-                  <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <Button
                       onClick={handleCancelAppointment}
                       variant="outline"
-                      className="border-red-600 text-red-600 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                      className="flex-1 border-red-600 text-red-600 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-6 py-2.5 rounded-lg font-medium"
                     >
-                      <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <X className="w-4 h-4 mr-2 text-red-600 dark:text-red-400" />
                       {t('Cancel Appointment')}
                     </Button>
                     <Button
                       onClick={handleRescheduleAppointment}
-                      className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                      className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"
                     >
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 mr-2" />
                       {t('Reschedule')}
                     </Button>
                     <Button
                       onClick={handleApproveAppointment}
-                      className="bg-[#00FFA2] hover:bg-[#00e692] text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     >
-                      <Check className="w-4 h-4 text-white" />
+                      <Check className="w-4 h-4 mr-2 text-white" />
                       {t('Approve Appointment')}
                     </Button>
                   </div>

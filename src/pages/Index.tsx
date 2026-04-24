@@ -34,12 +34,25 @@ interface ApprovedClinicService {
   specialtyName: string;
 }
 
+interface BookableTreatment {
+  id: string;
+  clinicId: string;
+  clinicName: string;
+  clinicAddress: string;
+  clinicLogo: string;
+  name: string;
+  price: string | null;
+  specialty: string;
+  service: string;
+}
+
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedService, setSelectedService] = useState<string>(''); // Track selected service name
   const [selectedServiceId, setSelectedServiceId] = useState<string>(''); // Track selected service ID for navigation
+  const [selectedBookingKind, setSelectedBookingKind] = useState<'service' | 'treatment'>('service');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<string>('');
   const selectedClinicRef = useRef<string>(''); // Ref to store clinic name synchronously
@@ -53,6 +66,7 @@ const Index = () => {
   const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
   const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
   const [approvedClinicServices, setApprovedClinicServices] = useState<ApprovedClinicService[]>([]);
+  const [bookableTreatments, setBookableTreatments] = useState<BookableTreatment[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -323,10 +337,12 @@ const Index = () => {
           { specialties: specialtiesData },
           { treatments: servicesData },
           { services: approvedClinicServicesData },
+          { treatments: bookableTreatmentsData },
         ] = await Promise.all([
           api.services.getSpecialties(),
           api.services.getTreatments(),
           api.services.getApprovedClinicServices(),
+          api.services.getBookableTreatments(),
         ]);
 
         console.log('✅ Fetched specialties:', specialtiesData?.length || 0);
@@ -358,6 +374,27 @@ const Index = () => {
 
         console.log('✅ Fetched approved clinic services:', transformedApprovedClinicServices.length);
         setApprovedClinicServices(transformedApprovedClinicServices);
+
+        const transformedBookableTreatments: BookableTreatment[] = (bookableTreatmentsData || [])
+          .map((treatment: any) => {
+            const clinicInfo = Array.isArray(treatment.clinics) ? treatment.clinics[0] : treatment.clinics;
+
+            return {
+              id: String(treatment.id || '').trim(),
+              clinicId: String(treatment.clinic_id || '').trim(),
+              clinicName: String(clinicInfo?.name || '').trim(),
+              clinicAddress: String(clinicInfo?.address || '').trim(),
+              clinicLogo: String(clinicInfo?.logo_url || ''),
+              name: String(treatment.name || '').trim(),
+              price: treatment.price ? String(treatment.price) : null,
+              specialty: String(treatment.specialty || '').trim(),
+              service: String(treatment.service || '').trim(),
+            };
+          })
+          .filter((treatment) => treatment.id && treatment.clinicId && treatment.clinicName && treatment.name && treatment.specialty);
+
+        console.log('✅ Fetched bookable treatments:', transformedBookableTreatments.length);
+        setBookableTreatments(transformedBookableTreatments);
       } catch (error) {
         console.error('Error fetching super admin data:', error);
       }
@@ -408,6 +445,32 @@ const Index = () => {
     return 'others';
   };
 
+  const normalizeServiceValue = (value: string) => value.trim().toLowerCase();
+
+  const activeServiceKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    superAdminServices.forEach((service) => {
+      const specialtyKey = normalizeServiceValue(service.specialty_name || '');
+      const serviceKey = normalizeServiceValue(service.name || '');
+
+      if (specialtyKey && serviceKey) {
+        keys.add(`${specialtyKey}::${serviceKey}`);
+      }
+    });
+
+    return keys;
+  }, [superAdminServices]);
+
+  const isServiceActiveForPatient = (specialty: string, serviceName: string) => {
+    const specialtyKey = normalizeServiceValue(specialty || '');
+    const serviceKey = normalizeServiceValue(serviceName || '');
+
+    if (!specialtyKey || !serviceKey) return false;
+
+    return activeServiceKeys.has(`${specialtyKey}::${serviceKey}`);
+  };
+
   // Generate service cards from database clinics and doctors, with fallback to hardcoded data
   const serviceCards = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -427,6 +490,10 @@ const Index = () => {
           
           // Create a service card for each service this doctor provides
           doctorServices.forEach(serviceName => {
+            if (!isServiceActiveForPatient(doctor.specialty, serviceName)) {
+              return;
+            }
+
             cards.push({
               clinicName: clinic.name,
               address: clinic.address,
@@ -472,7 +539,7 @@ const Index = () => {
     }, {} as Record<string, number>));
 
     return cards;
-  }, [databaseClinics, clinicDoctors]);
+  }, [databaseClinics, clinicDoctors, isServiceActiveForPatient]);
 
   // Generate clinic cards - merge database clinics with hardcoded data
   const clinicCards = useMemo(() => {
@@ -603,7 +670,7 @@ const Index = () => {
     const isMainCategorySelected =
       selectedCategory === 'dermatology' || selectedCategory === 'dentistry';
     const seenServiceNames = new Set<string>();
-    const options: Array<{ id: string; name: string; category: string; type: 'subcategory' }> = [];
+    const options: Array<{ id: string; name: string; category: string; type: 'subcategory'; bookingType: 'service' | 'treatment' }> = [];
 
     serviceCards
       .filter((card) => {
@@ -632,11 +699,16 @@ const Index = () => {
           name: card.serviceName,
           category: card.specialty,
           type: 'subcategory',
+          bookingType: 'service',
         });
       });
 
     approvedClinicServices
       .filter((service) => {
+        if (!isServiceActiveForPatient(service.specialtyName, service.serviceName)) {
+          return false;
+        }
+
         if (isMainCategorySelected) {
           return mapSpecialtyToCategory(service.specialtyName) === selectedCategory;
         }
@@ -655,6 +727,7 @@ const Index = () => {
           name: service.serviceName,
           category: service.specialtyName,
           type: 'subcategory',
+          bookingType: 'service',
         });
       });
 
@@ -678,11 +751,12 @@ const Index = () => {
           name: service.name,
           category: service.specialty_name,
           type: 'subcategory',
+          bookingType: 'service',
         });
       });
 
     return options.sort((left, right) => left.name.localeCompare(right.name));
-  }, [approvedClinicServices, selectedCategory, serviceCards, superAdminServices, superAdminSpecialties]);
+  }, [approvedClinicServices, isServiceActiveForPatient, selectedCategory, serviceCards, superAdminServices, superAdminSpecialties]);
 
   const handleCategoryChange = (categoryId: string) => {
     // Clear search query when switching categories to reset subcategory selection
@@ -690,6 +764,7 @@ const Index = () => {
     setSelectedCategory(categoryId);
     setSelectedService(''); // Clear selected service when category changes
     setSelectedServiceId(''); // Clear selected service ID when category changes
+    setSelectedBookingKind('service');
     setViewMode('services'); // Switch back to services view
   };
 
@@ -723,7 +798,7 @@ const Index = () => {
     // If a service is already selected, navigate to ServiceDetails page with the selected service
     if (selectedService && selectedService.trim() && selectedServiceId && selectedServiceId.trim()) {
       console.log('✅ Service is selected, navigating to ServiceDetails...');
-      
+
       // Prefer the exact selected service id if it already belongs to this clinic.
       const exactServiceCard = serviceCards.find(card =>
         card.serviceId === selectedServiceId &&
@@ -781,6 +856,7 @@ const Index = () => {
             isDatabaseService: serviceIdToUse.startsWith('doctor-') || serviceIdToUse.startsWith('clinic-service-'),
             selectedSpecialty: selectedSpecialtyForNavigation,
             selectedServiceName: selectedService,
+            bookingType: 'service',
           }
         });
         return;
@@ -826,7 +902,7 @@ const Index = () => {
       if (doctors.length > 0) {
         // Convert doctors to services format
         // Parse actual services from doctors' services column (comma-separated)
-        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
+        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string, bookingType?: 'service' | 'treatment'}> = [];
         
         doctors.forEach(doctor => {
           // Check if doctor has services in the database
@@ -836,12 +912,17 @@ const Index = () => {
             
             // Create a service entry for each service this doctor provides
             doctorServices.forEach(serviceName => {
+              if (!isServiceActiveForPatient(doctor.specialty, serviceName)) {
+                return;
+              }
+
               services.push({
                 id: `doctor-${doctor.id}-${serviceName.toLowerCase().replace(/\s+/g, '-')}`,
                 name: serviceName,
                 category: doctor.specialty, // Use specialty as category
                 doctorName: doctor.name,
-                doctorId: doctor.id
+                doctorId: doctor.id,
+                bookingType: 'service'
               });
             });
           } else {
@@ -851,12 +932,32 @@ const Index = () => {
               name: doctor.specialty,
               category: doctor.specialty,
               doctorName: doctor.name,
-              doctorId: doctor.id
+              doctorId: doctor.id,
+              bookingType: 'service'
             });
           }
         });
         
         console.log('✅ Created services from doctors:', services);
+
+        approvedClinicServices
+          .filter((service) => service.clinicId === dbClinic.id)
+          .forEach((service) => {
+            if (!isServiceActiveForPatient(service.specialtyName, service.serviceName)) {
+              return;
+            }
+
+            if (!services.find((entry) => entry.name === service.serviceName && entry.category === service.specialtyName)) {
+              services.push({
+                id: `clinic-service-${service.id}`,
+                name: service.serviceName,
+                category: service.specialtyName,
+                doctorName: '',
+                doctorId: '',
+                bookingType: 'service',
+              });
+            }
+          });
         
         // Also merge with hardcoded services if available for backward compatibility
         const hardcodedClinic = clinicsData.find(c => 
@@ -893,7 +994,7 @@ const Index = () => {
       );
       if (hardcodedClinic) {
         console.log('📝 Using hardcoded services as fallback');
-        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string}> = [];
+        const services: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string, bookingType?: 'service' | 'treatment'}> = [];
         Object.entries(hardcodedClinic.categories).forEach(([categoryName, serviceList]) => {
           serviceList.forEach(service => {
             services.push({
@@ -901,11 +1002,72 @@ const Index = () => {
               name: service.name,
               category: categoryName,
               doctorName: service.doctorName,
-              doctorId: ''
+              doctorId: '',
+              bookingType: 'service'
             });
           });
         });
+
+        approvedClinicServices
+          .filter((service) => service.clinicId === dbClinic.id)
+          .forEach((service) => {
+            if (!isServiceActiveForPatient(service.specialtyName, service.serviceName)) {
+              return;
+            }
+
+            if (!services.find((entry) => entry.name === service.serviceName && entry.category === service.specialtyName)) {
+              services.push({
+                id: `clinic-service-${service.id}`,
+                name: service.serviceName,
+                category: service.specialtyName,
+                doctorName: '',
+                doctorId: '',
+                bookingType: 'service',
+              });
+            }
+          });
+
+        bookableTreatments
+          .filter((treatment) => treatment.clinicId === dbClinic.id)
+          .forEach((treatment) => {
+            if (!services.find((entry) => entry.name === treatment.name && entry.bookingType === 'treatment')) {
+              services.push({
+                id: `treatment-${treatment.id}`,
+                name: treatment.name,
+                category: treatment.specialty,
+                doctorName: '',
+                doctorId: '',
+                bookingType: 'treatment',
+              });
+            }
+          });
+
         return services.filter((service) =>
+          matchesSelectedCategory(service.category, service.name)
+        );
+      }
+
+      const databaseOnlyServices: Array<{id: string, name: string, category: string, doctorName: string, doctorId: string, bookingType?: 'service' | 'treatment'}> = [];
+
+      approvedClinicServices
+        .filter((service) => service.clinicId === dbClinic.id)
+        .forEach((service) => {
+          if (!isServiceActiveForPatient(service.specialtyName, service.serviceName)) {
+            return;
+          }
+
+          databaseOnlyServices.push({
+            id: `clinic-service-${service.id}`,
+            name: service.serviceName,
+            category: service.specialtyName,
+            doctorName: '',
+            doctorId: '',
+            bookingType: 'service',
+          });
+        });
+
+      if (databaseOnlyServices.length > 0) {
+        return databaseOnlyServices.filter((service) =>
           matchesSelectedCategory(service.category, service.name)
         );
       }
@@ -940,7 +1102,7 @@ const Index = () => {
     return services.filter((service) =>
       matchesSelectedCategory(service.category, service.name)
     );
-  }, [selectedClinic, databaseClinics, clinicDoctors, matchesSelectedCategory]);
+  }, [approvedClinicServices, clinicDoctors, databaseClinics, isServiceActiveForPatient, matchesSelectedCategory, selectedClinic]);
 
   // Convert timeSchedule string to schedule object
   const parseTimeSchedule = (timeSchedule: string): Record<string, string> => {
@@ -1043,11 +1205,13 @@ const Index = () => {
       console.log('✅ Service selected:', option.name, 'ID:', option.id);
       setSelectedService(option.name); // Store the selected service name
       setSelectedServiceId(option.id); // Store the selected service ID for navigation
+      setSelectedBookingKind(option.bookingType === 'treatment' ? 'treatment' : 'service');
       setSearchQuery(option.name); // Set search query for display
       setViewMode('clinics'); // Switch to clinics view to show clinics offering this service
       console.log('✅ Switched to clinics view, service stored:', {
         name: option.name,
-        id: option.id
+        id: option.id,
+        bookingType: option.bookingType || 'service',
       });
     } else {
       // If it's a main category, set it as selected category
@@ -1056,6 +1220,7 @@ const Index = () => {
       setSearchQuery(''); // Clear search when selecting main category
       setSelectedService(''); // Clear selected service
       setSelectedServiceId(''); // Clear selected service ID
+      setSelectedBookingKind('service');
       setViewMode('services'); // Stay in services view
     }
   };
@@ -1236,6 +1401,7 @@ const Index = () => {
 
     clinicCards.forEach((clinic) => {
       const clinicKey = clinic.id || clinic.name;
+
       const doctors = clinic.id ? (clinicDoctors[clinic.id] || []) : [];
       const matchingPrices = doctors
         .filter((doctor) => {

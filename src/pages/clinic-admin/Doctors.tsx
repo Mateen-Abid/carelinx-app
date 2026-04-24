@@ -52,6 +52,7 @@ interface Treatment {
   specialty: string;
   service: string;
   price: string;
+  availability?: string | null;
   status: 'active' | 'inactive';
 }
 
@@ -97,6 +98,8 @@ const ClinicAdminDoctors = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+  const [showDeleteTreatmentConfirmModal, setShowDeleteTreatmentConfirmModal] = useState(false);
+  const [treatmentToDelete, setTreatmentToDelete] = useState<Treatment | null>(null);
   const [showAddTreatmentModal, setShowAddTreatmentModal] = useState(false);
   const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
   const [tempSelectedSpecialty, setTempSelectedSpecialty] = useState<string>('all');
@@ -151,8 +154,15 @@ const ClinicAdminDoctors = () => {
     services: [] as string[],
     status: 'active' as 'active' | 'inactive',
     price: '',
+    availability: '',
   });
   const [newTreatmentServiceValue, setNewTreatmentServiceValue] = useState<string | undefined>(undefined);
+  const [newTreatmentAvailabilityDraft, setNewTreatmentAvailabilityDraft] = useState({
+    day_of_week: '',
+    start_time: '',
+    end_time: '',
+  });
+  const [newTreatmentAvailabilityEntries, setNewTreatmentAvailabilityEntries] = useState<AvailabilityEntry[]>([]);
 
   const dayLabels: Record<number, string> = {
     0: 'Sunday',
@@ -178,16 +188,6 @@ const ClinicAdminDoctors = () => {
       ...(doctors.map((doctor) => doctor.specialty?.trim()).filter(Boolean) as string[]),
     ])
   ).sort();
-
-  const clinicTreatmentServices = !newTreatment.specialty
-    ? []
-    : Array.from(
-        new Set(
-          doctors
-            .filter((doctor) => normalizeValue(doctor.specialty || '') === normalizeValue(newTreatment.specialty))
-            .flatMap((doctor) => parseCommaSeparatedValues(doctor.services))
-        )
-      ).sort();
 
   const formatDbTimeTo12h = (time?: string | null) => {
     if (!time) return '';
@@ -768,6 +768,55 @@ const ClinicAdminDoctors = () => {
     }
   };
 
+  const handleToggleTreatmentStatus = async (treatment: Treatment) => {
+    if (!clinic?.id) return;
+
+    const previousTreatments = treatments;
+    const newStatus = treatment.status === 'active' ? 'inactive' : 'active';
+
+    try {
+      setTreatments((prevTreatments) =>
+        prevTreatments.map((item) =>
+          item.id === treatment.id ? { ...item, status: newStatus } : item
+        )
+      );
+
+      await api.clinicAdmin.updateTreatment(treatment.id, { status: newStatus });
+      toast.success(
+        t('Treatment {{status}} successfully', {
+          status: newStatus === 'active' ? t('activated') : t('deactivated'),
+        })
+      );
+
+      await fetchTreatments(clinic.id);
+    } catch (error: any) {
+      console.error('❌ Error updating treatment status:', error);
+      toast.error(error?.message || t('Failed to update treatment status'));
+      setTreatments(previousTreatments);
+      await fetchTreatments(clinic.id);
+    }
+  };
+
+  const handleOpenDeleteTreatmentConfirm = (treatment: Treatment) => {
+    setTreatmentToDelete(treatment);
+    setShowDeleteTreatmentConfirmModal(true);
+  };
+
+  const handleConfirmDeleteTreatment = async () => {
+    if (!clinic?.id || !treatmentToDelete) return;
+
+    try {
+      await api.clinicAdmin.deleteTreatment(treatmentToDelete.id);
+      toast.success(t('Treatment deleted successfully'));
+      setShowDeleteTreatmentConfirmModal(false);
+      setTreatmentToDelete(null);
+      await fetchTreatments(clinic.id);
+    } catch (error: any) {
+      console.error('❌ Error deleting treatment:', error);
+      toast.error(error?.message || t('Failed to delete treatment'));
+    }
+  };
+
   const handleAddTreatment = async () => {
     if (!clinic?.id) {
       toast.error(t('Clinic not found'));
@@ -792,6 +841,7 @@ const ClinicAdminDoctors = () => {
       }
 
       // Save to database via backend
+      const availabilityString = buildAvailabilityString(newTreatmentAvailabilityEntries);
       await api.clinicAdmin.createTreatment({
         clinic_id: clinic.id,
         name: newTreatment.name.trim(),
@@ -799,6 +849,7 @@ const ClinicAdminDoctors = () => {
         specialty: newTreatment.specialty,
         service: newTreatment.services.join(', '),
         status: newTreatment.status,
+        availability: availabilityString || null,
       });
 
       toast.success(t('Treatment added successfully'));
@@ -809,8 +860,11 @@ const ClinicAdminDoctors = () => {
         services: [],
         status: 'active',
         price: '',
+        availability: '',
       });
       setNewTreatmentServiceValue(undefined);
+      setNewTreatmentAvailabilityEntries([]);
+      setNewTreatmentAvailabilityDraft({ day_of_week: '', start_time: '', end_time: '' });
       fetchTreatments(clinic.id);
     } catch (error) {
       console.error('❌ Error adding treatment:', error);
@@ -1387,45 +1441,11 @@ const ClinicAdminDoctors = () => {
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  // TODO: Edit treatment (can be implemented later)
-                                  console.log('Edit treatment:', treatment.id);
-                                  toast.info(t('Edit treatment functionality coming soon'));
-                                }}>
-                                  {t('Edit')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={async () => {
-                                  if (!clinic?.id) return;
-                                  try {
-                                    const newStatus = treatment.status === 'active' ? 'inactive' : 'active';
-                                    await api.clinicAdmin.updateTreatment(treatment.id, { status: newStatus });
-                                    fetchTreatments(clinic.id);
-                                    toast.success(
-                                      t('Treatment {{status}} successfully', {
-                                        status: newStatus === 'active' ? t('activated') : t('deactivated'),
-                                      })
-                                    );
-                                  } catch (error: any) {
-                                    console.error('❌ Error updating treatment status:', error);
-                                    toast.error(error?.message || t('Failed to update treatment status'));
-                                  }
-                                }}>
+                                <DropdownMenuItem onClick={() => handleToggleTreatmentStatus(treatment)}>
                                   {treatment.status === 'active' ? t('Deactivate') : t('Activate')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={async () => {
-                                    if (!clinic?.id) return;
-                                    if (confirm(t('Are you sure you want to delete this treatment?'))) {
-                                      try {
-                                        await api.clinicAdmin.deleteTreatment(treatment.id);
-                                        fetchTreatments(clinic.id);
-                                        toast.success(t('Treatment deleted successfully'));
-                                      } catch (error: any) {
-                                        console.error('❌ Error deleting treatment:', error);
-                                        toast.error(error?.message || t('Failed to delete treatment'));
-                                      }
-                                    }
-                                  }}
+                                  onClick={() => handleOpenDeleteTreatmentConfirm(treatment)}
                                   className="text-red-600 dark:text-red-400"
                                 >
                                   {t('Delete')}
@@ -2131,6 +2151,37 @@ const ClinicAdminDoctors = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showDeleteTreatmentConfirmModal} onOpenChange={setShowDeleteTreatmentConfirmModal}>
+        <DialogContent className="max-w-md mx-auto bg-white rounded-lg p-0 overflow-hidden shadow-xl border-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200">
+            <DialogTitle className="text-lg font-semibold text-gray-900">{t('Delete Treatment')}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('Are you sure you want to delete {{name}}? This action cannot be undone.', { name: treatmentToDelete?.name || '' })}
+            </p>
+          </div>
+          <DialogFooter className="px-6 pb-6 flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteTreatmentConfirmModal(false);
+                setTreatmentToDelete(null);
+              }}
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              onClick={handleConfirmDeleteTreatment}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {t('Delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Treatment Modal */}
       <Dialog open={showAddTreatmentModal} onOpenChange={setShowAddTreatmentModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -2210,21 +2261,21 @@ const ClinicAdminDoctors = () => {
                   }));
                   setNewTreatmentServiceValue(undefined);
                 }}
-                disabled={!newTreatment.specialty || clinicTreatmentServices.length === 0}
+                disabled={!newTreatment.specialty || availableServices.length === 0}
               >
                 <SelectTrigger className="h-10">
                   <SelectValue
                     placeholder={
                       !newTreatment.specialty
                         ? t('Select a specialty first')
-                        : clinicTreatmentServices.length > 0
+                        : availableServices.length > 0
                           ? t('Select services')
                           : t('No services available for selected specialty')
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {clinicTreatmentServices
+                  {availableServices
                     .filter((service) => !newTreatment.services.includes(service))
                     .map((service) => (
                     <SelectItem
@@ -2301,6 +2352,123 @@ const ClinicAdminDoctors = () => {
                 className="h-10"
               />
             </div>
+
+            {/* Availability */}
+            <div>
+              <Label htmlFor="treatment-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                {t('Availability')}
+              </Label>
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <Select
+                    value={newTreatmentAvailabilityDraft.day_of_week}
+                    onValueChange={(value) =>
+                      setNewTreatmentAvailabilityDraft({ day_of_week: value, start_time: '', end_time: '' })
+                    }
+                    disabled={openClinicDays.length === 0}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue
+                        placeholder={
+                          openClinicDays.length === 0 ? t('No clinic hours') : t('Day')
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {openClinicDays.map((day) => (
+                        <SelectItem key={day.day_of_week} value={String(day.day_of_week)}>
+                          {t(dayLabels[day.day_of_week])}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={newTreatmentAvailabilityDraft.start_time}
+                    onValueChange={(value) =>
+                      setNewTreatmentAvailabilityDraft((prev) => ({ ...prev, start_time: value, end_time: '' }))
+                    }
+                    disabled={!newTreatmentAvailabilityDraft.day_of_week}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={t('Start time')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newTreatmentAvailabilityDraft.day_of_week &&
+                        getTimeSlotsForDay(Number(newTreatmentAvailabilityDraft.day_of_week)).map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={newTreatmentAvailabilityDraft.end_time}
+                    onValueChange={(value) =>
+                      setNewTreatmentAvailabilityDraft((prev) => ({ ...prev, end_time: value }))
+                    }
+                    disabled={!newTreatmentAvailabilityDraft.day_of_week || !newTreatmentAvailabilityDraft.start_time}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={t('End time')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newTreatmentAvailabilityDraft.day_of_week &&
+                        newTreatmentAvailabilityDraft.start_time &&
+                        getEndTimeSlots(Number(newTreatmentAvailabilityDraft.day_of_week), newTreatmentAvailabilityDraft.start_time).map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10"
+                    onClick={() =>
+                      addAvailabilityEntry(
+                        newTreatmentAvailabilityDraft,
+                        newTreatmentAvailabilityEntries,
+                        setNewTreatmentAvailabilityEntries,
+                        setNewTreatmentAvailabilityDraft
+                      )
+                    }
+                    disabled={openClinicDays.length === 0}
+                  >
+                    {t('Add')}
+                  </Button>
+                </div>
+
+                {newTreatmentAvailabilityEntries.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {[...newTreatmentAvailabilityEntries]
+                      .sort((a, b) => a.day_of_week - b.day_of_week)
+                      .map((entry) => (
+                        <span
+                          key={`${entry.day_of_week}-${entry.start_time}-${entry.end_time}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
+                        >
+                          {`${t(dayLabels[entry.day_of_week])}: ${entry.start_time} - ${entry.end_time}`}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewTreatmentAvailabilityEntries((prev) =>
+                                prev.filter((item) => item.day_of_week !== entry.day_of_week)
+                              )
+                            }
+                            className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors ml-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -2314,8 +2482,11 @@ const ClinicAdminDoctors = () => {
                   services: [],
                   status: 'active',
                   price: '',
+                  availability: '',
                 });
                 setNewTreatmentServiceValue(undefined);
+                setNewTreatmentAvailabilityEntries([]);
+                setNewTreatmentAvailabilityDraft({ day_of_week: '', start_time: '', end_time: '' });
               }}
               className="flex-1 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >

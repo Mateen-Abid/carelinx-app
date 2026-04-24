@@ -167,6 +167,11 @@ const MyBookings = () => {
       // Cancel the current appointment first
       await cancelAppointment(appointment.id);
       
+      if (appointment.bookingType === 'treatment' && appointment.treatmentId) {
+        navigate(`/service/treatment-${appointment.treatmentId}`);
+        return;
+      }
+
       // Determine service ID - if appointment has doctorId, use database service format
       let serviceId: string;
       if (appointment.doctorId) {
@@ -209,6 +214,13 @@ const MyBookings = () => {
       console.log('🗑️ Cancelling current appointment...');
       await cancelAppointment(appointmentToReschedule.id);
       console.log('✅ Appointment cancelled successfully');
+
+      if (appointmentToReschedule.bookingType === 'treatment' && appointmentToReschedule.treatmentId) {
+        setIsRescheduleConfirmModalOpen(false);
+        setAppointmentToReschedule(null);
+        navigate(`/service/treatment-${appointmentToReschedule.treatmentId}`);
+        return;
+      }
       
       // Determine service ID - if appointment has doctorId, use database service format
       let serviceId: string;
@@ -289,7 +301,7 @@ const MyBookings = () => {
       case 'pending':
         return pendingAppointments;
       case 'history':
-        return pastBookings.filter(appointment => appointment.status !== 'cancelled');
+        return pastBookings;
       default:
         return [];
     }
@@ -417,8 +429,14 @@ const MyBookings = () => {
                         )}
                         
                         {selectedFilter === 'history' && (
-                          <div className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
-                            {t('Completed')}
+                          <div
+                            className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                              appointment.status === 'cancelled'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {appointment.status === 'cancelled' ? t('Cancelled') : t('Completed')}
                           </div>
                         )}
                       </div>
@@ -431,7 +449,12 @@ const MyBookings = () => {
                         </span>
                       </div>
                       
-                      <p className="text-sm text-gray-500 mb-3">{appointment.specialty}</p>
+                      <p className="text-sm text-gray-500 mb-1">
+                        {appointment.treatmentName || appointment.specialty}
+                      </p>
+                      {appointment.treatmentName && appointment.specialty && (
+                        <p className="text-xs text-gray-400 mb-3">{appointment.specialty}</p>
+                      )}
                       
                       {/* Time and Date - optimized for mobile */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">

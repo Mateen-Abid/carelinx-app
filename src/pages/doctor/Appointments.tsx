@@ -17,6 +17,10 @@ interface Appointment {
   patientName: string;
   doctorName: string;
   service: string;
+  serviceName?: string | null;
+  bookingType?: 'doctor' | 'treatment';
+  treatmentName?: string | null;
+  treatmentId?: string | null;
   appointment_date: string;
   appointment_time: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -133,12 +137,21 @@ const DoctorAppointments = () => {
           mappedStatus = 'pending';
         }
         
+        const appointmentLabel =
+          booking.booking_type === 'treatment' && booking.treatment_name
+            ? booking.treatment_name
+            : booking.doctor_name || t('Unknown Doctor');
+
         return {
           id: booking.id,
           user_id: booking.user_id,
           patientName: profile?.full_name || t('Unknown Patient'),
-          doctorName: booking.doctor_name || t('Unknown Doctor'),
+          doctorName: appointmentLabel,
           service: booking.specialty || t('General Consultation'),
+          serviceName: booking.service_name || null,
+          bookingType: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
+          treatmentName: booking.treatment_name || null,
+          treatmentId: booking.treatment_id || null,
           appointment_date: booking.appointment_date,
           appointment_time: booking.appointment_time,
           status: mappedStatus,
@@ -258,13 +271,30 @@ const DoctorAppointments = () => {
       if ((bookingData as any).doctor_id) {
         const { data: docData } = await (supabase as any)
           .from('doctors')
-          .select('name, specialty, availability')
+          .select('name, specialty, availability, services')
           .eq('id', (bookingData as any).doctor_id)
           .maybeSingle();
         doctorData = docData;
       }
 
+      let treatmentData: any = null;
+      if ((bookingData as any).booking_type === 'treatment' && (bookingData as any).treatment_id) {
+        try {
+          const { treatments } = await api.services.getBookableTreatments({ id: (bookingData as any).treatment_id });
+          treatmentData = treatments?.[0] || null;
+        } catch (error) {
+          console.error('Error fetching treatment details:', error);
+        }
+      }
+
       // Build appointment details
+      const isTreatmentBooking = (bookingData as any).booking_type === 'treatment';
+      const resolvedSpecialty =
+        treatmentData?.specialty || doctorData?.specialty || (bookingData as any).specialty || appointment.service || t('General');
+      const resolvedService = isTreatmentBooking
+        ? (bookingData as any).service_name || treatmentData?.service || t('N/A')
+        : (bookingData as any).service_name || t('N/A');
+
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
@@ -274,10 +304,13 @@ const DoctorAppointments = () => {
           email: (profileData as any)?.email || t('Not provided'),
         },
         doctor: {
-          name: doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || t('Unknown Doctor'),
-          specialty: doctorData?.specialty || (bookingData as any).specialty || appointment.service || t('General'),
-          service: (bookingData as any).specialty || appointment.service || t('General Consultation'),
-          availability: doctorData?.availability || t('9:00 AM - 5:00 PM'),
+          name:
+            isTreatmentBooking && (bookingData as any).treatment_name
+              ? (bookingData as any).treatment_name
+              : doctorData?.name || (bookingData as any).doctor_name || appointment.doctorName || t('Unknown Doctor'),
+          specialty: resolvedSpecialty,
+          service: resolvedService,
+          availability: treatmentData?.availability || doctorData?.availability || t('9:00 AM - 5:00 PM'),
         },
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
@@ -567,7 +600,7 @@ const DoctorAppointments = () => {
                   <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4`} />
                   <Input
                     type="text"
-                    placeholder={t('Search by patient, doctor, or service...')}
+                    placeholder={t('Search by patient, doctor/treatment, or service...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className={`${isRtl ? 'pr-10 pl-3 text-right' : 'pl-10'} bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg`}
@@ -600,10 +633,10 @@ const DoctorAppointments = () => {
                           {t('Patient Name')}
                         </th>
                         <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
-                          {t("Doctor's Name")}
+                          {t('Doctor / Treatment')}
                         </th>
                         <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
-                          {t('Service')}
+                          {t('Specialty')}
                         </th>
                         <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
@@ -715,7 +748,7 @@ const DoctorAppointments = () => {
                 {/* DOCTOR'S / TREATMENT INFORMATION */}
                 <div className="mb-8">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                    {t("Doctor's / Treatment Information")}
+                    {t('Doctor / Treatment Information')}
                   </h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div>
@@ -738,30 +771,34 @@ const DoctorAppointments = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-                  <Button
-                    onClick={handleCancelAppointment}
-                    variant="outline"
-                    className="border-red-600 text-red-600 bg-white hover:bg-red-50 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
-                  >
-                    <X className="w-4 h-4 text-red-600" />
-                    {t('Cancel Appointment')}
-                  </Button>
-                  <Button
-                    onClick={handleRescheduleAppointment}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
-                  >
-                    <Clock className="w-4 h-4" />
-                    {t('Reschedule')}
-                  </Button>
-                  <Button
-                    onClick={handleApproveAppointment}
-                    className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium shadow-sm"
-                  >
-                    <Check className="w-4 h-4 text-white" />
-                    {t('Approve Appointment')}
-                  </Button>
-                </div>
+                {selectedAppointmentDetails.status !== 'cancelled' && (
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <Button
+                      onClick={handleCancelAppointment}
+                      variant="outline"
+                      className="border-red-600 text-red-600 bg-white hover:bg-red-50 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                      {t('Cancel Appointment')}
+                    </Button>
+                    <Button
+                      onClick={handleRescheduleAppointment}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium"
+                    >
+                      <Clock className="w-4 h-4" />
+                      {t('Reschedule')}
+                    </Button>
+                    {selectedAppointmentDetails.status === 'pending' && (
+                      <Button
+                        onClick={handleApproveAppointment}
+                        className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-white px-6 py-2.5 flex items-center gap-2 rounded-lg font-medium shadow-sm"
+                      >
+                        <Check className="w-4 h-4 text-white" />
+                        {t('Approve Appointment')}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             ) : null}
           </DialogContent>

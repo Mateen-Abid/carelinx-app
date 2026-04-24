@@ -565,12 +565,13 @@ router.get('/treatments', authenticate, async (req: AuthRequest, res) => {
 router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const { name, description, price, specialty, service, status, clinic_id } = req.body;
+    const { name, description, price, specialty, service, status, clinic_id, availability } = req.body;
 
     const trimmedName = typeof name === 'string' ? name.trim() : '';
     const trimmedSpecialty = typeof specialty === 'string' ? specialty.trim() : '';
     const trimmedService = typeof service === 'string' ? service.trim() : '';
     const trimmedPrice = typeof price === 'string' ? price.trim() : price;
+    const trimmedAvailability = typeof availability === 'string' ? availability.trim() : '';
 
     if (!trimmedName) {
       return res.status(400).json({ error: 'Treatment name is required' });
@@ -606,6 +607,7 @@ router.post('/treatments', authenticate, async (req: AuthRequest, res) => {
         price: trimmedPrice || null,
         specialty: trimmedSpecialty,
         service: trimmedService,
+        availability: trimmedAvailability || null,
         status: status || 'active',
         clinic_id,
       })

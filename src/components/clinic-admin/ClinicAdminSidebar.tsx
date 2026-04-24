@@ -21,9 +21,9 @@ const ClinicAdminSidebar: React.FC<ClinicAdminSidebarProps> = ({ isDarkMode = fa
   const navItems = [
     { path: '/clinic-admin/dashboard', label: t('Dashboard'), icon: Home },
     { path: '/clinic-admin/appointments', label: t('Appointments'), icon: Calendar },
-    { path: '/clinic-admin/services', label: t('Services'), icon: ClipboardList },
-    { path: '/clinic-admin/doctors', label: t('Doctors & Treatment'), icon: Stethoscope },
     { path: '/clinic-admin/patients', label: t('Patients'), icon: Users },
+    { path: '/clinic-admin/doctors', label: t('Doctors & Treatment'), icon: Stethoscope },
+    { path: '/clinic-admin/services', label: t('Specialties & Services'), icon: ClipboardList },
     { path: '/clinic-admin/clinic-profile', label: t('Clinic Profile'), icon: Building },
     { path: '/clinic-admin/insights', label: t('Insights'), icon: BarChart3 },
   ];
