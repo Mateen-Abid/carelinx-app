@@ -212,6 +212,7 @@
   "Failed to approve appointment. Please try again.": "Failed to approve appointment. Please try again.",
   "Failed to reschedule appointment. Please try again.": "Failed to reschedule appointment. Please try again.",
   "Failed to cancel appointment. Please try again.": "Failed to cancel appointment. Please try again.",
+  "Closing time must be after opening time": "Closing time must be after opening time",
   "Booking": "Booking"
   ,
   "Specialties": "Specialties",

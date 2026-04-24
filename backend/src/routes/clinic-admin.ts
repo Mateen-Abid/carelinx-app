@@ -5,6 +5,15 @@ import { sendEmail } from '../utils/email';
 
 const router = Router();
 
+const dbTimeToMinutes = (dbTime: string | null): number | null => {
+  if (!dbTime) return null;
+
+  const [hours, minutes] = dbTime.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+  return hours * 60 + minutes;
+};
+
 /**
  * POST /api/clinic-admin/clinic
  * Create a new clinic (for onboarding)
@@ -95,6 +104,21 @@ router.post('/clinic/operating-hours', authenticate, async (req: AuthRequest, re
 
     if (!Array.isArray(hours)) {
       return res.status(400).json({ error: 'Hours must be an array' });
+    }
+
+    for (const hour of hours) {
+      if (hour?.is_closed) continue;
+
+      const openingMinutes = dbTimeToMinutes(hour?.opening_time || null);
+      const closingMinutes = dbTimeToMinutes(hour?.closing_time || null);
+
+      if (openingMinutes === null || closingMinutes === null) {
+        return res.status(400).json({ error: 'Opening and closing times are required for open days' });
+      }
+
+      if (closingMinutes <= openingMinutes) {
+        return res.status(400).json({ error: 'Closing time must be after opening time' });
+      }
     }
 
     // Get clinic ID

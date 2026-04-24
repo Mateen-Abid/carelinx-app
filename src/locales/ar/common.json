@@ -212,6 +212,7 @@
   "Failed to approve appointment. Please try again.": "فشل اعتماد الموعد. يرجى المحاولة مرة أخرى.",
   "Failed to reschedule appointment. Please try again.": "فشلت إعادة جدولة الموعد. يرجى المحاولة مرة أخرى.",
   "Failed to cancel appointment. Please try again.": "فشل إلغاء الموعد. يرجى المحاولة مرة أخرى.",
+  "Closing time must be after opening time": "يجب أن يكون وقت الإغلاق بعد وقت الفتح",
   "Booking": "الحجز"
   ,
   "Specialties": "التخصصات",

@@ -229,6 +229,46 @@ const ClinicAdminClinicProfile = () => {
     }
   };
 
+  const displayTimeToMinutes = (displayTime: string): number | null => {
+    if (!displayTime) return null;
+
+    const [time, period] = displayTime.split(' ');
+    if (!time || !period) return null;
+
+    const [hours, minutes] = time.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+    let hour24 = hours % 12;
+    if (period === 'PM') {
+      hour24 += 12;
+    }
+
+    return hour24 * 60 + minutes;
+  };
+
+  const isClosingTimeAfterOpening = (opening: string, closing: string): boolean => {
+    const openingMinutes = displayTimeToMinutes(opening);
+    const closingMinutes = displayTimeToMinutes(closing);
+
+    if (openingMinutes === null || closingMinutes === null) {
+      return false;
+    }
+
+    return closingMinutes > openingMinutes;
+  };
+
+  const getClosingTimeOptions = (opening: string): string[] => {
+    if (!opening) return timeSlots;
+
+    const openingMinutes = displayTimeToMinutes(opening);
+    if (openingMinutes === null) return timeSlots;
+
+    return timeSlots.filter((time) => {
+      const timeMinutes = displayTimeToMinutes(time);
+      return timeMinutes !== null && timeMinutes > openingMinutes;
+    });
+  };
+
   const getDayHours = (dayValue: number): { opening: string; closing: string } => {
     const dayHours = operatingHours.find(h => h.day_of_week === dayValue);
     
@@ -364,10 +404,14 @@ const ClinicAdminClinicProfile = () => {
     daysOfWeek.forEach(day => {
       const dayHours = operatingHours.find(h => h.day_of_week === day.value);
       if (dayHours) {
+        const opening = dayHours.is_closed ? '' : convertToDisplayTime(dayHours.opening_time);
+        const closing = dayHours.is_closed ? '' : convertToDisplayTime(dayHours.closing_time);
+        const hasValidRange = !opening || !closing || isClosingTimeAfterOpening(opening, closing);
+
         // Use the actual is_closed value from database
         hoursForm[day.value] = {
-          opening: dayHours.is_closed ? '' : convertToDisplayTime(dayHours.opening_time),
-          closing: dayHours.is_closed ? '' : convertToDisplayTime(dayHours.closing_time),
+          opening,
+          closing: hasValidRange ? closing : '',
           isClosed: dayHours.is_closed,
         };
       } else {
@@ -389,6 +433,17 @@ const ClinicAdminClinicProfile = () => {
 
     setSavingHours(true);
     try {
+      for (const day of daysOfWeek) {
+        const dayHours = editHoursForm[day.value] || { opening: '', closing: '', isClosed: true };
+        const isClosed = dayHours.isClosed || !dayHours.opening || !dayHours.closing;
+
+        if (!isClosed && !isClosingTimeAfterOpening(dayHours.opening, dayHours.closing)) {
+          toast.error(t('Closing time must be after opening time'));
+          setSavingHours(false);
+          return;
+        }
+      }
+
       // Prepare operating hours data
       const hoursToInsert = daysOfWeek.map(day => {
         const dayHours = editHoursForm[day.value] || { opening: '', closing: '', isClosed: true };
@@ -854,15 +909,22 @@ const ClinicAdminClinicProfile = () => {
                               value={dayHours.opening || ''}
                               disabled={dayHours.isClosed}
                               onValueChange={(value) => {
-                                setEditHoursForm(prev => ({
-                                  ...prev,
-                                  [day.value]: { 
-                                    ...prev[day.value], 
-                                    opening: value, 
-                                    closing: prev[day.value]?.closing || '', 
-                                    isClosed: false 
-                                  },
-                                }));
+                                setEditHoursForm(prev => {
+                                  const currentClosing = prev[day.value]?.closing || '';
+                                  const nextClosing = isClosingTimeAfterOpening(value, currentClosing)
+                                    ? currentClosing
+                                    : '';
+
+                                  return {
+                                    ...prev,
+                                    [day.value]: { 
+                                      ...prev[day.value], 
+                                      opening: value, 
+                                      closing: nextClosing,
+                                      isClosed: false 
+                                    },
+                                  };
+                                });
                               }}
                             >
                               <SelectTrigger className="h-10 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed">
@@ -897,7 +959,7 @@ const ClinicAdminClinicProfile = () => {
                                 <SelectValue placeholder={t('Select time')} />
                               </SelectTrigger>
                               <SelectContent>
-                                {timeSlots.map((time) => (
+                                {getClosingTimeOptions(dayHours.opening).map((time) => (
                                   <SelectItem key={time} value={time}>
                                     {time}
                                   </SelectItem>
