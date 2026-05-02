@@ -157,6 +157,45 @@ export const bookingsApi = {
     return fetchWithAuth('/bookings');
   },
 
+  getOccupiedSlots: async (params: {
+    date: string;
+    doctorIds?: string[];
+    doctorNames?: string[];
+    treatmentIds?: string[];
+    treatmentNames?: string[];
+    clinicId?: string;
+    clinic?: string;
+  }) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('date', params.date);
+
+    if (params.doctorIds?.length) {
+      searchParams.set('doctor_ids', params.doctorIds.join(','));
+    }
+
+    if (params.doctorNames?.length) {
+      searchParams.set('doctor_names', params.doctorNames.join(','));
+    }
+
+    if (params.treatmentIds?.length) {
+      searchParams.set('treatment_ids', params.treatmentIds.join(','));
+    }
+
+    if (params.treatmentNames?.length) {
+      searchParams.set('treatment_names', params.treatmentNames.join(','));
+    }
+
+    if (params.clinicId) {
+      searchParams.set('clinic_id', params.clinicId);
+    }
+
+    if (params.clinic) {
+      searchParams.set('clinic', params.clinic);
+    }
+
+    return fetchWithAuth(`/bookings/occupied-slots?${searchParams.toString()}`);
+  },
+
   getAllBookings: async () => {
     return fetchWithAuth('/bookings/all'); // Super Admin - get ALL bookings
   },

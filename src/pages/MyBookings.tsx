@@ -162,13 +162,15 @@ const MyBookings = () => {
       return;
     }
 
-    // For regular appointments, cancel and navigate to service page
     try {
-      // Cancel the current appointment first
-      await cancelAppointment(appointment.id);
-      
       if (appointment.bookingType === 'treatment' && appointment.treatmentId) {
-        navigate(`/service/treatment-${appointment.treatmentId}`);
+        navigate(`/service/treatment-${appointment.treatmentId}`, {
+          state: {
+            rescheduleOriginalBookingId: appointment.id,
+            bookingType: appointment.bookingType,
+            clinicId: appointment.clinicId,
+          },
+        });
         return;
       }
 
@@ -188,7 +190,13 @@ const MyBookings = () => {
       }
       
       // Navigate to the service page for rebooking
-      navigate(`/service/${serviceId}`);
+      navigate(`/service/${serviceId}`, {
+        state: {
+          rescheduleOriginalBookingId: appointment.id,
+          bookingType: appointment.bookingType,
+          clinicId: appointment.clinicId,
+        },
+      });
     } catch (error) {
       console.error('Error rescheduling appointment:', error);
       toast.error(t('Failed to reschedule appointment. Please try again.'));
@@ -210,15 +218,16 @@ const MyBookings = () => {
     });
 
     try {
-      // Cancel the current appointment first
-      console.log('🗑️ Cancelling current appointment...');
-      await cancelAppointment(appointmentToReschedule.id);
-      console.log('✅ Appointment cancelled successfully');
-
       if (appointmentToReschedule.bookingType === 'treatment' && appointmentToReschedule.treatmentId) {
         setIsRescheduleConfirmModalOpen(false);
         setAppointmentToReschedule(null);
-        navigate(`/service/treatment-${appointmentToReschedule.treatmentId}`);
+        navigate(`/service/treatment-${appointmentToReschedule.treatmentId}`, {
+          state: {
+            rescheduleOriginalBookingId: appointmentToReschedule.id,
+            bookingType: appointmentToReschedule.bookingType,
+            clinicId: appointmentToReschedule.clinicId,
+          },
+        });
         return;
       }
       
@@ -285,7 +294,13 @@ const MyBookings = () => {
       console.log('🧭 Navigating to service page:', `/service/${serviceId}`);
       
       // Navigate to the service page for rebooking
-      navigate(`/service/${serviceId}`);
+      navigate(`/service/${serviceId}`, {
+        state: {
+          rescheduleOriginalBookingId: appointmentToReschedule.id,
+          bookingType: appointmentToReschedule.bookingType,
+          clinicId: appointmentToReschedule.clinicId,
+        },
+      });
     } catch (error) {
       console.error('❌ Error rescheduling appointment:', error);
       toast.error(t('Failed to reschedule appointment. Please try again.'));

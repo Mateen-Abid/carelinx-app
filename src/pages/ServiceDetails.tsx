@@ -217,9 +217,48 @@ const ServiceDetails = () => {
     if (parts.length !== 2) return range;
     return `${localizeTimeString(parts[0])} - ${localizeTimeString(parts[1])}`;
   };
+
+  const normalizeTimeValue = (value: string | null | undefined) => {
+    if (!value) return '';
+
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    const twelveHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (twelveHourMatch) {
+      const hourRaw = Number(twelveHourMatch[1]);
+      const minute = Number(twelveHourMatch[2]);
+      const period = twelveHourMatch[3].toUpperCase();
+
+      if (Number.isNaN(hourRaw) || Number.isNaN(minute)) return '';
+
+      let hour24 = hourRaw % 12;
+      if (period === 'PM') {
+        hour24 += 12;
+      }
+
+      return `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+
+    const twentyFourHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (twentyFourHourMatch) {
+      const hour = Number(twentyFourHourMatch[1]);
+      const minute = Number(twentyFourHourMatch[2]);
+
+      if (Number.isNaN(hour) || Number.isNaN(minute)) return '';
+
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+
+    return trimmed.replace(/\s+/g, '').toUpperCase();
+  };
+
+  const normalizeNameValue = (value: string | null | undefined) =>
+    value ? value.trim().toLowerCase() : '';
+
   const location = useLocation();
   const { user } = useAuth();
-  const { addAppointment } = useBooking();
+  const { addAppointment, cancelAppointment } = useBooking();
   const [isBookingConfirmationOpen, setIsBookingConfirmationOpen] = useState(false);
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
@@ -237,7 +276,13 @@ const ServiceDetails = () => {
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
   const [databaseDoctors, setDatabaseDoctors] = useState<DatabaseDoctor[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<ClinicTreatmentRecord[]>([]);
+  const [occupiedDoctorSlots, setOccupiedDoctorSlots] = useState<Record<string, string[]>>({});
+  const [occupiedTreatmentSlots, setOccupiedTreatmentSlots] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const rescheduleOriginalBookingId =
+    typeof location.state?.rescheduleOriginalBookingId === 'string'
+      ? location.state.rescheduleOriginalBookingId
+      : null;
 
   const isDoctorBackedService = serviceId?.startsWith('doctor-');
   const isClinicRequestedService = serviceId?.startsWith('clinic-service-');
@@ -578,7 +623,7 @@ const ServiceDetails = () => {
         }));
 
         const relevantTreatments = isTreatmentBackedService
-          ? []
+          ? (selectedTreatmentRecord ? [selectedTreatmentRecord] : [])
           : clinicTreatments.filter((treatment) => {
               if (treatment.status === 'inactive') return false;
 
@@ -595,6 +640,10 @@ const ServiceDetails = () => {
         console.log('✅ Doctors providing service:', doctorsProvidingService.length, serviceName || 'all');
         setDatabaseDoctors(doctorsWithTreatments);
         setAvailableTreatments(relevantTreatments);
+        setSelectedTreatment(isTreatmentBackedService && selectedTreatmentRecord ? selectedTreatmentRecord : null);
+        if (isTreatmentBackedService) {
+          setSelectedDoctor('');
+        }
 
         // Get specialty from first doctor (all should have same specialty for same service)
         const firstDoctor = doctorsWithTreatments[0];
@@ -675,6 +724,53 @@ const ServiceDetails = () => {
     
     return doctors;
   };
+
+  useEffect(() => {
+    if (loading) return;
+
+    const fetchOccupiedSlots = async () => {
+      try {
+        const date = format(selectedDisplayDate, 'yyyy-MM-dd');
+        const fallbackDoctors = !isDatabaseService ? getHardcodedDoctors() : [];
+        const doctorIds = databaseDoctors.map((doctor) => doctor.id).filter(Boolean);
+        const doctorNames = (isDatabaseService ? databaseDoctors : fallbackDoctors)
+          .map((doctor) => doctor.name)
+          .filter(Boolean);
+        const treatmentIds = availableTreatments.map((treatment) => treatment.id).filter(Boolean);
+        const treatmentNames = availableTreatments.map((treatment) => treatment.name).filter(Boolean);
+
+        if (
+          doctorIds.length === 0 &&
+          doctorNames.length === 0 &&
+          treatmentIds.length === 0 &&
+          treatmentNames.length === 0
+        ) {
+          setOccupiedDoctorSlots({});
+          setOccupiedTreatmentSlots({});
+          return;
+        }
+
+        const response = await api.bookings.getOccupiedSlots({
+          date,
+          doctorIds,
+          doctorNames,
+          treatmentIds,
+          treatmentNames,
+          clinicId: isDatabaseService ? databaseClinic?.id : undefined,
+          clinic: !isDatabaseService && clinic ? clinic.name : undefined,
+        });
+
+        setOccupiedDoctorSlots(response?.occupiedDoctorSlots || {});
+        setOccupiedTreatmentSlots(response?.occupiedTreatmentSlots || {});
+      } catch (error) {
+        console.error('Error fetching occupied slots:', error);
+        setOccupiedDoctorSlots({});
+        setOccupiedTreatmentSlots({});
+      }
+    };
+
+    fetchOccupiedSlots();
+  }, [selectedDisplayDate, loading, isDatabaseService, databaseDoctors, availableTreatments, databaseClinic?.id, clinic]);
   
   if (loading) {
     return (
@@ -796,10 +892,11 @@ const ServiceDetails = () => {
     if (selectedDate && serviceData) {
       try {
         const isTreatmentBooking =
-          isTreatmentBackedService ||
           !!selectedTreatment ||
-          location.state?.bookingType === 'treatment' ||
-          databaseService?.bookingType === 'treatment';
+          (!selectedDoctor &&
+            (isTreatmentBackedService ||
+              location.state?.bookingType === 'treatment' ||
+              databaseService?.bookingType === 'treatment'));
         const selectedDoctorData = serviceData.doctors.find((d: any) => d.name === selectedDoctor) || serviceData.doctors[0];
         // Get the selected doctor from databaseDoctors array to get specialty
         const selectedDoctorFromDb = isDatabaseService 
@@ -843,6 +940,10 @@ const ServiceDetails = () => {
           treatmentId: isTreatmentBooking ? (selectedTreatment?.id || databaseService?.treatmentId || treatmentRecordId || undefined) : undefined,
           treatmentName: isTreatmentBooking ? (selectedTreatment?.name || serviceData.name) : undefined,
         });
+
+        if (rescheduleOriginalBookingId) {
+          await cancelAppointment(rescheduleOriginalBookingId);
+        }
         
         setPendingBookingId(bookingId);
         setIsBookingConfirmationOpen(true);
@@ -859,6 +960,22 @@ const ServiceDetails = () => {
     setPendingBookingId('');
     setIsBookingConfirmationOpen(false);
     setSelectedTreatment(null);
+  };
+
+  const getOccupiedSlotsForDoctor = (doctor: DisplayDoctor): string[] => {
+    if (doctor.doctorId && occupiedDoctorSlots[doctor.doctorId]) {
+      return occupiedDoctorSlots[doctor.doctorId];
+    }
+
+    return occupiedDoctorSlots[normalizeNameValue(doctor.name)] || [];
+  };
+
+  const getOccupiedSlotsForTreatment = (treatment: ClinicTreatmentRecord): string[] => {
+    if (occupiedTreatmentSlots[treatment.id]) {
+      return occupiedTreatmentSlots[treatment.id];
+    }
+
+    return occupiedTreatmentSlots[normalizeNameValue(treatment.name)] || [];
   };
 
   const generateSlotsFromRange = (range: string): string[] => {
@@ -953,6 +1070,25 @@ const ServiceDetails = () => {
     }
 
     return t('Not available on selected date');
+  };
+
+  const getBookableTimeSlotsForDate = (
+    availability: string | undefined | null,
+    date: Date,
+    occupiedSlots: string[] = []
+  ) => {
+    if (!availability) return [];
+
+    const availableSlots = getDoctorSlotsForDate(availability, date);
+    if (occupiedSlots.length === 0) return availableSlots;
+
+    const occupiedSlotSet = new Set(occupiedSlots.map((slot) => normalizeTimeValue(slot)));
+    return availableSlots.filter((slot) => !occupiedSlotSet.has(normalizeTimeValue(slot)));
+  };
+
+  const hasAvailabilityOnSelectedDate = (availability?: string | null, occupiedSlots: string[] = []) => {
+    if (!availability) return false;
+    return getBookableTimeSlotsForDate(availability, selectedDisplayDate, occupiedSlots).length > 0;
   };
 
   // Generate time slots using selected doctor availability first, then service schedule fallback
@@ -1086,19 +1222,31 @@ const ServiceDetails = () => {
       </section>
 
       {/* Treatments Section */}
-      {!isTreatmentBackedService && availableTreatments.length > 0 && (
+      {availableTreatments.length > 0 && (
         <section className="py-2 px-4 sm:px-8 bg-white">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('Available Treatments')}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t('Available Treatments')}
+            </h2>
             <div className="space-y-4">
-              {availableTreatments.map((treatment) => (
+              {availableTreatments.map((treatment) => {
+                const occupiedTreatmentTimeSlots = getOccupiedSlotsForTreatment(treatment);
+                const isTreatmentAvailable = hasAvailabilityOnSelectedDate(
+                  treatment.availability,
+                  occupiedTreatmentTimeSlots
+                );
+
+                return (
                 <div
                   key={treatment.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleTreatmentSelect(treatment)}
+                  className={`bg-white border border-gray-200 rounded-lg p-4 transition-shadow ${
+                    isTreatmentAvailable ? 'cursor-pointer hover:shadow-md' : 'cursor-not-allowed opacity-70'
+                  }`}
+                  onClick={isTreatmentAvailable ? () => handleTreatmentSelect(treatment) : undefined}
+                  aria-disabled={!isTreatmentAvailable}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
                       <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                       </svg>
@@ -1118,12 +1266,12 @@ const ServiceDetails = () => {
                         </span>
                       </div>
 
-                      <div
-                        className={`mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-2 ${
-                          isRtl ? 'justify-start' : 'justify-end'
-                        } text-right`}
-                      >
-                        {formatDoctorPrice(treatment.price) ? (
+                      {formatDoctorPrice(treatment.price) ? (
+                        <div
+                          className={`mt-3 flex w-full flex-wrap items-center gap-x-3 gap-y-2 ${
+                            isRtl ? 'justify-start' : 'justify-end'
+                          } text-right`}
+                        >
                           <div className="flex items-center justify-end gap-2">
                             <span className="text-xs font-medium text-gray-500">
                               {`${t('Price')}:`}
@@ -1132,12 +1280,12 @@ const ServiceDetails = () => {
                               {formatDoctorPrice(treatment.price)}
                             </span>
                           </div>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </section>
@@ -1156,16 +1304,26 @@ const ServiceDetails = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {serviceData.doctors.map((doctor, index) => (
+              {serviceData.doctors.map((doctor, index) => {
+                const occupiedDoctorTimeSlots = getOccupiedSlotsForDoctor(doctor);
+                const isDoctorAvailable = hasAvailabilityOnSelectedDate(
+                  doctor.timeSlots?.[0],
+                  occupiedDoctorTimeSlots
+                );
+
+                return (
                 <div
                   key={index}
-                  className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => {
+                  className={`bg-white border border-gray-200 rounded-lg p-4 transition-shadow ${
+                    isDoctorAvailable ? 'cursor-pointer hover:shadow-md' : 'cursor-not-allowed opacity-70'
+                  }`}
+                  onClick={isDoctorAvailable ? () => {
                     setSelectedTreatment(null);
                     setSelectedDoctor(doctor.name);
                     setSelectedDate(selectedDisplayDate);
                     setIsTimeSlotModalOpen(true);
-                  }}
+                  } : undefined}
+                  aria-disabled={!isDoctorAvailable}
                 >
                   <div className="flex items-center gap-4">
                     {/* Doctor Avatar */}
@@ -1209,7 +1367,7 @@ const ServiceDetails = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -1236,6 +1394,14 @@ const ServiceDetails = () => {
           selectedTreatment?.availability ||
             serviceData.doctors.find((doctor) => doctor.name === selectedDoctor)?.timeSlots?.[0]
         ) : []}
+        disabledTimeSlots={
+          selectedTreatment
+            ? getOccupiedSlotsForTreatment(selectedTreatment)
+            : (() => {
+                const activeDoctor = serviceData.doctors.find((doctor) => doctor.name === selectedDoctor);
+                return activeDoctor ? getOccupiedSlotsForDoctor(activeDoctor) : [];
+              })()
+        }
         onBookAppointment={handleTimeSlotBook}
       />
 
