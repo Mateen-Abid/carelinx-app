@@ -26,7 +26,7 @@ interface Appointment {
   treatmentId?: string | null;
   appointment_date: string;
   appointment_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'approved' | 'cancelled' | 'completed';
   created_at: string;
   doctor_id?: string | null;
 }
@@ -639,7 +639,7 @@ const ClinicAdminAppointments = () => {
   const filteredAppointmentsData = useMemo(() => {
     return appointmentsData.filter((appointment) => {
       const matchesStatus = statusFilter === 'all' || 
-        (statusFilter === 'approved' && appointment.status === 'confirmed') ||
+        (statusFilter === 'approved' && appointment.status === 'approved') ||
         (statusFilter === 'pending' && appointment.status === 'pending') ||
         (statusFilter === 'cancelled' && appointment.status === 'cancelled');
       

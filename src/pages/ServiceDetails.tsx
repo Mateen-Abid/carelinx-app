@@ -13,6 +13,7 @@ import { format, addDays, subDays, isToday, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { api } from '@/services/api';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 import { getClinicByServiceId, getServiceById, clinicsData } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
@@ -886,7 +887,6 @@ const ServiceDetails = () => {
     }
     
     setSelectedTimeSlot(timeSlot);
-    setIsTimeSlotModalOpen(false);
     
     // Create pending booking
     if (selectedDate && serviceData) {
@@ -946,9 +946,12 @@ const ServiceDetails = () => {
         }
         
         setPendingBookingId(bookingId);
+        setIsTimeSlotModalOpen(false);
         setIsBookingConfirmationOpen(true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error booking appointment:', error);
+        toast.error(error?.message || t('Failed to send booking request. Please try again.'));
+        throw error;
       }
     }
   };

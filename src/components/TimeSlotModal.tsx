@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
 
 interface TimeSlotModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface TimeSlotModalProps {
   selectedDate: Date | null;
   timeSlots: string[];
   disabledTimeSlots?: string[];
-  onBookAppointment: (timeSlot: string) => void;
+  onBookAppointment: (timeSlot: string) => void | Promise<void>;
 }
 
 const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
@@ -21,8 +22,16 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
   onBookAppointment
 }) => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === 'rtl';
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedTimeSlot('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   const formatDate = (date: Date) =>
     new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', {
@@ -87,23 +96,35 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
   const disabledTimeSlotSet = new Set(disabledTimeSlots.map(normalizeTimeValue));
 
   const handleTimeSlotSelect = (timeSlot: string) => {
+    if (isSubmitting) {
+      return;
+    }
     if (disabledTimeSlotSet.has(normalizeTimeValue(timeSlot))) {
       return;
     }
     setSelectedTimeSlot(timeSlot);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedTimeSlot) {
-      onBookAppointment(selectedTimeSlot);
-      onClose();
+      try {
+        setIsSubmitting(true);
+        await onBookAppointment(selectedTimeSlot);
+        onClose();
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   if (!selectedDate) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open && !isSubmitting) {
+        onClose();
+      }
+    }}>
       <DialogContent 
         className="max-w-xs w-full p-6 gap-0 bg-white rounded-2xl overflow-hidden mx-4 my-4 sm:max-w-sm sm:my-8"
         style={{ transform: 'translate(-50%, -50%) translateX(-20px)' }}
@@ -125,10 +146,10 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
                 <button
                   key={timeSlot}
                   onClick={() => handleTimeSlotSelect(timeSlot)}
-                  disabled={isDisabled}
+                  disabled={isDisabled || isSubmitting}
                   className={`
                     w-full p-3 rounded-lg border font-medium transition-all text-sm ${isRtl ? 'text-right' : 'text-left'}
-                    ${isDisabled
+                    ${isDisabled || isSubmitting
                       ? 'border-gray-200 bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed'
                       : selectedTimeSlot === timeSlot
                         ? 'border-gray-400 bg-gray-100 text-gray-900'
@@ -147,10 +168,17 @@ const TimeSlotModal: React.FC<TimeSlotModalProps> = ({
         <div className="pt-0">
           <Button
             onClick={handleNext}
-            disabled={!selectedTimeSlot}
+            disabled={!selectedTimeSlot || isSubmitting}
             className="w-full bg-[#0C2243] hover:bg-[#0C2243]/90 text-white font-medium py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            {t('Request appointment')}
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('Loading...')}
+              </span>
+            ) : (
+              t('Request appointment')
+            )}
           </Button>
         </div>
       </DialogContent>
