@@ -291,11 +291,12 @@ const ClinicAdminPatients = () => {
       }
 
       setPatients(patientsData);
-
       setLoading(false);
+      return patientsData;
     } catch (error) {
       console.error('❌ Error fetching patients:', error);
       setLoading(false);
+      return [];
     }
   };
 
@@ -541,7 +542,19 @@ const ClinicAdminPatients = () => {
       const response = await api.clinicAdmin.deletePatient(patientToDelete.user_id);
 
       if ((response?.deletedCount ?? 0) === 0) {
-        toast.error(t('No appointments were deleted for this patient'));
+        const refreshedPatients = clinic.id ? await fetchPatients(clinic.id) : [];
+        const stillExists = (refreshedPatients || []).some(
+          (patient) => patient.user_id === patientToDelete.user_id
+        );
+
+        if (stillExists) {
+          toast.error(t('No appointments were deleted for this patient'));
+          return;
+        }
+
+        toast.success(t('Patient deleted successfully'));
+        setIsDeleteConfirmModalOpen(false);
+        setPatientToDelete(null);
         return;
       }
 

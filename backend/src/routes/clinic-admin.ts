@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { supabaseAdmin } from '../config/supabase';
+import { createSupabaseAdminClient, supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../utils/email';
 import { validateBookingSlotConflict } from '../utils/booking-conflicts';
@@ -1339,13 +1339,14 @@ router.get('/patients/:userId/profile', authenticate, async (req: AuthRequest, r
  */
 router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) => {
   try {
+    const adminDb = createSupabaseAdminClient();
     const userId = req.user.id;
     const { userId: patientUserId } = req.params;
 
     console.log('🗑️ Delete patient request:', { userId, patientUserId });
 
     // Verify clinic belongs to user
-    const { data: clinicData, error: clinicError } = await supabaseAdmin
+    const { data: clinicData, error: clinicError } = await adminDb
       .from('clinics')
       .select('id, name')
       .eq('clinic_admin_id', userId)
@@ -1361,7 +1362,7 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
     let totalDeleted = 0;
 
     if (isManualPatientKey(patientUserId)) {
-      const { data: clinicBookings, error: manualCheckError } = await supabaseAdmin
+      const { data: clinicBookings, error: manualCheckError } = await adminDb
         .from('bookings')
         .select('id, user_id, patient_name, patient_phone, patient_email')
         .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`);
@@ -1386,36 +1387,53 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
         });
       }
 
-      // Delete manual bookings one-by-one. This is more reliable here than a
-      // single bulk .in() delete, and it gives us exact per-row visibility.
-      const deletedManualIds: string[] = [];
+      const { data: deletedManualBookings, error: deleteManualError } = await adminDb
+        .from('bookings')
+        .delete()
+        .in('id', bookingIdsToDelete)
+        .select('id');
 
-      for (const bookingId of bookingIdsToDelete) {
-        const { data: deletedManualBooking, error: deleteManualError } = await supabaseAdmin
-          .from('bookings')
-          .delete()
-          .eq('id', bookingId)
-          .select('id')
-          .maybeSingle();
-
-        if (deleteManualError) {
-          console.error('❌ Error deleting manual patient booking:', {
-            bookingId,
-            error: deleteManualError,
-          });
-          return res.status(400).json({ error: `Failed to delete bookings: ${deleteManualError.message}` });
-        }
-
-        if (deletedManualBooking?.id) {
-          deletedManualIds.push(deletedManualBooking.id);
-        }
+      if (deleteManualError) {
+        console.error('❌ Error deleting manual patient bookings:', {
+          bookingIdsToDelete,
+          error: deleteManualError,
+        });
+        return res.status(400).json({ error: `Failed to delete bookings: ${deleteManualError.message}` });
       }
 
-      totalDeleted = deletedManualIds.length;
+      const deletedManualIds = ((deletedManualBookings || []) as Array<{ id?: string | null }>)
+        .map((booking) => booking.id)
+        .filter((id): id is string => Boolean(id));
+
+      if (deletedManualIds.length < bookingIdsToDelete.length) {
+        const { data: remainingManualBookings, error: remainingManualError } = await adminDb
+          .from('bookings')
+          .select('id')
+          .in('id', bookingIdsToDelete);
+
+        if (remainingManualError) {
+          console.error('❌ Error verifying manual patient booking deletion:', {
+            bookingIdsToDelete,
+            error: remainingManualError,
+          });
+          return res.status(400).json({ error: `Failed to verify booking deletion: ${remainingManualError.message}` });
+        }
+
+        const remainingManualIds = new Set(
+          ((remainingManualBookings || []) as Array<{ id?: string | null }>)
+            .map((booking) => booking.id)
+            .filter((id): id is string => Boolean(id))
+        );
+
+        totalDeleted = bookingIdsToDelete.filter((bookingId) => !remainingManualIds.has(bookingId)).length;
+      } else {
+        totalDeleted = deletedManualIds.length;
+      }
+
       console.log(`✅ Deleted ${totalDeleted} manual patient bookings`, deletedManualIds);
     } else {
       // First, check how many bookings exist for this patient with this clinic
-      const { data: existingBookings, error: checkError } = await supabaseAdmin
+      const { data: existingBookings, error: checkError } = await adminDb
         .from('bookings')
         .select('id')
         .eq('user_id', patientUserId)
@@ -1440,7 +1458,7 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
 
       // Delete bookings for this patient with this clinic
       // Use two separate queries to ensure we catch both clinic_id and clinic name matches
-      const { data: deletedById, error: deleteByIdError } = await supabaseAdmin
+      const { data: deletedById, error: deleteByIdError } = await adminDb
         .from('bookings')
         .delete()
         .eq('user_id', patientUserId)
@@ -1454,7 +1472,7 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
         console.log(`✅ Deleted ${deletedById?.length || 0} bookings by clinic_id`);
       }
 
-      const { data: deletedByName, error: deleteByNameError } = await supabaseAdmin
+      const { data: deletedByName, error: deleteByNameError } = await adminDb
         .from('bookings')
         .delete()
         .eq('user_id', patientUserId)

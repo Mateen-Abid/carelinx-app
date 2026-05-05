@@ -266,6 +266,7 @@ const ServiceDetails = () => {
   const [selectedTreatment, setSelectedTreatment] = useState<ClinicTreatmentRecord | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [modalDisabledTimeSlots, setModalDisabledTimeSlots] = useState<string[]>([]);
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -767,6 +768,56 @@ const ServiceDetails = () => {
     }
   }, [availableTreatments, clinic, databaseClinic?.id, databaseDoctors, isDatabaseService]);
 
+  const fetchDisabledSlotsForSelection = useCallback(async (
+    targetDate: Date,
+    options: {
+      doctor?: DisplayDoctor | null;
+      treatment?: ClinicTreatmentRecord | null;
+    }
+  ) => {
+    const date = format(targetDate, 'yyyy-MM-dd');
+
+    if (options.treatment) {
+      const response = await api.bookings.getOccupiedSlots({
+        date,
+        treatmentIds: options.treatment.id ? [options.treatment.id] : undefined,
+        treatmentNames: options.treatment.name ? [options.treatment.name] : undefined,
+        clinicId: isDatabaseService ? databaseClinic?.id : undefined,
+        clinic: !isDatabaseService && clinic ? clinic.name : undefined,
+      });
+
+      const nextOccupiedTreatmentSlots = response?.occupiedTreatmentSlots || {};
+      setOccupiedTreatmentSlots(nextOccupiedTreatmentSlots);
+      setOccupiedDoctorSlots({});
+      return (
+        nextOccupiedTreatmentSlots[options.treatment.id] ||
+        nextOccupiedTreatmentSlots[normalizeNameValue(options.treatment.name)] ||
+        []
+      );
+    }
+
+    if (options.doctor) {
+      const response = await api.bookings.getOccupiedSlots({
+        date,
+        doctorIds: options.doctor.doctorId ? [options.doctor.doctorId] : undefined,
+        doctorNames: options.doctor.name ? [options.doctor.name] : undefined,
+        clinicId: isDatabaseService ? databaseClinic?.id : undefined,
+        clinic: !isDatabaseService && clinic ? clinic.name : undefined,
+      });
+
+      const nextOccupiedDoctorSlots = response?.occupiedDoctorSlots || {};
+      setOccupiedDoctorSlots(nextOccupiedDoctorSlots);
+      setOccupiedTreatmentSlots({});
+      return (
+        (options.doctor.doctorId ? nextOccupiedDoctorSlots[options.doctor.doctorId] : undefined) ||
+        nextOccupiedDoctorSlots[normalizeNameValue(options.doctor.name)] ||
+        []
+      );
+    }
+
+    return [];
+  }, [clinic, databaseClinic?.id, isDatabaseService]);
+
   useEffect(() => {
     if (loading) return;
     fetchOccupiedSlots(selectedDisplayDate);
@@ -858,15 +909,18 @@ const ServiceDetails = () => {
     setSelectedTreatment(treatment);
     setSelectedDoctor('');
     setSelectedDate(selectedDisplayDate);
-    await fetchOccupiedSlots(selectedDisplayDate);
+    const disabledSlots = await fetchDisabledSlotsForSelection(selectedDisplayDate, { treatment });
+    setModalDisabledTimeSlots(disabledSlots);
     setIsTimeSlotModalOpen(true);
   };
 
   const handleDoctorSelect = async (doctorName: string) => {
+    const selectedDoctorRecord = serviceData.doctors.find((doctor) => doctor.name === doctorName) || null;
     setSelectedTreatment(null);
     setSelectedDoctor(doctorName);
     setSelectedDate(selectedDisplayDate);
-    await fetchOccupiedSlots(selectedDisplayDate);
+    const disabledSlots = await fetchDisabledSlotsForSelection(selectedDisplayDate, { doctor: selectedDoctorRecord });
+    setModalDisabledTimeSlots(disabledSlots);
     setIsTimeSlotModalOpen(true);
   };
 
@@ -885,6 +939,7 @@ const ServiceDetails = () => {
     
     setSelectedDate(date);
     await fetchOccupiedSlots(date);
+    setModalDisabledTimeSlots([]);
     setIsTimeSlotModalOpen(true);
   };
 
@@ -972,6 +1027,7 @@ const ServiceDetails = () => {
     setPendingBookingId('');
     setIsBookingConfirmationOpen(false);
     setSelectedTreatment(null);
+    setModalDisabledTimeSlots([]);
   };
 
   const getOccupiedSlotsForDoctor = (doctor: DisplayDoctor): string[] => {
@@ -1402,12 +1458,14 @@ const ServiceDetails = () => {
             serviceData.doctors.find((doctor) => doctor.name === selectedDoctor)?.timeSlots?.[0]
         ) : []}
         disabledTimeSlots={
-          selectedTreatment
-            ? getOccupiedSlotsForTreatment(selectedTreatment)
-            : (() => {
-                const activeDoctor = serviceData.doctors.find((doctor) => doctor.name === selectedDoctor);
-                return activeDoctor ? getOccupiedSlotsForDoctor(activeDoctor) : [];
-              })()
+          modalDisabledTimeSlots.length > 0
+            ? modalDisabledTimeSlots
+            : selectedTreatment
+              ? getOccupiedSlotsForTreatment(selectedTreatment)
+              : (() => {
+                  const activeDoctor = serviceData.doctors.find((doctor) => doctor.name === selectedDoctor);
+                  return activeDoctor ? getOccupiedSlotsForDoctor(activeDoctor) : [];
+                })()
         }
         onBookAppointment={handleTimeSlotBook}
       />

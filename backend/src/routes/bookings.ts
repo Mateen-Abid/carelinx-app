@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { supabaseAdmin } from '../config/supabase';
+import { createSupabaseAdminClient, supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { getOccupiedSlots, validateBookingSlotConflict } from '../utils/booking-conflicts';
+import { validateBookingSlotConflict } from '../utils/booking-conflicts';
 
 const router = Router();
 
@@ -18,6 +18,22 @@ type ClinicAddressRow = {
   address: string | null;
 };
 
+type OccupiedDoctorRow = {
+  doctor_id?: string | null;
+  doctor_name?: string | null;
+  appointment_time?: string | null;
+  clinic_id?: string | null;
+  clinic?: string | null;
+};
+
+type OccupiedTreatmentRow = {
+  treatment_id?: string | null;
+  treatment_name?: string | null;
+  appointment_time?: string | null;
+  clinic_id?: string | null;
+  clinic?: string | null;
+};
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
@@ -26,12 +42,34 @@ const getErrorMessage = (error: unknown) => {
   return 'Unknown error';
 };
 
+const normalizeOccupiedName = (value: string | null | undefined) => {
+  const trimmed = String(value || '').trim().toLowerCase();
+  return trimmed || null;
+};
+
+const clinicMatchesOccupiedRoute = (
+  booking: { clinic_id?: string | null; clinic?: string | null },
+  clinicId?: string | null,
+  clinicName?: string | null
+) => {
+  if (clinicId) {
+    return booking.clinic_id === clinicId;
+  }
+
+  if (clinicName) {
+    return normalizeOccupiedName(booking.clinic) === normalizeOccupiedName(clinicName);
+  }
+
+  return true;
+};
+
 /**
  * GET /api/bookings/occupied-slots
  * Get occupied doctor slots for a specific date
  */
 router.get('/occupied-slots', async (req, res) => {
   try {
+    const adminDb = createSupabaseAdminClient();
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
@@ -69,15 +107,84 @@ router.get('/occupied-slots', async (req, res) => {
       return res.json({ occupiedDoctorSlots: {}, occupiedTreatmentSlots: {} });
     }
 
-    const { occupiedDoctorSlots, occupiedTreatmentSlots } = await getOccupiedSlots({
-      date,
-      doctorIds,
-      doctorNames,
-      treatmentIds,
-      treatmentNames,
-      clinicId: clinicId || null,
-      clinicName: clinicName || null,
-    });
+    const occupiedDoctorSlots: Record<string, string[]> = {};
+    const occupiedTreatmentSlots: Record<string, string[]> = {};
+
+    if (doctorIds.length > 0 || doctorNames.length > 0) {
+      const { data, error } = await adminDb
+        .from('bookings')
+        .select('doctor_id, doctor_name, appointment_time, clinic_id, clinic')
+        .eq('appointment_date', date)
+        .in('status', ['confirmed']);
+
+      if (error) throw error;
+
+      const requestedDoctorIds = new Set(doctorIds);
+      const requestedDoctorNames = new Set(
+        doctorNames
+          .map((name) => normalizeOccupiedName(name))
+          .filter((name): name is string => Boolean(name))
+      );
+
+      ((data as OccupiedDoctorRow[] | null) || []).forEach((booking) => {
+        if (!booking.appointment_time || !clinicMatchesOccupiedRoute(booking, clinicId || null, clinicName || null)) {
+          return;
+        }
+
+        if (booking.doctor_id && requestedDoctorIds.has(booking.doctor_id)) {
+          if (!occupiedDoctorSlots[booking.doctor_id]) {
+            occupiedDoctorSlots[booking.doctor_id] = [];
+          }
+          occupiedDoctorSlots[booking.doctor_id].push(booking.appointment_time);
+        }
+
+        const normalizedDoctorName = normalizeOccupiedName(booking.doctor_name);
+        if (normalizedDoctorName && requestedDoctorNames.has(normalizedDoctorName)) {
+          if (!occupiedDoctorSlots[normalizedDoctorName]) {
+            occupiedDoctorSlots[normalizedDoctorName] = [];
+          }
+          occupiedDoctorSlots[normalizedDoctorName].push(booking.appointment_time);
+        }
+      });
+    }
+
+    if (treatmentIds.length > 0 || treatmentNames.length > 0) {
+      const { data, error } = await adminDb
+        .from('bookings')
+        .select('treatment_id, treatment_name, appointment_time, clinic_id, clinic')
+        .eq('appointment_date', date)
+        .in('status', ['confirmed']);
+
+      if (error) throw error;
+
+      const requestedTreatmentIds = new Set(treatmentIds);
+      const requestedTreatmentNames = new Set(
+        treatmentNames
+          .map((name) => normalizeOccupiedName(name))
+          .filter((name): name is string => Boolean(name))
+      );
+
+      ((data as OccupiedTreatmentRow[] | null) || []).forEach((booking) => {
+        if (!booking.appointment_time || !clinicMatchesOccupiedRoute(booking, clinicId || null, clinicName || null)) {
+          return;
+        }
+
+        if (booking.treatment_id && requestedTreatmentIds.has(booking.treatment_id)) {
+          if (!occupiedTreatmentSlots[booking.treatment_id]) {
+            occupiedTreatmentSlots[booking.treatment_id] = [];
+          }
+          occupiedTreatmentSlots[booking.treatment_id].push(booking.appointment_time);
+        }
+
+        const normalizedTreatmentName = normalizeOccupiedName(booking.treatment_name);
+        if (normalizedTreatmentName && requestedTreatmentNames.has(normalizedTreatmentName)) {
+          if (!occupiedTreatmentSlots[normalizedTreatmentName]) {
+            occupiedTreatmentSlots[normalizedTreatmentName] = [];
+          }
+          occupiedTreatmentSlots[normalizedTreatmentName].push(booking.appointment_time);
+        }
+      });
+    }
 
     res.json({ occupiedDoctorSlots, occupiedTreatmentSlots });
   } catch (error: unknown) {
