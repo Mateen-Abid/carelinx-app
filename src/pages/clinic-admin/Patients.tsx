@@ -538,7 +538,12 @@ const ClinicAdminPatients = () => {
     setDeletingPatient(true);
     try {
       // Delete patient via backend (deletes all bookings for this patient with this clinic)
-      await api.clinicAdmin.deletePatient(patientToDelete.user_id);
+      const response = await api.clinicAdmin.deletePatient(patientToDelete.user_id);
+
+      if ((response?.deletedCount ?? 0) === 0) {
+        toast.error(t('No appointments were deleted for this patient'));
+        return;
+      }
 
       toast.success(t('Patient deleted successfully'));
       

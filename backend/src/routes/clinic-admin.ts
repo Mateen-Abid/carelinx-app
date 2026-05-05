@@ -1386,19 +1386,33 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
         });
       }
 
-      const { data: deletedManualBookings, error: deleteManualError } = await supabaseAdmin
-        .from('bookings')
-        .delete()
-        .in('id', bookingIdsToDelete)
-        .select('id');
+      // Delete manual bookings one-by-one. This is more reliable here than a
+      // single bulk .in() delete, and it gives us exact per-row visibility.
+      const deletedManualIds: string[] = [];
 
-      if (deleteManualError) {
-        console.error('❌ Error deleting manual patient bookings:', deleteManualError);
-        return res.status(400).json({ error: `Failed to delete bookings: ${deleteManualError.message}` });
+      for (const bookingId of bookingIdsToDelete) {
+        const { data: deletedManualBooking, error: deleteManualError } = await supabaseAdmin
+          .from('bookings')
+          .delete()
+          .eq('id', bookingId)
+          .select('id')
+          .maybeSingle();
+
+        if (deleteManualError) {
+          console.error('❌ Error deleting manual patient booking:', {
+            bookingId,
+            error: deleteManualError,
+          });
+          return res.status(400).json({ error: `Failed to delete bookings: ${deleteManualError.message}` });
+        }
+
+        if (deletedManualBooking?.id) {
+          deletedManualIds.push(deletedManualBooking.id);
+        }
       }
 
-      totalDeleted = deletedManualBookings?.length || 0;
-      console.log(`✅ Deleted ${totalDeleted} manual patient bookings`);
+      totalDeleted = deletedManualIds.length;
+      console.log(`✅ Deleted ${totalDeleted} manual patient bookings`, deletedManualIds);
     } else {
       // First, check how many bookings exist for this patient with this clinic
       const { data: existingBookings, error: checkError } = await supabaseAdmin
