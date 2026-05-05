@@ -2,8 +2,32 @@ import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../utils/email';
+import { validateBookingSlotConflict } from '../utils/booking-conflicts';
 
 const router = Router();
+
+const MANUAL_PATIENT_PREFIX = 'manual:';
+
+const normalizeManualIdentityValue = (value: string | null | undefined) =>
+  String(value || '').trim().toLowerCase();
+
+const buildManualPatientKey = (booking: {
+  patient_name?: string | null;
+  patient_phone?: string | null;
+  patient_email?: string | null;
+}) => {
+  const name = normalizeManualIdentityValue(booking.patient_name);
+  const phone = normalizeManualIdentityValue(booking.patient_phone);
+  const email = normalizeManualIdentityValue(booking.patient_email);
+
+  if (!name && !phone && !email) {
+    return null;
+  }
+
+  return `${MANUAL_PATIENT_PREFIX}${name}|${phone}|${email}`;
+};
+
+const isManualPatientKey = (value: string) => value.startsWith(MANUAL_PATIENT_PREFIX);
 
 const dbTimeToMinutes = (dbTime: string | null): number | null => {
   if (!dbTime) return null;
@@ -319,6 +343,194 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
     res.json({ bookings: bookingsWithProfiles });
   } catch (error: any) {
     console.error('❌ Get bookings error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/clinic-admin/bookings
+ * Create a confirmed booking with manual patient details
+ */
+router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      booking_type,
+      appointment_date,
+      appointment_time,
+      doctor_id,
+      treatment_id,
+      service_name,
+      patient_name,
+      patient_phone,
+      patient_email,
+      patient_gender,
+      patient_date_of_birth,
+    } = req.body;
+
+    const bookingType = booking_type === 'treatment' ? 'treatment' : 'doctor';
+    const trimmedPatientName = typeof patient_name === 'string' ? patient_name.trim() : '';
+    const trimmedPatientPhone = typeof patient_phone === 'string' ? patient_phone.trim() : '';
+    const trimmedPatientEmail = typeof patient_email === 'string' ? patient_email.trim() : '';
+    const trimmedPatientGender = typeof patient_gender === 'string' ? patient_gender.trim() : '';
+    const trimmedServiceName = typeof service_name === 'string' ? service_name.trim() : '';
+    const appointmentDate = typeof appointment_date === 'string' ? appointment_date.trim() : '';
+    const appointmentTime = typeof appointment_time === 'string' ? appointment_time.trim() : '';
+
+    if (!trimmedPatientName) {
+      return res.status(400).json({ error: 'Patient name is required' });
+    }
+
+    if (!trimmedPatientPhone) {
+      return res.status(400).json({ error: 'Patient phone is required' });
+    }
+
+    if (!appointmentDate || !appointmentTime) {
+      return res.status(400).json({ error: 'Appointment date and time are required' });
+    }
+
+    const { data: clinicData, error: clinicError } = await supabaseAdmin
+      .from('clinics')
+      .select('id, name, status')
+      .eq('clinic_admin_id', userId)
+      .maybeSingle();
+
+    if (clinicError || !clinicData) {
+      return res.status(404).json({ error: 'Clinic not found' });
+    }
+
+    if (clinicData.status !== 'active') {
+      return res.status(403).json({ error: 'Clinic must be active before creating bookings' });
+    }
+
+    let bookingPayload: Record<string, any> = {
+      booking_type: bookingType,
+      clinic_id: clinicData.id,
+      clinic: clinicData.name,
+      appointment_date: appointmentDate,
+      appointment_time: appointmentTime,
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+      booking_source: 'clinic_admin',
+      created_by_role: 'clinic_admin',
+      created_by_user_id: userId,
+      patient_name: trimmedPatientName,
+      patient_phone: trimmedPatientPhone,
+      patient_email: trimmedPatientEmail || null,
+      patient_gender: trimmedPatientGender || null,
+      patient_date_of_birth: patient_date_of_birth || null,
+      user_id: null,
+      doctor_id: null,
+      doctor_name: null,
+      treatment_id: null,
+      treatment_name: null,
+      service_name: null,
+      specialty: '',
+    };
+
+    if (bookingType === 'doctor') {
+      if (!doctor_id || typeof doctor_id !== 'string') {
+        return res.status(400).json({ error: 'Doctor is required' });
+      }
+
+      const { data: doctorData, error: doctorError } = await supabaseAdmin
+        .from('doctors')
+        .select('id, name, specialty, services, status, clinic_id')
+        .eq('id', doctor_id)
+        .eq('clinic_id', clinicData.id)
+        .maybeSingle();
+
+      if (doctorError || !doctorData) {
+        return res.status(404).json({ error: 'Doctor not found for this clinic' });
+      }
+
+      if (doctorData.status !== 'active') {
+        return res.status(400).json({ error: 'Only active doctors can be booked' });
+      }
+
+      const doctorServices = String(doctorData.services || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (doctorServices.length > 0) {
+        if (!trimmedServiceName) {
+          return res.status(400).json({ error: 'Service is required for this doctor booking' });
+        }
+
+        if (!doctorServices.some((value) => value.toLowerCase() === trimmedServiceName.toLowerCase())) {
+          return res.status(400).json({ error: 'Selected service is not offered by this doctor' });
+        }
+      }
+
+      bookingPayload = {
+        ...bookingPayload,
+        doctor_id: doctorData.id,
+        doctor_name: doctorData.name,
+        specialty: doctorData.specialty || '',
+        service_name: trimmedServiceName || null,
+      };
+    } else {
+      if (!treatment_id || typeof treatment_id !== 'string') {
+        return res.status(400).json({ error: 'Treatment is required' });
+      }
+
+      const { data: treatmentData, error: treatmentError } = await supabaseAdmin
+        .from('treatments')
+        .select('id, name, specialty, service, status, clinic_id')
+        .eq('id', treatment_id)
+        .eq('clinic_id', clinicData.id)
+        .maybeSingle();
+
+      if (treatmentError || !treatmentData) {
+        return res.status(404).json({ error: 'Treatment not found for this clinic' });
+      }
+
+      if (treatmentData.status !== 'active') {
+        return res.status(400).json({ error: 'Only active treatments can be booked' });
+      }
+
+      bookingPayload = {
+        ...bookingPayload,
+        // Backward-compatible fallback for environments where doctor_name
+        // is still NOT NULL in bookings while treatment bookings roll out.
+        doctor_name: treatmentData.name,
+        treatment_id: treatmentData.id,
+        treatment_name: treatmentData.name,
+        specialty: treatmentData.specialty || '',
+        service_name: treatmentData.service || null,
+      };
+    }
+
+    const slotConflict = await validateBookingSlotConflict({
+      bookingType,
+      doctorId: bookingPayload.doctor_id,
+      doctorName: bookingPayload.doctor_name,
+      treatmentId: bookingPayload.treatment_id,
+      treatmentName: bookingPayload.treatment_name,
+      appointmentDate,
+      appointmentTime,
+      clinicId: clinicData.id,
+      clinicName: clinicData.name,
+    });
+
+    if (slotConflict.hasConflict) {
+      return res.status(409).json({ error: slotConflict.error });
+    }
+
+    const { data: bookingData, error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .insert(bookingPayload)
+      .select()
+      .single();
+
+    if (bookingError) {
+      return res.status(400).json({ error: bookingError.message });
+    }
+
+    res.json({ booking: bookingData });
+  } catch (error: any) {
+    console.error('❌ Create clinic admin booking error:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -1146,73 +1358,109 @@ router.delete('/patients/:userId', authenticate, async (req: AuthRequest, res) =
 
     console.log('✅ Clinic found:', { clinicId: clinicData.id, clinicName: clinicData.name });
 
-    // First, check how many bookings exist for this patient with this clinic
-    const { data: existingBookings, error: checkError } = await supabaseAdmin
-      .from('bookings')
-      .select('id')
-      .eq('user_id', patientUserId)
-      .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`);
-
-    if (checkError) {
-      console.error('❌ Error checking bookings:', checkError);
-      return res.status(400).json({ error: `Failed to check bookings: ${checkError.message}` });
-    }
-
-    const bookingCount = existingBookings?.length || 0;
-    console.log(`📊 Found ${bookingCount} bookings to delete for patient ${patientUserId} with clinic ${clinicData.name}`);
-
-    if (bookingCount === 0) {
-      console.log('⚠️ No bookings found for this patient with this clinic');
-      return res.json({ 
-        success: true, 
-        message: 'Patient deleted successfully (no appointments found)', 
-        deletedCount: 0 
-      });
-    }
-
-    // Delete bookings for this patient with this clinic
-    // Use two separate queries to ensure we catch both clinic_id and clinic name matches
     let totalDeleted = 0;
-    
-    // Delete bookings matching clinic_id
-    const { data: deletedById, error: deleteByIdError } = await supabaseAdmin
-      .from('bookings')
-      .delete()
-      .eq('user_id', patientUserId)
-      .eq('clinic_id', clinicData.id)
-      .select('id');
 
-    if (deleteByIdError) {
-      console.error('❌ Error deleting bookings by clinic_id:', deleteByIdError);
-      // Continue to try deleting by clinic name
-    } else {
-      totalDeleted += deletedById?.length || 0;
-      console.log(`✅ Deleted ${deletedById?.length || 0} bookings by clinic_id`);
-    }
+    if (isManualPatientKey(patientUserId)) {
+      const { data: clinicBookings, error: manualCheckError } = await supabaseAdmin
+        .from('bookings')
+        .select('id, user_id, patient_name, patient_phone, patient_email')
+        .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`);
 
-    // Delete bookings matching clinic name (for backward compatibility with old bookings)
-    const { data: deletedByName, error: deleteByNameError } = await supabaseAdmin
-      .from('bookings')
-      .delete()
-      .eq('user_id', patientUserId)
-      .eq('clinic', clinicData.name)
-      .select('id');
-
-    if (deleteByNameError) {
-      console.error('❌ Error deleting bookings by clinic name:', deleteByNameError);
-      if (totalDeleted === 0) {
-        return res.status(400).json({ error: `Failed to delete bookings: ${deleteByNameError.message}` });
+      if (manualCheckError) {
+        console.error('❌ Error checking manual patient bookings:', manualCheckError);
+        return res.status(400).json({ error: `Failed to check bookings: ${manualCheckError.message}` });
       }
+
+      const bookingIdsToDelete = ((clinicBookings || []) as any[])
+        .filter((booking) => !booking.user_id && buildManualPatientKey(booking) === patientUserId)
+        .map((booking) => booking.id)
+        .filter(Boolean);
+
+      console.log(`📊 Found ${bookingIdsToDelete.length} manual bookings to delete for ${patientUserId}`);
+
+      if (bookingIdsToDelete.length === 0) {
+        return res.json({
+          success: true,
+          message: 'Patient deleted successfully (no appointments found)',
+          deletedCount: 0,
+        });
+      }
+
+      const { data: deletedManualBookings, error: deleteManualError } = await supabaseAdmin
+        .from('bookings')
+        .delete()
+        .in('id', bookingIdsToDelete)
+        .select('id');
+
+      if (deleteManualError) {
+        console.error('❌ Error deleting manual patient bookings:', deleteManualError);
+        return res.status(400).json({ error: `Failed to delete bookings: ${deleteManualError.message}` });
+      }
+
+      totalDeleted = deletedManualBookings?.length || 0;
+      console.log(`✅ Deleted ${totalDeleted} manual patient bookings`);
     } else {
-      const deletedByNameCount = deletedByName?.length || 0;
-      // Avoid double-counting if a booking matched both conditions
-      if (deletedByNameCount > 0) {
-        // Check if any of these were already deleted (unlikely but possible)
-        const newDeletions = deletedByName?.filter((b: any) => 
-          !deletedById?.some((d: any) => d.id === b.id)
-        ) || [];
-        totalDeleted += newDeletions.length;
-        console.log(`✅ Deleted ${newDeletions.length} additional bookings by clinic name`);
+      // First, check how many bookings exist for this patient with this clinic
+      const { data: existingBookings, error: checkError } = await supabaseAdmin
+        .from('bookings')
+        .select('id')
+        .eq('user_id', patientUserId)
+        .or(`clinic_id.eq.${clinicData.id},clinic.eq.${clinicData.name}`);
+
+      if (checkError) {
+        console.error('❌ Error checking bookings:', checkError);
+        return res.status(400).json({ error: `Failed to check bookings: ${checkError.message}` });
+      }
+
+      const bookingCount = existingBookings?.length || 0;
+      console.log(`📊 Found ${bookingCount} bookings to delete for patient ${patientUserId} with clinic ${clinicData.name}`);
+
+      if (bookingCount === 0) {
+        console.log('⚠️ No bookings found for this patient with this clinic');
+        return res.json({
+          success: true,
+          message: 'Patient deleted successfully (no appointments found)',
+          deletedCount: 0,
+        });
+      }
+
+      // Delete bookings for this patient with this clinic
+      // Use two separate queries to ensure we catch both clinic_id and clinic name matches
+      const { data: deletedById, error: deleteByIdError } = await supabaseAdmin
+        .from('bookings')
+        .delete()
+        .eq('user_id', patientUserId)
+        .eq('clinic_id', clinicData.id)
+        .select('id');
+
+      if (deleteByIdError) {
+        console.error('❌ Error deleting bookings by clinic_id:', deleteByIdError);
+      } else {
+        totalDeleted += deletedById?.length || 0;
+        console.log(`✅ Deleted ${deletedById?.length || 0} bookings by clinic_id`);
+      }
+
+      const { data: deletedByName, error: deleteByNameError } = await supabaseAdmin
+        .from('bookings')
+        .delete()
+        .eq('user_id', patientUserId)
+        .eq('clinic', clinicData.name)
+        .select('id');
+
+      if (deleteByNameError) {
+        console.error('❌ Error deleting bookings by clinic name:', deleteByNameError);
+        if (totalDeleted === 0) {
+          return res.status(400).json({ error: `Failed to delete bookings: ${deleteByNameError.message}` });
+        }
+      } else {
+        const deletedByNameCount = deletedByName?.length || 0;
+        if (deletedByNameCount > 0) {
+          const newDeletions = deletedByName?.filter((b: any) =>
+            !deletedById?.some((d: any) => d.id === b.id)
+          ) || [];
+          totalDeleted += newDeletions.length;
+          console.log(`✅ Deleted ${newDeletions.length} additional bookings by clinic name`);
+        }
       }
     }
 

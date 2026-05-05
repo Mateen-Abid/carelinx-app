@@ -44,6 +44,7 @@ interface Patient {
   status: 'active' | 'inactive';
   firstAppointment?: string;
   appointmentCount?: number;
+  isManual?: boolean;
 }
 
 interface Clinic {
@@ -87,6 +88,32 @@ const ClinicAdminPatients = () => {
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [deletingPatient, setDeletingPatient] = useState(false);
 
+  const normalizeManualIdentityValue = (value: string | null | undefined) =>
+    String(value || '').trim().toLowerCase();
+
+  const buildManualPatientKey = (booking: any): string | null => {
+    const name = normalizeManualIdentityValue(booking?.patient_name);
+    const phone = normalizeManualIdentityValue(booking?.patient_phone);
+    const email = normalizeManualIdentityValue(booking?.patient_email);
+
+    if (!name && !phone && !email) return null;
+
+    return `manual:${name}|${phone}|${email}`;
+  };
+
+  const getPatientKeyFromBooking = (booking: any): string | null => {
+    return booking?.user_id || buildManualPatientKey(booking);
+  };
+
+  const isManualPatient = (patient: Patient | null | undefined) => Boolean(patient?.isManual);
+
+  const getPatientGender = (value: string | null | undefined): 'Male' | 'Female' | 'Other' => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'male' || normalized === 'm') return 'Male';
+    if (normalized === 'female' || normalized === 'f') return 'Female';
+    return 'Other';
+  };
+
   useEffect(() => {
     const checkClinicExists = async () => {
       if (!user) return;
@@ -127,21 +154,13 @@ const ClinicAdminPatients = () => {
 
       console.log('✅ Total bookings fetched:', allBookings?.length || 0);
 
-      // Get unique user IDs from bookings (only patients who have booked with THIS clinic)
       const userIds = [...new Set(allBookings?.map((b: any) => b.user_id).filter((id: any) => id !== null) || [])];
-      
-      if (userIds.length === 0) {
-        setPatients([]);
-        setLoading(false);
-        return;
-      }
+      const patientSeedMap = new Map<string, { userId: string; isManual: boolean; booking: any }>();
 
-      console.log('👥 Unique user IDs from bookings:', userIds.length);
+      console.log('👥 Unique registered user IDs from bookings:', userIds.length);
 
-      // Fetch profiles separately for each unique user_id (since backend attachment isn't working reliably)
       const profileMap = new Map();
       if (userIds.length > 0) {
-        // Fetch profiles in parallel for all unique user IDs
         const profilePromises = userIds.map(async (userId: string) => {
           try {
             const { profile } = await api.clinicAdmin.getPatientProfile(userId);
@@ -159,12 +178,9 @@ const ClinicAdminPatients = () => {
       
       console.log('🗺️ Profile map size:', profileMap.size);
 
-      // Create a map of user_id to last appointment date (prefer past/today)
       const lastAppointmentMap = new Map<string, string>();
       const lastAppointmentAnyMap = new Map<string, string>();
-      // Create a map of user_id to first appointment date (for "New This Month")
       const firstAppointmentMap = new Map<string, string>();
-      // Create a map of user_id to appointment count (for "Returning Patients")
       const appointmentCountMap = new Map<string, number>();
       
       const normalizeDate = (dateValue: string | null | undefined): string => {
@@ -174,33 +190,36 @@ const ClinicAdminPatients = () => {
       const todayStr = new Date().toISOString().split('T')[0];
 
       allBookings?.forEach((booking: any) => {
-        const userId = booking.user_id;
+        const patientKey = getPatientKeyFromBooking(booking);
+        if (!patientKey) return;
+
+        patientSeedMap.set(patientKey, {
+          userId: booking.user_id || patientKey,
+          isManual: !booking.user_id,
+          booking,
+        });
+
         const bookingDate = booking.appointment_date;
         const bookingDateStr = normalizeDate(bookingDate);
 
-        // Track last appointment (any)
-        const currentAny = lastAppointmentAnyMap.get(userId);
+        const currentAny = lastAppointmentAnyMap.get(patientKey);
         if (!currentAny || bookingDateStr > normalizeDate(currentAny)) {
-          lastAppointmentAnyMap.set(userId, bookingDate);
+          lastAppointmentAnyMap.set(patientKey, bookingDate);
         }
 
-        // Track last appointment (past or today only)
-        const currentLast = lastAppointmentMap.get(userId);
+        const currentLast = lastAppointmentMap.get(patientKey);
         if (bookingDateStr && bookingDateStr <= todayStr && (!currentLast || bookingDateStr > normalizeDate(currentLast))) {
-          lastAppointmentMap.set(userId, bookingDate);
+          lastAppointmentMap.set(patientKey, bookingDate);
         }
         
-        // Track first appointment
-        const currentFirst = firstAppointmentMap.get(userId);
+        const currentFirst = firstAppointmentMap.get(patientKey);
         if (bookingDateStr && (!currentFirst || bookingDateStr < normalizeDate(currentFirst))) {
-          firstAppointmentMap.set(userId, bookingDate);
+          firstAppointmentMap.set(patientKey, bookingDate);
         }
         
-        // Count appointments per user
-        appointmentCountMap.set(userId, (appointmentCountMap.get(userId) || 0) + 1);
+        appointmentCountMap.set(patientKey, (appointmentCountMap.get(patientKey) || 0) + 1);
       });
 
-      // Calculate age from profile fields if available, otherwise use default
       const calculateAge = (profile: any): number => {
         const ageValue = Number(profile?.age);
         if (Number.isFinite(ageValue) && ageValue > 0 && ageValue < 120) {
@@ -222,7 +241,6 @@ const ClinicAdminPatients = () => {
         return 0;
       };
 
-      // Determine if patient is active (has appointment in last 6 months)
       const isActive = (lastAppointment: string): boolean => {
         if (!lastAppointment) return false;
         const lastApptDate = new Date(lastAppointment);
@@ -231,57 +249,39 @@ const ClinicAdminPatients = () => {
         return lastApptDate >= sixMonthsAgo;
       };
 
-      // Transform bookings to patients (only users who have booked with THIS clinic)
-      // For each unique user who has a booking, create a patient entry
-      const patientsData: Patient[] = userIds.map(userId => {
-        const profile = profileMap.get(userId);
-        const lastAppointment = lastAppointmentMap.get(userId) || lastAppointmentAnyMap.get(userId) || '';
-        const firstAppointment = firstAppointmentMap.get(userId) || '';
-        const appointmentCount = appointmentCountMap.get(userId) || 0;
-        const age = profile ? calculateAge(profile) : 0;
-        
-        // Debug logging
-        if (!profile) {
-          console.log('⚠️ No profile found for user_id:', userId);
-        } else {
-          console.log('✅ Found profile for user_id:', userId, 'name:', profile.full_name, 'gender:', profile.gender, 'dob:', profile.date_of_birth);
-        }
-        
-        // If user has a profile, use profile data; otherwise use booking data
-        const patientName = profile?.full_name || profile?.name || t('Unknown Patient');
-        
-        // Handle gender - check both gender and sex fields, handle different formats
-        let patientGender: 'Male' | 'Female' | 'Other' = 'Other';
-        if (profile) {
-          const genderValue = profile.gender || profile.sex;
-          if (genderValue) {
-            const genderLower = String(genderValue).toLowerCase();
-            if (genderLower === 'male' || genderLower === 'm') {
-              patientGender = 'Male';
-            } else if (genderLower === 'female' || genderLower === 'f') {
-              patientGender = 'Female';
-            } else {
-              patientGender = 'Other';
-            }
-          }
-        }
-        
-        const patientContact = profile?.phone || profile?.email || t('N/A');
-        
-        console.log('👤 Creating patient for user_id:', userId, 'with name:', patientName, 'gender:', patientGender, 'age:', age);
-        
+      const patientsData: Patient[] = Array.from(patientSeedMap.entries()).map(([patientKey, seed]) => {
+        const profile = seed.isManual ? null : profileMap.get(seed.userId);
+        const lastAppointment = lastAppointmentMap.get(patientKey) || lastAppointmentAnyMap.get(patientKey) || '';
+        const firstAppointment = firstAppointmentMap.get(patientKey) || '';
+        const appointmentCount = appointmentCountMap.get(patientKey) || 0;
+        const age = profile
+          ? calculateAge(profile)
+          : calculateAge({ date_of_birth: seed.booking?.patient_date_of_birth });
+
+        const patientName = profile?.full_name || profile?.name || seed.booking?.patient_name || t('Unknown Patient');
+        const patientGender = profile
+          ? getPatientGender(profile.gender || profile.sex)
+          : getPatientGender(seed.booking?.patient_gender);
+        const patientContact =
+          profile?.phone ||
+          seed.booking?.patient_phone ||
+          profile?.email ||
+          seed.booking?.patient_email ||
+          t('N/A');
+
         return {
-          id: userId,
-          user_id: userId,
+          id: patientKey,
+          user_id: seed.userId,
           name: patientName,
           gender: patientGender,
-          age: age,
+          age,
           contact: patientContact,
-          email: profile?.email || '',
-          lastAppointment: lastAppointment,
+          email: profile?.email || seed.booking?.patient_email || '',
+          lastAppointment,
           status: isActive(lastAppointment) ? 'active' : 'inactive',
-          firstAppointment: firstAppointment,
-          appointmentCount: appointmentCount,
+          firstAppointment,
+          appointmentCount,
+          isManual: seed.isManual,
         };
       });
       
@@ -420,9 +420,8 @@ const ClinicAdminPatients = () => {
     setLoadingAppointments(true);
 
     try {
-      // Fetch appointments for this patient via backend
       const { bookings: allBookings } = await api.clinicAdmin.getBookings();
-      const patientBookings = allBookings.filter((b: any) => b.user_id === patient.user_id);
+      const patientBookings = allBookings.filter((b: any) => getPatientKeyFromBooking(b) === patient.id);
       
       // Transform to appointment format
       const allAppointments = patientBookings.map((b: any) => ({
@@ -443,6 +442,10 @@ const ClinicAdminPatients = () => {
   };
 
   const handleOpenEditPatient = (patient: Patient) => {
+    if (isManualPatient(patient)) {
+      return;
+    }
+
     // Preserve selectedPatient for the save function
     setSelectedPatient(patient);
     setEditFormData({
@@ -459,6 +462,7 @@ const ClinicAdminPatients = () => {
 
   const handleSavePatientChanges = async () => {
     if (!selectedPatient) return;
+    if (isManualPatient(selectedPatient)) return;
 
     setSavingPatient(true);
     try {
@@ -807,13 +811,15 @@ const ClinicAdminPatients = () => {
                                   <Eye className="w-4 h-4" />
                                   {t('View Details')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleOpenEditPatient(patient)}
-                                  className="flex items-center gap-2 cursor-pointer"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                  {t('Edit Patient Info')}
-                                </DropdownMenuItem>
+                                {!patient.isManual && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleOpenEditPatient(patient)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                    {t('Edit Patient Info')}
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem 
                                   onClick={() => handleDeletePatient(patient)}
                                   className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
@@ -994,16 +1000,26 @@ const ClinicAdminPatients = () => {
                   >
                     Close
                   </Button>
-                  <Button
-                    onClick={() => {
-                      if (selectedPatient) {
-                        handleOpenEditPatient(selectedPatient);
-                      }
-                    }}
-                    className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium"
-                  >
-                    {t('Edit Patient Info')}
-                  </Button>
+                  {!selectedPatient?.isManual && (
+                    <Button
+                      onClick={() => {
+                        if (selectedPatient) {
+                          handleOpenEditPatient(selectedPatient);
+                        }
+                      }}
+                      className="bg-[#0C2243] dark:bg-[#00FFA2] hover:bg-[#0a1a35] dark:hover:bg-[#00FFA2]/90 text-white dark:text-[#0C2243] px-6 py-2.5 rounded-lg font-medium"
+                    >
+                      {t('Edit Patient Info')}
+                    </Button>
+                  )}
+                  {selectedPatient && (
+                    <Button
+                      onClick={() => handleDeletePatient(selectedPatient)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium"
+                    >
+                      {t('Delete Patient')}
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : null}

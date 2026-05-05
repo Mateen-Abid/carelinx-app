@@ -1,182 +1,29 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { getOccupiedSlots, validateBookingSlotConflict } from '../utils/booking-conflicts';
 
 const router = Router();
 
-const ACTIVE_BOOKING_STATUSES = ['confirmed'];
-
-const normalizeTimeValue = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const twelveHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (twelveHourMatch) {
-    const hourRaw = Number(twelveHourMatch[1]);
-    const minute = Number(twelveHourMatch[2]);
-    const period = twelveHourMatch[3].toUpperCase();
-
-    if (Number.isNaN(hourRaw) || Number.isNaN(minute) || hourRaw < 1 || hourRaw > 12 || minute < 0 || minute > 59) {
-      return null;
-    }
-
-    let hour24 = hourRaw % 12;
-    if (period === 'PM') {
-      hour24 += 12;
-    }
-
-    return `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  }
-
-  const twentyFourHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (twentyFourHourMatch) {
-    const hour = Number(twentyFourHourMatch[1]);
-    const minute = Number(twentyFourHourMatch[2]);
-
-    if (Number.isNaN(hour) || Number.isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-      return null;
-    }
-
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  }
-
-  return trimmed.replace(/\s+/g, '').toUpperCase();
+type BookingClinicRow = {
+  clinic_id?: string | null;
+  clinic?: string | null;
+  clinic_address?: string | null;
+  [key: string]: unknown;
 };
 
-const normalizeNameValue = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed.toLowerCase() : null;
+type ClinicAddressRow = {
+  id: string;
+  name: string;
+  address: string | null;
 };
 
-const clinicMatches = (
-  booking: { clinic_id?: string | null; clinic?: string | null },
-  clinicId?: string | null,
-  clinicName?: string | null
-) => {
-  if (clinicId) {
-    return booking.clinic_id === clinicId;
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
   }
 
-  if (clinicName) {
-    return normalizeNameValue(booking.clinic) === normalizeNameValue(clinicName);
-  }
-
-  return true;
-};
-
-const hasDoctorSlotConflict = async (
-  doctorId: string,
-  appointmentDate: string,
-  appointmentTime: string
-): Promise<boolean> => {
-  const normalizedRequestedTime = normalizeTimeValue(appointmentTime);
-  if (!normalizedRequestedTime) return false;
-
-  const { data, error } = await supabaseAdmin
-    .from('bookings')
-    .select('appointment_time')
-    .eq('doctor_id', doctorId)
-    .eq('appointment_date', appointmentDate)
-    .in('status', ACTIVE_BOOKING_STATUSES);
-
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).some((booking: any) => normalizeTimeValue(booking.appointment_time) === normalizedRequestedTime);
-};
-
-const hasDoctorSlotConflictByName = async (
-  doctorName: string,
-  appointmentDate: string,
-  appointmentTime: string,
-  clinicId?: string | null,
-  clinicName?: string | null
-): Promise<boolean> => {
-  const normalizedRequestedTime = normalizeTimeValue(appointmentTime);
-  const normalizedDoctorName = normalizeNameValue(doctorName);
-  if (!normalizedRequestedTime || !normalizedDoctorName) return false;
-
-  let query = supabaseAdmin
-    .from('bookings')
-    .select('doctor_name, appointment_time, clinic_id, clinic')
-    .eq('appointment_date', appointmentDate)
-    .in('status', ACTIVE_BOOKING_STATUSES);
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).some((booking: any) => {
-    const bookingDoctorName = normalizeNameValue(booking.doctor_name);
-    const bookingTime = normalizeTimeValue(booking.appointment_time);
-    return (
-      bookingDoctorName === normalizedDoctorName &&
-      bookingTime === normalizedRequestedTime &&
-      clinicMatches(booking, clinicId, clinicName)
-    );
-  });
-};
-
-const hasTreatmentSlotConflict = async (
-  treatmentId: string,
-  appointmentDate: string,
-  appointmentTime: string
-): Promise<boolean> => {
-  const normalizedRequestedTime = normalizeTimeValue(appointmentTime);
-  if (!normalizedRequestedTime) return false;
-
-  const { data, error } = await supabaseAdmin
-    .from('bookings')
-    .select('appointment_time')
-    .eq('treatment_id', treatmentId)
-    .eq('appointment_date', appointmentDate)
-    .in('status', ACTIVE_BOOKING_STATUSES);
-
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).some((booking: any) => normalizeTimeValue(booking.appointment_time) === normalizedRequestedTime);
-};
-
-const hasTreatmentSlotConflictByName = async (
-  treatmentName: string,
-  appointmentDate: string,
-  appointmentTime: string,
-  clinicId?: string | null,
-  clinicName?: string | null
-): Promise<boolean> => {
-  const normalizedRequestedTime = normalizeTimeValue(appointmentTime);
-  const normalizedTreatmentName = normalizeNameValue(treatmentName);
-  if (!normalizedRequestedTime || !normalizedTreatmentName) return false;
-
-  let query = supabaseAdmin
-    .from('bookings')
-    .select('treatment_name, appointment_time, clinic_id, clinic')
-    .eq('appointment_date', appointmentDate)
-    .in('status', ACTIVE_BOOKING_STATUSES);
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).some((booking: any) => {
-    const bookingTreatmentName = normalizeNameValue(booking.treatment_name);
-    const bookingTime = normalizeTimeValue(booking.appointment_time);
-    return (
-      bookingTreatmentName === normalizedTreatmentName &&
-      bookingTime === normalizedRequestedTime &&
-      clinicMatches(booking, clinicId, clinicName)
-    );
-  });
+  return 'Unknown error';
 };
 
 /**
@@ -222,119 +69,20 @@ router.get('/occupied-slots', async (req, res) => {
       return res.json({ occupiedDoctorSlots: {}, occupiedTreatmentSlots: {} });
     }
 
-    let occupiedDoctorSlots: Record<string, string[]> = {};
-    let occupiedTreatmentSlots: Record<string, string[]> = {};
-
-    if (doctorIds.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from('bookings')
-        .select('doctor_id, appointment_time')
-        .eq('appointment_date', date)
-        .in('doctor_id', doctorIds)
-        .in('status', ACTIVE_BOOKING_STATUSES);
-
-      if (error) throw error;
-
-      occupiedDoctorSlots = (data || []).reduce((acc: Record<string, string[]>, booking: any) => {
-        if (!booking.doctor_id || !booking.appointment_time) return acc;
-
-        if (!acc[booking.doctor_id]) {
-          acc[booking.doctor_id] = [];
-        }
-
-        acc[booking.doctor_id].push(booking.appointment_time);
-        return acc;
-      }, {});
-    }
-
-    if (doctorNames.length > 0) {
-      const query = supabaseAdmin
-        .from('bookings')
-        .select('doctor_name, appointment_time, clinic_id, clinic')
-        .eq('appointment_date', date)
-        .in('status', ACTIVE_BOOKING_STATUSES);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const requestedNameSet = new Set(doctorNames.map((name) => normalizeNameValue(name)).filter(Boolean));
-      (data || []).forEach((booking: any) => {
-        const normalizedDoctorName = normalizeNameValue(booking.doctor_name);
-        if (
-          !normalizedDoctorName ||
-          !requestedNameSet.has(normalizedDoctorName) ||
-          !booking.appointment_time ||
-          !clinicMatches(booking, clinicId, clinicName)
-        ) {
-          return;
-        }
-
-        if (!occupiedDoctorSlots[normalizedDoctorName]) {
-          occupiedDoctorSlots[normalizedDoctorName] = [];
-        }
-
-        occupiedDoctorSlots[normalizedDoctorName].push(booking.appointment_time);
-      });
-    }
-
-    if (treatmentIds.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from('bookings')
-        .select('treatment_id, appointment_time')
-        .eq('appointment_date', date)
-        .in('treatment_id', treatmentIds)
-        .in('status', ACTIVE_BOOKING_STATUSES);
-
-      if (error) throw error;
-
-      occupiedTreatmentSlots = (data || []).reduce((acc: Record<string, string[]>, booking: any) => {
-        if (!booking.treatment_id || !booking.appointment_time) return acc;
-
-        if (!acc[booking.treatment_id]) {
-          acc[booking.treatment_id] = [];
-        }
-
-        acc[booking.treatment_id].push(booking.appointment_time);
-        return acc;
-      }, {});
-    }
-
-    if (treatmentNames.length > 0) {
-      const query = supabaseAdmin
-        .from('bookings')
-        .select('treatment_name, appointment_time, clinic_id, clinic')
-        .eq('appointment_date', date)
-        .in('status', ACTIVE_BOOKING_STATUSES);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const requestedNameSet = new Set(treatmentNames.map((name) => normalizeNameValue(name)).filter(Boolean));
-      (data || []).forEach((booking: any) => {
-        const normalizedTreatmentName = normalizeNameValue(booking.treatment_name);
-        if (
-          !normalizedTreatmentName ||
-          !requestedNameSet.has(normalizedTreatmentName) ||
-          !booking.appointment_time ||
-          !clinicMatches(booking, clinicId, clinicName)
-        ) {
-          return;
-        }
-
-        if (!occupiedTreatmentSlots[normalizedTreatmentName]) {
-          occupiedTreatmentSlots[normalizedTreatmentName] = [];
-        }
-
-        occupiedTreatmentSlots[normalizedTreatmentName].push(booking.appointment_time);
-      });
-    }
+    const { occupiedDoctorSlots, occupiedTreatmentSlots } = await getOccupiedSlots({
+      date,
+      doctorIds,
+      doctorNames,
+      treatmentIds,
+      treatmentNames,
+      clinicId: clinicId || null,
+      clinicName: clinicName || null,
+    });
 
     res.json({ occupiedDoctorSlots, occupiedTreatmentSlots });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get occupied slots error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -376,9 +124,9 @@ router.get('/all', authenticate, async (req: AuthRequest, res) => {
       clinics: clinicsData || [],
       doctors: doctorsData || [],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get all bookings error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -399,10 +147,22 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     if (error) throw error;
 
     // Fetch clinics to get addresses
-    const clinicIds = [...new Set(data?.map((b: any) => b.clinic_id).filter((id: any) => id) || [])];
-    const clinicNames = [...new Set(data?.map((b: any) => b.clinic).filter((name: any) => name) || [])];
+    const clinicIds = [
+      ...new Set(
+        ((data as BookingClinicRow[] | null) || [])
+          .map((booking) => booking.clinic_id)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+    const clinicNames = [
+      ...new Set(
+        ((data as BookingClinicRow[] | null) || [])
+          .map((booking) => booking.clinic)
+          .filter((name): name is string => Boolean(name))
+      ),
+    ];
     
-    let clinicMap = new Map<string, { address: string | null }>();
+    const clinicMap = new Map<string, { address: string | null }>();
     
     if (clinicIds.length > 0) {
       const { data: clinicsById } = await supabaseAdmin
@@ -410,7 +170,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         .select('id, name, address')
         .in('id', clinicIds);
       
-      clinicsById?.forEach((clinic: any) => {
+      (clinicsById as ClinicAddressRow[] | null)?.forEach((clinic) => {
         clinicMap.set(clinic.id, { address: clinic.address });
         // Also map by name for fallback
         clinicMap.set(clinic.name.toLowerCase().trim(), { address: clinic.address });
@@ -424,14 +184,14 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         .select('id, name, address')
         .in('name', clinicNames);
       
-      clinicsByName?.forEach((clinic: any) => {
+      (clinicsByName as ClinicAddressRow[] | null)?.forEach((clinic) => {
         clinicMap.set(clinic.id, { address: clinic.address });
         clinicMap.set(clinic.name.toLowerCase().trim(), { address: clinic.address });
       });
     }
 
     // Add clinic address to each booking
-    const bookingsWithAddress = data?.map((booking: any) => {
+    const bookingsWithAddress = (data as BookingClinicRow[] | null)?.map((booking) => {
       let clinicAddress = null;
       
       // Try to find address by clinic_id first
@@ -452,9 +212,9 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     });
 
     res.json({ bookings: bookingsWithAddress || [] });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get bookings error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -465,58 +225,28 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const bookingData = { ...req.body, user_id: userId };
+    const bookingData = {
+      ...req.body,
+      user_id: userId,
+      booking_source: 'patient_app',
+      created_by_role: 'patient',
+      created_by_user_id: userId,
+    };
 
-    if (bookingData.doctor_id && bookingData.appointment_date && bookingData.appointment_time) {
-      const slotConflict = await hasDoctorSlotConflict(
-        bookingData.doctor_id,
-        bookingData.appointment_date,
-        bookingData.appointment_time
-      );
+    const slotConflict = await validateBookingSlotConflict({
+      bookingType: bookingData.booking_type || 'doctor',
+      doctorId: bookingData.doctor_id || null,
+      doctorName: bookingData.doctor_name || null,
+      treatmentId: bookingData.treatment_id || null,
+      treatmentName: bookingData.treatment_name || null,
+      appointmentDate: bookingData.appointment_date || null,
+      appointmentTime: bookingData.appointment_time || null,
+      clinicId: bookingData.clinic_id || null,
+      clinicName: bookingData.clinic || null,
+    });
 
-      if (slotConflict) {
-        return res.status(409).json({ error: 'This doctor time slot has already been booked' });
-      }
-    }
-
-    if (bookingData.doctor_name && bookingData.appointment_date && bookingData.appointment_time) {
-      const slotConflict = await hasDoctorSlotConflictByName(
-        bookingData.doctor_name,
-        bookingData.appointment_date,
-        bookingData.appointment_time,
-        bookingData.clinic_id || null,
-        bookingData.clinic || null
-      );
-
-      if (slotConflict) {
-        return res.status(409).json({ error: 'This doctor time slot has already been booked' });
-      }
-    }
-
-    if (bookingData.treatment_id && bookingData.appointment_date && bookingData.appointment_time) {
-      const slotConflict = await hasTreatmentSlotConflict(
-        bookingData.treatment_id,
-        bookingData.appointment_date,
-        bookingData.appointment_time
-      );
-
-      if (slotConflict) {
-        return res.status(409).json({ error: 'This treatment time slot has already been booked' });
-      }
-    }
-
-    if (bookingData.booking_type === 'treatment' && bookingData.treatment_name && bookingData.appointment_date && bookingData.appointment_time) {
-      const slotConflict = await hasTreatmentSlotConflictByName(
-        bookingData.treatment_name,
-        bookingData.appointment_date,
-        bookingData.appointment_time,
-        bookingData.clinic_id || null,
-        bookingData.clinic || null
-      );
-
-      if (slotConflict) {
-        return res.status(409).json({ error: 'This treatment time slot has already been booked' });
-      }
+    if (slotConflict.hasConflict) {
+      return res.status(409).json({ error: slotConflict.error });
     }
 
     const { data, error } = await supabaseAdmin
@@ -528,9 +258,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (error) throw error;
 
     res.json({ booking: data });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create booking error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -543,6 +273,49 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    const { data: existingBooking, error: existingBookingError } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (existingBookingError || !existingBooking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    const nextBooking = {
+      ...existingBooking,
+      ...updates,
+    };
+
+    const isSlotChange =
+      updates.appointment_date !== undefined ||
+      updates.appointment_time !== undefined ||
+      updates.doctor_id !== undefined ||
+      updates.doctor_name !== undefined ||
+      updates.treatment_id !== undefined ||
+      updates.treatment_name !== undefined ||
+      updates.booking_type !== undefined;
+
+    if (isSlotChange) {
+      const slotConflict = await validateBookingSlotConflict({
+        bookingType: nextBooking.booking_type || 'doctor',
+        doctorId: nextBooking.doctor_id || null,
+        doctorName: nextBooking.doctor_name || null,
+        treatmentId: nextBooking.treatment_id || null,
+        treatmentName: nextBooking.treatment_name || null,
+        appointmentDate: nextBooking.appointment_date || null,
+        appointmentTime: nextBooking.appointment_time || null,
+        clinicId: nextBooking.clinic_id || null,
+        clinicName: nextBooking.clinic || null,
+        excludeBookingId: id,
+      });
+
+      if (slotConflict.hasConflict) {
+        return res.status(409).json({ error: slotConflict.error });
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('bookings')
       .update(updates)
@@ -553,9 +326,9 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
     if (error) throw error;
 
     res.json({ booking: data });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update booking error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: getErrorMessage(error) });
   }
 });
 

@@ -13,10 +13,11 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
+import BookAppointmentModal from '@/components/clinic-admin/BookAppointmentModal';
 
 interface Appointment {
   id: string;
-  user_id: string;
+  user_id: string | null;
   patientName: string;
   doctorName: string;
   service: string;
@@ -75,6 +76,7 @@ const ClinicAdminAppointments = () => {
   const [isApproveConfirmModalOpen, setIsApproveConfirmModalOpen] = useState(false);
   const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [isBookAppointmentModalOpen, setIsBookAppointmentModalOpen] = useState(false);
   const [newAppointmentDate, setNewAppointmentDate] = useState<string>('');
   const [newAppointmentTime, setNewAppointmentTime] = useState<string>('');
 
@@ -242,7 +244,7 @@ const ClinicAdminAppointments = () => {
         }
         
         // Get patient name with better fallback - check all possible fields
-        let patientName = t('Unknown Patient');
+        let patientName = booking.patient_name || t('Unknown Patient');
         if (profile) {
           patientName = profile.full_name || profile.name || profile.email || t('Unknown Patient');
         } else if (booking.user_id) {
@@ -467,10 +469,15 @@ const ClinicAdminAppointments = () => {
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: finalProfileData?.full_name || appointment.patientName || t('Unknown Patient'),
-          gender: finalPatientGender,
-          contact: finalProfileData?.phone || finalProfileData?.email || appointment.patientName || t('Not provided'),
-          email: finalProfileData?.email || t('Not provided'),
+          name: finalProfileData?.full_name || bookingData.patient_name || appointment.patientName || t('Unknown Patient'),
+          gender: finalProfileData ? finalPatientGender : bookingData.patient_gender || t('Not specified'),
+          contact:
+            finalProfileData?.phone ||
+            bookingData.patient_phone ||
+            finalProfileData?.email ||
+            bookingData.patient_email ||
+            t('Not provided'),
+          email: finalProfileData?.email || bookingData.patient_email || t('Not provided'),
         },
         doctor: {
           name:
@@ -731,55 +738,73 @@ const ClinicAdminAppointments = () => {
               </div>
 
               {/* Status Filter Tabs and Date Filters Row */}
-              <div className="flex items-center justify-between mb-4">
-                {/* Status Filter Tabs */}
-                <div className="flex gap-2">
-                  {(['all', 'pending', 'approved', 'cancelled'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setStatusFilter(filter)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        statusFilter === filter
-                          ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      {filter === 'all' ? t('All') : t(filter.charAt(0).toUpperCase() + filter.slice(1))}
-                    </button>
-                  ))}
+              <div className="flex items-start justify-between mb-4 gap-6">
+                <div className="flex-1 min-w-0">
+                  {/* Status Filter Tabs */}
+                  <div className="flex gap-2 mb-4">
+                    {(['all', 'pending', 'approved', 'cancelled'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setStatusFilter(filter)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          statusFilter === filter
+                            ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        {filter === 'all' ? t('All') : t(filter.charAt(0).toUpperCase() + filter.slice(1))}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      type="text"
+                      placeholder={t('Search by patient, doctor/treatment, or service...')}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
+                    />
+                  </div>
                 </div>
 
                 {/* Date Range Filters */}
-                <div className="flex items-center gap-2">
-                  {(['today', 'tomorrow', 'this-week', 'all-time'] as const).map((filter) => (
+                <div className="flex flex-col items-end gap-3">
+                  <div className="flex items-center gap-2">
+                    {(['today', 'tomorrow', 'this-week'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setDateFilter(filter)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          dateFilter === filter
+                            ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                        }`}
+                      >
+                        {filter === 'today' ? t('Today') :
+                         filter === 'tomorrow' ? t('Tomorrow') :
+                         t('This week')}
+                      </button>
+                    ))}
                     <button
-                      key={filter}
-                      onClick={() => setDateFilter(filter)}
+                      onClick={() => setDateFilter('all-time')}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        dateFilter === filter
+                        dateFilter === 'all-time'
                           ? 'bg-[#00FFA2] text-[#0C2243] font-medium'
                           : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                       }`}
                     >
-                      {filter === 'today' ? t('Today') : 
-                       filter === 'tomorrow' ? t('Tomorrow') : 
-                       filter === 'this-week' ? t('This week') : t('To date')}
+                      {t('To date')}
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="mb-4">
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    type="text"
-                    placeholder={t('Search by patient, doctor/treatment, or service...')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg"
-                  />
+                  </div>
+                  <Button
+                    onClick={() => setIsBookAppointmentModalOpen(true)}
+                    className="bg-[#0C2243] text-white hover:bg-[#0A1D39] dark:bg-[#00FFA2] dark:text-[#0C2243] dark:hover:bg-[#00E693]"
+                  >
+                    {t('Book Appointment')}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1264,6 +1289,16 @@ const ClinicAdminAppointments = () => {
             ) : null}
           </DialogContent>
         </Dialog>
+        <BookAppointmentModal
+          clinic={clinic}
+          open={isBookAppointmentModalOpen}
+          onOpenChange={setIsBookAppointmentModalOpen}
+          onBooked={async () => {
+            if (clinic?.id) {
+              await fetchAppointments(clinic.id);
+            }
+          }}
+        />
       </div>
     </ProtectedRoute>
   );

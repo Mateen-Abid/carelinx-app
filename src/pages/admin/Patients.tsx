@@ -46,6 +46,7 @@ interface Patient {
   status: 'active' | 'inactive';
   doctorNames?: string[]; // Doctors this patient has appointments with
   clinicNames?: string[]; // Clinics this patient has appointments with
+  isManual?: boolean;
 }
 
 const AdminPatients = () => {
@@ -330,6 +331,7 @@ const AdminPatients = () => {
   };
 
   const handleOpenEditPatient = async (patient: Patient) => {
+    if (patient.isManual) return;
     setSelectedPatient(patient);
     try {
       const response = await api.patients.getPatientProfile(patient.user_id);
@@ -365,6 +367,7 @@ const AdminPatients = () => {
 
   const handleSavePatientChanges = async () => {
     if (!selectedPatient) return;
+    if (selectedPatient.isManual) return;
 
     if (!editFormData.fullName.trim()) {
       toast.error(t('Full name is required'));
@@ -468,6 +471,7 @@ const AdminPatients = () => {
   };
 
   const handleDeletePatient = (patient: Patient) => {
+    if (patient.isManual) return;
     setPatientToDelete(patient);
     setDeleteConfirmName('');
     setIsDeleteConfirmModalOpen(true);
@@ -727,20 +731,24 @@ const AdminPatients = () => {
                                   <Eye className="w-4 h-4" />
                                   {t('View Details')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="flex items-center gap-2 cursor-pointer"
-                                  onClick={() => handleOpenEditPatient(patient)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                  {t('Edit Patient Info')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="flex items-center gap-2 cursor-pointer text-red-600"
-                                  onClick={() => handleDeletePatient(patient)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  {t('Delete Patient')}
-                                </DropdownMenuItem>
+                                {!patient.isManual && (
+                                  <>
+                                    <DropdownMenuItem 
+                                      className="flex items-center gap-2 cursor-pointer"
+                                      onClick={() => handleOpenEditPatient(patient)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                      {t('Edit Patient Info')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      className="flex items-center gap-2 cursor-pointer text-red-600"
+                                      onClick={() => handleDeletePatient(patient)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      {t('Delete Patient')}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>

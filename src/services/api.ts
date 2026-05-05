@@ -193,7 +193,9 @@ export const bookingsApi = {
       searchParams.set('clinic', params.clinic);
     }
 
-    return fetchWithAuth(`/bookings/occupied-slots?${searchParams.toString()}`);
+    return fetchWithAuth(`/bookings/occupied-slots?${searchParams.toString()}`, {
+      cache: 'no-store',
+    });
   },
 
   getAllBookings: async () => {
@@ -508,6 +510,13 @@ export const clinicAdminApi = {
     return fetchWithAuth(`/clinic-admin/bookings${params}`);
   },
 
+  createBooking: async (data: any) => {
+    return fetchWithAuth('/clinic-admin/bookings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   getProfile: async () => {
     return fetchWithAuth('/clinic-admin/profile');
   },
@@ -581,7 +590,7 @@ export const clinicAdminApi = {
   },
 
   deletePatient: async (userId: string) => {
-    return fetchWithAuth(`/clinic-admin/patients/${userId}`, {
+    return fetchWithAuth(`/clinic-admin/patients/${encodeURIComponent(userId)}`, {
       method: 'DELETE',
     });
   },

@@ -30,7 +30,7 @@ interface Appointment {
   appointment_date: string;
   appointment_time: string;
   status: 'pending' | 'confirmed' | 'cancelled';
-  user_id?: string;
+  user_id?: string | null;
 }
 
 interface AppointmentDetails {
@@ -79,8 +79,8 @@ const ClinicAdminDashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Appointment[]>([]);
   const [bookingsCache, setBookingsCache] = useState<any[]>([]);
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'tomorrow' | 'this-week'>('today');
-  const [selectedPendingFilter, setSelectedPendingFilter] = useState<'today' | 'tomorrow' | 'this-week'>('today');
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState<'today' | 'tomorrow' | 'this-week'>('this-week');
+  const [selectedPendingFilter, setSelectedPendingFilter] = useState<'today' | 'tomorrow' | 'this-week'>('this-week');
   
   // Appointment Details Modal
   const [selectedAppointmentDetails, setSelectedAppointmentDetails] = useState<AppointmentDetails | null>(null);
@@ -91,6 +91,25 @@ const ClinicAdminDashboard = () => {
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [newAppointmentDate, setNewAppointmentDate] = useState<string>('');
   const [newAppointmentTime, setNewAppointmentTime] = useState<string>('');
+
+  const normalizeManualIdentityValue = (value: string | null | undefined) =>
+    String(value || '').trim().toLowerCase();
+
+  const getBookingPatientKey = (booking: any) => {
+    if (booking?.user_id) {
+      return `user:${booking.user_id}`;
+    }
+
+    const manualIdentity = [
+      normalizeManualIdentityValue(booking?.patient_name),
+      normalizeManualIdentityValue(booking?.patient_phone),
+      normalizeManualIdentityValue(booking?.patient_email),
+    ]
+      .filter(Boolean)
+      .join('|');
+
+    return manualIdentity ? `manual:${manualIdentity}` : null;
+  };
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -221,9 +240,6 @@ const ClinicAdminDashboard = () => {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
       
-      // Get all unique patient IDs
-      const allPatientIds = new Set(bookingsWithProfiles?.map((b: any) => b.user_id) || []);
-      
       // Get patient IDs with bookings in the last 7 days
       const recentBookings = bookingsWithProfiles?.filter((b: any) => {
         const bookingDate = new Date(b.appointment_date);
@@ -233,10 +249,12 @@ const ClinicAdminDashboard = () => {
       // Find patients who had their first booking in the last 7 days
       const patientFirstBookingMap = new Map<string, Date>();
       bookingsWithProfiles?.forEach((b: any) => {
+        const patientKey = getBookingPatientKey(b);
+        if (!patientKey) return;
         const bookingDate = new Date(b.appointment_date);
-        const existing = patientFirstBookingMap.get(b.user_id);
+        const existing = patientFirstBookingMap.get(patientKey);
         if (!existing || bookingDate < existing) {
-          patientFirstBookingMap.set(b.user_id, bookingDate);
+          patientFirstBookingMap.set(patientKey, bookingDate);
         }
       });
       
@@ -276,7 +294,7 @@ const ClinicAdminDashboard = () => {
       const formatAppointments = (bookings: any[]): Appointment[] => {
         return bookings.map((booking: any) => ({
           id: booking.id,
-          patient_name: booking.profile?.full_name || t('Unknown Patient'),
+          patient_name: booking.profile?.full_name || booking.patient_name || t('Unknown Patient'),
           doctor_name:
             booking.booking_type === 'treatment' && booking.treatment_name
               ? booking.treatment_name
@@ -331,8 +349,7 @@ const ClinicAdminDashboard = () => {
           const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
           if (dateCompare !== 0) return dateCompare;
           return a.appointment_time.localeCompare(b.appointment_time);
-        })
-        .slice(0, 10); // Limit to 10
+        });
       setUpcomingAppointments(formatAppointments(upcoming));
 
       // Filter pending requests based on selected pending filter
@@ -369,8 +386,7 @@ const ClinicAdminDashboard = () => {
           const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
           if (dateCompare !== 0) return dateCompare;
           return a.appointment_time.localeCompare(b.appointment_time);
-        })
-        .slice(0, 10); // Limit to 10
+        });
       setPendingRequests(formatAppointments(pending));
 
       setLoading(false);
@@ -394,9 +410,8 @@ const ClinicAdminDashboard = () => {
       weekStart.setDate(weekStart.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      const bookingsWithProfiles = bookingsCache.length > 0
-        ? bookingsCache
-        : (await api.clinicAdmin.getBookings(selectedTimeFilter)).bookings || [];
+      const bookingsWithProfiles = (await api.clinicAdmin.getBookings()).bookings || [];
+      setBookingsCache(bookingsWithProfiles);
 
       // Filter by date range
       let filteredBookings = bookingsWithProfiles;
@@ -435,12 +450,11 @@ const ClinicAdminDashboard = () => {
           const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
           if (dateCompare !== 0) return dateCompare;
           return a.appointment_time.localeCompare(b.appointment_time);
-        })
-        .slice(0, 10);
+        });
 
       setUpcomingAppointments(upcoming.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profile?.full_name || t('Unknown Patient'),
+        patient_name: booking.profile?.full_name || booking.patient_name || t('Unknown Patient'),
         doctor_name:
           booking.booking_type === 'treatment' && booking.treatment_name
             ? booking.treatment_name
@@ -474,9 +488,8 @@ const ClinicAdminDashboard = () => {
       weekStart.setDate(weekStart.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      const bookingsWithProfiles = bookingsCache.length > 0
-        ? bookingsCache
-        : (await api.clinicAdmin.getBookings(selectedPendingFilter)).bookings || [];
+      const bookingsWithProfiles = (await api.clinicAdmin.getBookings()).bookings || [];
+      setBookingsCache(bookingsWithProfiles);
 
       // Filter by date range
       let filteredBookings = bookingsWithProfiles;
@@ -509,12 +522,11 @@ const ClinicAdminDashboard = () => {
           const dateCompare = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
           if (dateCompare !== 0) return dateCompare;
           return a.appointment_time.localeCompare(b.appointment_time);
-        })
-        .slice(0, 10);
+        });
 
       setPendingRequests(pending.map((booking: any) => ({
         id: booking.id,
-        patient_name: booking.profile?.full_name || t('Unknown Patient'),
+        patient_name: booking.profile?.full_name || booking.patient_name || t('Unknown Patient'),
         doctor_name: booking.doctor_name,
         specialty: booking.specialty,
         appointment_date: booking.appointment_date,
@@ -591,10 +603,10 @@ const ClinicAdminDashboard = () => {
       const details: AppointmentDetails = {
         id: appointment.id,
         patient: {
-          name: profileData?.full_name || appointment.patient_name || t('Unknown Patient'),
-          gender: profileData?.gender || t('Not specified'),
-          contact: profileData?.phone || t('Not provided'),
-          email: profileData?.email || t('Not provided'),
+          name: profileData?.full_name || bookingData.patient_name || appointment.patient_name || t('Unknown Patient'),
+          gender: profileData?.gender || bookingData.patient_gender || t('Not specified'),
+          contact: profileData?.phone || bookingData.patient_phone || bookingData.patient_email || t('Not provided'),
+          email: profileData?.email || bookingData.patient_email || t('Not provided'),
         },
         doctor: {
           name:

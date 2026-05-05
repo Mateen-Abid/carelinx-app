@@ -31,7 +31,7 @@ import {
 
 interface Appointment {
   id: string;
-  user_id: string;
+  user_id: string | null;
   patientName: string;
   patientEmail?: string;
   patientGender?: string;
@@ -92,6 +92,16 @@ const AdminAppointments = () => {
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [newAppointmentDate, setNewAppointmentDate] = useState<string>('');
   const [newAppointmentTime, setNewAppointmentTime] = useState<string>('');
+
+  const normalizeManualIdentityValue = (value: string | null | undefined) =>
+    String(value || '').trim().toLowerCase();
+
+  const hasManualSnapshot = (booking: any) =>
+    Boolean(
+      normalizeManualIdentityValue(booking?.patient_name) ||
+      normalizeManualIdentityValue(booking?.patient_phone) ||
+      normalizeManualIdentityValue(booking?.patient_email)
+    );
 
   useEffect(() => {
     fetchAppointments();
@@ -187,37 +197,33 @@ const AdminAppointments = () => {
       
       setClinics(Array.from(uniqueClinics).sort());
 
-      // Transform bookings to appointments - handle both clinic_id and clinic name
-      // Only include appointments where:
-      // 1. We have a valid profile (real patients)
-      // 2. The appointment is linked to a real clinic (clinic_id exists in clinics table)
-      // 3. The appointment is linked to a real doctor (doctor_id or doctor_name matches a real doctor)
+      // Transform bookings to appointments - keep real clinic bookings even when
+      // the patient came from receptionist/manual snapshot fields instead of a profile.
       const bookingsWithProfiles = (bookingsData || []).filter((booking: any) => {
-        // Only include bookings that have a matching profile (real patients)
         const profile = profileMap.get(booking.user_id);
-        if (!profile || !(profile.full_name || profile.email)) {
+        const hasPatientIdentity = Boolean(profile?.full_name || profile?.email || hasManualSnapshot(booking));
+        if (!hasPatientIdentity) {
           return false;
         }
 
-        // Only include bookings from real clinics (clinic_id exists in clinics table)
         if (booking.clinic_id && !clinicMap.has(booking.clinic_id)) {
           return false;
         }
 
-        // Only include bookings linked to real doctors
-        // Check by doctor_id first (most reliable)
-        if (booking.doctor_id) {
+        if (booking.booking_type === 'treatment') {
+          if (!(booking.treatment_id || booking.treatment_name)) {
+            return false;
+          }
+        } else if (booking.doctor_id) {
           if (!doctorIdMap.has(booking.doctor_id)) {
-            return false; // doctor_id doesn't match any real doctor
+            return false;
           }
         } else if (booking.doctor_name) {
-          // If no doctor_id, check by doctor_name (normalized for comparison)
           const normalizedDoctorName = booking.doctor_name.trim().toLowerCase();
           if (!doctorNameMap.has(normalizedDoctorName)) {
-            return false; // doctor_name doesn't match any real doctor
+            return false;
           }
         } else {
-          // No doctor_id or doctor_name - skip this booking
           return false;
         }
 
@@ -228,7 +234,7 @@ const AdminAppointments = () => {
         totalBookings: bookingsData?.length || 0,
         bookingsWithProfiles: bookingsWithProfiles.length,
         filteredOut: (bookingsData?.length || 0) - bookingsWithProfiles.length,
-        reason: 'Only showing appointments with real patients, real clinics, and real doctors'
+        reason: 'Only showing appointments with real clinics and valid patient/provider data'
       });
 
       // Extract unique doctors and specialties for filter dropdowns
@@ -251,7 +257,7 @@ const AdminAppointments = () => {
 
       const appointments: Appointment[] = bookingsWithProfiles.map((booking: any) => {
         const profile = profileMap.get(booking.user_id);
-        const patientName = profile?.full_name || profile?.email || t('Unknown Patient');
+        const patientName = profile?.full_name || profile?.email || booking.patient_name || booking.patient_email || t('Unknown Patient');
         
         // Get clinic name - prefer from clinic_id mapping, fallback to clinic field
         let clinicName = booking.clinic || t('Unknown Clinic');
@@ -295,9 +301,9 @@ const AdminAppointments = () => {
           id: booking.id,
           user_id: booking.user_id,
           patientName: patientName,
-          patientEmail: profile?.email || '',
-          patientGender: profile?.gender || profile?.sex || t('N/A'),
-          patientContact: profile?.phone || profile?.contact || profile?.phone_number || t('N/A'),
+          patientEmail: profile?.email || booking.patient_email || '',
+          patientGender: profile?.gender || profile?.sex || booking.patient_gender || t('N/A'),
+          patientContact: profile?.phone || profile?.contact || profile?.phone_number || booking.patient_phone || booking.patient_email || t('N/A'),
           doctorName: appointmentLabel,
           service: booking.specialty || t('Unknown Service'),
           serviceName: booking.service_name || null,

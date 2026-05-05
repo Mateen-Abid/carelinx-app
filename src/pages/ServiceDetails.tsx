@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -726,52 +726,51 @@ const ServiceDetails = () => {
     return doctors;
   };
 
-  useEffect(() => {
-    if (loading) return;
+  const fetchOccupiedSlots = useCallback(async (targetDate: Date) => {
+    try {
+      const date = format(targetDate, 'yyyy-MM-dd');
+      const fallbackDoctors = !isDatabaseService ? getHardcodedDoctors() : [];
+      const doctorIds = databaseDoctors.map((doctor) => doctor.id).filter(Boolean);
+      const doctorNames = (isDatabaseService ? databaseDoctors : fallbackDoctors)
+        .map((doctor) => doctor.name)
+        .filter(Boolean);
+      const treatmentIds = availableTreatments.map((treatment) => treatment.id).filter(Boolean);
+      const treatmentNames = availableTreatments.map((treatment) => treatment.name).filter(Boolean);
 
-    const fetchOccupiedSlots = async () => {
-      try {
-        const date = format(selectedDisplayDate, 'yyyy-MM-dd');
-        const fallbackDoctors = !isDatabaseService ? getHardcodedDoctors() : [];
-        const doctorIds = databaseDoctors.map((doctor) => doctor.id).filter(Boolean);
-        const doctorNames = (isDatabaseService ? databaseDoctors : fallbackDoctors)
-          .map((doctor) => doctor.name)
-          .filter(Boolean);
-        const treatmentIds = availableTreatments.map((treatment) => treatment.id).filter(Boolean);
-        const treatmentNames = availableTreatments.map((treatment) => treatment.name).filter(Boolean);
-
-        if (
-          doctorIds.length === 0 &&
-          doctorNames.length === 0 &&
-          treatmentIds.length === 0 &&
-          treatmentNames.length === 0
-        ) {
-          setOccupiedDoctorSlots({});
-          setOccupiedTreatmentSlots({});
-          return;
-        }
-
-        const response = await api.bookings.getOccupiedSlots({
-          date,
-          doctorIds,
-          doctorNames,
-          treatmentIds,
-          treatmentNames,
-          clinicId: isDatabaseService ? databaseClinic?.id : undefined,
-          clinic: !isDatabaseService && clinic ? clinic.name : undefined,
-        });
-
-        setOccupiedDoctorSlots(response?.occupiedDoctorSlots || {});
-        setOccupiedTreatmentSlots(response?.occupiedTreatmentSlots || {});
-      } catch (error) {
-        console.error('Error fetching occupied slots:', error);
+      if (
+        doctorIds.length === 0 &&
+        doctorNames.length === 0 &&
+        treatmentIds.length === 0 &&
+        treatmentNames.length === 0
+      ) {
         setOccupiedDoctorSlots({});
         setOccupiedTreatmentSlots({});
+        return;
       }
-    };
 
-    fetchOccupiedSlots();
-  }, [selectedDisplayDate, loading, isDatabaseService, databaseDoctors, availableTreatments, databaseClinic?.id, clinic]);
+      const response = await api.bookings.getOccupiedSlots({
+        date,
+        doctorIds,
+        doctorNames,
+        treatmentIds,
+        treatmentNames,
+        clinicId: isDatabaseService ? databaseClinic?.id : undefined,
+        clinic: !isDatabaseService && clinic ? clinic.name : undefined,
+      });
+
+      setOccupiedDoctorSlots(response?.occupiedDoctorSlots || {});
+      setOccupiedTreatmentSlots(response?.occupiedTreatmentSlots || {});
+    } catch (error) {
+      console.error('Error fetching occupied slots:', error);
+      setOccupiedDoctorSlots({});
+      setOccupiedTreatmentSlots({});
+    }
+  }, [availableTreatments, clinic, databaseClinic?.id, databaseDoctors, isDatabaseService]);
+
+  useEffect(() => {
+    if (loading) return;
+    fetchOccupiedSlots(selectedDisplayDate);
+  }, [selectedDisplayDate, loading, fetchOccupiedSlots]);
   
   if (loading) {
     return (
@@ -855,14 +854,23 @@ const ServiceDetails = () => {
     setIsBookingConfirmationOpen(true);
   };
 
-  const handleTreatmentSelect = (treatment: ClinicTreatmentRecord) => {
+  const handleTreatmentSelect = async (treatment: ClinicTreatmentRecord) => {
     setSelectedTreatment(treatment);
     setSelectedDoctor('');
     setSelectedDate(selectedDisplayDate);
+    await fetchOccupiedSlots(selectedDisplayDate);
     setIsTimeSlotModalOpen(true);
   };
 
-  const handleDateSelect = (date: Date) => {
+  const handleDoctorSelect = async (doctorName: string) => {
+    setSelectedTreatment(null);
+    setSelectedDoctor(doctorName);
+    setSelectedDate(selectedDisplayDate);
+    await fetchOccupiedSlots(selectedDisplayDate);
+    setIsTimeSlotModalOpen(true);
+  };
+
+  const handleDateSelect = async (date: Date) => {
     // Check if user is authenticated before allowing date selection
     if (!user) {
       // Store the intended action for after login
@@ -876,6 +884,7 @@ const ServiceDetails = () => {
     }
     
     setSelectedDate(date);
+    await fetchOccupiedSlots(date);
     setIsTimeSlotModalOpen(true);
   };
 
@@ -1320,12 +1329,7 @@ const ServiceDetails = () => {
                   className={`bg-white border border-gray-200 rounded-lg p-4 transition-shadow ${
                     isDoctorAvailable ? 'cursor-pointer hover:shadow-md' : 'cursor-not-allowed opacity-70'
                   }`}
-                  onClick={isDoctorAvailable ? () => {
-                    setSelectedTreatment(null);
-                    setSelectedDoctor(doctor.name);
-                    setSelectedDate(selectedDisplayDate);
-                    setIsTimeSlotModalOpen(true);
-                  } : undefined}
+                  onClick={isDoctorAvailable ? () => handleDoctorSelect(doctor.name) : undefined}
                   aria-disabled={!isDoctorAvailable}
                 >
                   <div className="flex items-center gap-4">
