@@ -15,7 +15,7 @@ import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Upload, Mountain, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CarelinxIcon from '@/assets/carelinx-icon.svg';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -113,13 +113,13 @@ const ClinicOnboarding = () => {
   const [operatingHours, setOperatingHours] = useState<{
     [key: number]: { opening: string; closing: string; isClosed: boolean }
   }>({
-    0: { opening: '', closing: '', isClosed: false }, // Sunday
-    1: { opening: '', closing: '', isClosed: false }, // Monday
-    2: { opening: '', closing: '', isClosed: false }, // Tuesday
-    3: { opening: '', closing: '', isClosed: false }, // Wednesday
-    4: { opening: '', closing: '', isClosed: false }, // Thursday
-    5: { opening: '', closing: '', isClosed: false }, // Friday
-    6: { opening: '', closing: '', isClosed: false }, // Saturday
+    0: { opening: '', closing: '', isClosed: true }, // Sunday
+    1: { opening: '', closing: '', isClosed: true }, // Monday
+    2: { opening: '', closing: '', isClosed: true }, // Tuesday
+    3: { opening: '', closing: '', isClosed: true }, // Wednesday
+    4: { opening: '', closing: '', isClosed: true }, // Thursday
+    5: { opening: '', closing: '', isClosed: true }, // Friday
+    6: { opening: '', closing: '', isClosed: true }, // Saturday
   });
 
   // Check if user should access this page and restore incomplete onboarding
@@ -286,7 +286,10 @@ const ClinicOnboarding = () => {
     });
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
+    const preview = clinicInfo.logoPreview;
+    const shouldDeleteSavedLogo = Boolean(preview && !preview.startsWith('blob:'));
+
     setClinicInfo((prev) => {
       if (prev.logoPreview?.startsWith('blob:')) {
         URL.revokeObjectURL(prev.logoPreview);
@@ -298,6 +301,16 @@ const ClinicOnboarding = () => {
         logoRemoved: true,
       };
     });
+
+    if (!shouldDeleteSavedLogo) return;
+
+    try {
+      await api.clinicAdmin.removeLogo();
+      toast.success(t('Logo removed'));
+    } catch (error) {
+      console.error('❌ Error removing logo:', error);
+      toast.error(t('Failed to remove logo'));
+    }
   };
 
   const handleSpecialtySelect = (value: string) => {
@@ -313,6 +326,36 @@ const ClinicOnboarding = () => {
     setClinicInfo(prev => ({
       ...prev,
       specialties: prev.specialties.filter(s => s !== value),
+    }));
+  };
+
+  const handleDayOpenToggle = (dayValue: number) => {
+    const hours = operatingHours[dayValue];
+
+    if (hours.isClosed) {
+      if (!hours.opening || !hours.closing) {
+        toast.error(t('Please select opening and closing time'));
+        return;
+      }
+
+      const openingMinutes = dbTimeToMinutes(convertToDatabaseTime(hours.opening));
+      const closingMinutes = dbTimeToMinutes(convertToDatabaseTime(hours.closing));
+      if (openingMinutes === null || closingMinutes === null || closingMinutes <= openingMinutes) {
+        toast.error(t('Closing time must be after opening time'));
+        return;
+      }
+
+      setOperatingHours((prev) => ({
+        ...prev,
+        [dayValue]: { ...prev[dayValue], isClosed: false },
+      }));
+      toast.success(t('{{day}} hours set', { day: t(daysOfWeek.find((day) => day.value === dayValue)?.label || '') }));
+      return;
+    }
+
+    setOperatingHours((prev) => ({
+      ...prev,
+      [dayValue]: { ...prev[dayValue], isClosed: true },
     }));
   };
 
@@ -471,7 +514,7 @@ const ClinicOnboarding = () => {
     } else if (currentStep === 'operating-hours') {
       // Validate Step 3 - at least one day should have hours
       const hasHours = Object.values(operatingHours).some(
-        hours => !hours.isClosed && hours.opening && hours.closing
+        (hours) => !hours.isClosed && hours.opening && hours.closing
       );
 
       if (!hasHours) {
@@ -502,11 +545,11 @@ const ClinicOnboarding = () => {
         // Convert display time to database time and prepare hours
         const hoursToInsert = daysOfWeek.map(day => ({
           day_of_week: day.value,
-          opening_time: operatingHours[day.value].isClosed 
-            ? null 
+          opening_time: operatingHours[day.value].isClosed
+            ? null
             : convertToDatabaseTime(operatingHours[day.value].opening),
-          closing_time: operatingHours[day.value].isClosed 
-            ? null 
+          closing_time: operatingHours[day.value].isClosed
+            ? null
             : convertToDatabaseTime(operatingHours[day.value].closing),
           is_closed: operatingHours[day.value].isClosed,
         }));
@@ -550,15 +593,15 @@ const ClinicOnboarding = () => {
   return (
     <ProtectedRoute allowedRoles={['clinic_admin']}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8" dir={isRtl ? 'rtl' : 'ltr'}>
           {/* Logo + language switcher */}
           <div className="relative mb-6">
             <div className="flex justify-center">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1" dir="ltr">
                 <img
                   src={CarelinxIcon}
                   alt="Carelinx icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 shrink-0"
                 />
                 <span className="text-2xl font-bold leading-none">
                   <span className="text-[#0C2243] dark:text-white">care</span>
@@ -609,19 +652,15 @@ const ClinicOnboarding = () => {
                   {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16 rounded-lg bg-[#00FFA2] border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="relative w-16 h-16 rounded-lg bg-white border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {clinicInfo.logoPreview ? (
                       <img
                         src={clinicInfo.logoPreview}
                         alt={t('Clinic logo preview')}
                         className="max-h-full max-w-full object-contain p-1.5"
                       />
-                    ) : clinicInfo.name.trim() ? (
-                      <span className="text-[#0C2243] text-xl font-bold">
-                        {clinicInfo.name.trim().charAt(0).toUpperCase()}
-                      </span>
                     ) : (
-                      <Mountain className="w-7 h-7 text-[#0C2243]/50" />
+                      <ImageIcon className="w-7 h-7 text-[#0C2243]/50" />
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -697,7 +736,7 @@ const ClinicOnboarding = () => {
                           value={specialty}
                           className="dark:text-white cursor-pointer"
                         >
-                          {specialty}
+                          {t(specialty)}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -711,13 +750,13 @@ const ClinicOnboarding = () => {
                   </p>
                 )}
                 {clinicInfo.specialties.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2 justify-start">
                     {clinicInfo.specialties.map((specialty) => (
                       <span
                         key={specialty}
-                        className="px-3 py-1 bg-[#0C2243] dark:bg-[#00FFA2] text-white dark:text-[#0C2243] rounded-full text-sm flex items-center gap-2"
+                        className="px-3 py-1 bg-[#0C2243] dark:bg-[#00FFA2] text-white dark:text-[#0C2243] rounded-full text-sm inline-flex items-center gap-2"
                       >
-                        {specialty}
+                        {t(specialty)}
                         <button
                           type="button"
                           onClick={() => handleSpecialtyRemove(specialty)}
@@ -879,6 +918,9 @@ const ClinicOnboarding = () => {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">
                 {t('OPERATING HOURS')}
               </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('Select opening and closing time, then click Open for each working day.')}
+              </p>
 
               <div className="space-y-4">
                 {daysOfWeek.map((day) => (
@@ -886,27 +928,27 @@ const ClinicOnboarding = () => {
                     key={day.value}
                     className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
-                    <div className="w-28 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div className="min-w-28 shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300 text-start">
                       {t(day.label)}
                     </div>
                     <div className="flex-1 grid grid-cols-2 gap-3">
                       <Select
                         value={operatingHours[day.value].opening}
+                        disabled={!operatingHours[day.value].isClosed}
                         onValueChange={(value) =>
                           setOperatingHours(prev => ({
                             ...prev,
                             [day.value]: { ...prev[day.value], opening: value },
                           }))
                         }
-                        disabled={operatingHours[day.value].isClosed}
                       >
-                        <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
-                          <SelectValue placeholder={t('Select time')} />
+                        <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-70">
+                          <SelectValue placeholder={t('Opening')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
                           {timeSlots.map((time) => (
                             <SelectItem
-                              key={time}
+                              key={`${day.value}-open-${time}`}
                               value={time}
                               className="dark:text-white cursor-pointer"
                             >
@@ -917,16 +959,16 @@ const ClinicOnboarding = () => {
                       </Select>
                       <Select
                         value={operatingHours[day.value].closing}
+                        disabled={!operatingHours[day.value].isClosed}
                         onValueChange={(value) =>
                           setOperatingHours(prev => ({
                             ...prev,
                             [day.value]: { ...prev[day.value], closing: value },
                           }))
                         }
-                        disabled={operatingHours[day.value].isClosed}
                       >
-                        <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white">
-                          <SelectValue placeholder={t('Select time')} />
+                        <SelectTrigger className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white disabled:opacity-70">
+                          <SelectValue placeholder={t('Closing')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 max-h-[300px]">
                           {timeSlots.map((time) => (
@@ -944,24 +986,14 @@ const ClinicOnboarding = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() =>
-                        setOperatingHours(prev => ({
-                          ...prev,
-                          [day.value]: {
-                            ...prev[day.value],
-                            isClosed: !prev[day.value].isClosed,
-                            opening: !prev[day.value].isClosed ? prev[day.value].opening : '',
-                            closing: !prev[day.value].isClosed ? prev[day.value].closing : '',
-                          },
-                        }))
-                      }
+                      onClick={() => handleDayOpenToggle(day.value)}
                       className={`${
                         operatingHours[day.value].isClosed
-                          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
-                          : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                          ? 'bg-[#0C2243] hover:bg-[#0a1a35] text-white border-[#0C2243]'
+                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
                       }`}
                     >
-                      {operatingHours[day.value].isClosed ? t('Closed') : t('Open')}
+                      {operatingHours[day.value].isClosed ? t('Open') : t('Closed')}
                     </Button>
                   </div>
                 ))}

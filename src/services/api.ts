@@ -601,6 +601,12 @@ export const clinicAdminApi = {
       body: JSON.stringify(data),
     });
   },
+
+  removeLogo: async () => {
+    return fetchWithAuth('/clinic-admin/clinic/logo', {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Doctor API

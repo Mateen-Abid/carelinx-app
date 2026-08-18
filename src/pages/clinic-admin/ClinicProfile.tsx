@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, X, Trash2, Upload } from 'lucide-react';
+import { Pencil, X, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -345,13 +345,27 @@ const ClinicAdminClinicProfile = () => {
     setLogoRemoved(false);
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
+    const preview = logoPreview;
+    const shouldDeleteSavedLogo = Boolean(preview && !preview.startsWith('blob:'));
+
     if (logoPreview?.startsWith('blob:')) {
       URL.revokeObjectURL(logoPreview);
     }
     setLogoFile(null);
     setLogoPreview(null);
     setLogoRemoved(true);
+
+    if (!shouldDeleteSavedLogo) return;
+
+    try {
+      await api.clinicAdmin.removeLogo();
+      setClinic((prev) => (prev ? { ...prev, logo_url: null } : prev));
+      toast.success(t('Logo removed'));
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      toast.error(t('Failed to remove logo'));
+    }
   };
 
   const uploadLogoToStorage = async (file: File): Promise<string | null> => {
@@ -589,7 +603,7 @@ const ClinicAdminClinicProfile = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-[#00FFA2] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-16 h-16 bg-white rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {clinic.logo_url ? (
                           <img
                             src={clinic.logo_url}
@@ -597,9 +611,7 @@ const ClinicAdminClinicProfile = () => {
                             className="max-h-full max-w-full object-contain p-1.5"
                           />
                         ) : (
-                          <span className="text-[#0C2243] text-xl font-bold">
-                            {clinic.name.charAt(0).toUpperCase()}
-                          </span>
+                          <ImageIcon className="w-7 h-7 text-[#0C2243]/50" />
                         )}
                       </div>
                       <div>
@@ -665,7 +677,7 @@ const ClinicAdminClinicProfile = () => {
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Specialties')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {clinic.specialties && clinic.specialties.length > 0
-                          ? clinic.specialties.join(', ')
+                          ? clinic.specialties.map((specialty) => t(specialty)).join(', ')
                           : t('N/A')}
                       </span>
                     </div>
@@ -787,19 +799,15 @@ const ClinicAdminClinicProfile = () => {
                   {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-lg bg-[#00FFA2] flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <div className="w-16 h-16 rounded-lg bg-white flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-700">
                     {logoPreview ? (
                       <img
                         src={logoPreview}
                         alt={t('Clinic logo')}
                         className="max-h-full max-w-full object-contain p-1.5"
                       />
-                    ) : editProfileForm.name.trim() ? (
-                      <span className="text-[#0C2243] text-xl font-bold">
-                        {editProfileForm.name.trim().charAt(0).toUpperCase()}
-                      </span>
                     ) : (
-                      <div className="w-8 h-8 bg-white/80 rounded" />
+                      <ImageIcon className="w-7 h-7 text-[#0C2243]/50" />
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -858,13 +866,13 @@ const ClinicAdminClinicProfile = () => {
                 <div className="space-y-2">
                   {/* Selected Specialties as Tags */}
                   {editProfileForm.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="flex flex-wrap gap-2 mb-2 justify-start">
                       {editProfileForm.specialties.map((specialty) => (
                         <span
                           key={specialty}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium"
                         >
-                          {specialty}
+                          {t(specialty)}
                           <button
                             type="button"
                             onClick={() => handleSpecialtyRemove(specialty)}
@@ -886,7 +894,7 @@ const ClinicAdminClinicProfile = () => {
                         .filter(s => !editProfileForm.specialties.includes(s))
                         .map((specialty) => (
                           <SelectItem key={specialty} value={specialty}>
-                            {specialty}
+                            {t(specialty)}
                           </SelectItem>
                         ))}
                     </SelectContent>

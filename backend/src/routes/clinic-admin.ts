@@ -1626,29 +1626,42 @@ router.get('/insights/bookings', authenticate, async (req: AuthRequest, res) => 
 
 const ALLOWED_LOGO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
-const ensureClinicAssetsBucket = async () => {
-  const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
-  if (listError) {
-    throw new Error(listError.message);
-  }
-
-  const existing = buckets?.find((bucket) => bucket.name === 'clinic-assets');
-  if (existing) return;
-
-  const { error: createError } = await supabaseAdmin.storage.createBucket('clinic-assets', {
-    public: true,
-    fileSizeLimit: 5 * 1024 * 1024,
-    allowedMimeTypes: ALLOWED_LOGO_MIME_TYPES,
-  });
-
-  if (createError && !/already exists/i.test(createError.message)) {
-    throw new Error(createError.message);
-  }
+const getPublicApiBase = (req: AuthRequest) => {
+  const forwardedHost = req.get('x-forwarded-host');
+  const host = forwardedHost || req.get('host');
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+  return process.env.API_PUBLIC_URL || `${proto}://${host}`;
 };
 
 /**
+ * GET /api/clinic-admin/public/clinic-logos/:id
+ * Public logo file served from the clinic_logo_files table
+ */
+router.get('/public/clinic-logos/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('clinic_logo_files')
+      .select('content_type, data')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (error || !data?.data) {
+      return res.status(404).json({ error: 'Logo not found' });
+    }
+
+    const buffer = Buffer.from(data.data, 'base64');
+    res.setHeader('Content-Type', data.content_type || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.send(buffer);
+  } catch (error: any) {
+    console.error('❌ Get clinic logo error:', error);
+    return res.status(404).json({ error: 'Logo not found' });
+  }
+});
+
+/**
  * POST /api/clinic-admin/clinic/logo
- * Upload clinic logo to Supabase storage
+ * Upload clinic logo without using Storage RLS
  */
 router.post('/clinic/logo', authenticate, async (req: AuthRequest, res) => {
   try {
@@ -1678,39 +1691,83 @@ router.post('/clinic/logo', authenticate, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Image size must be less than 5MB' });
     }
 
-    await ensureClinicAssetsBucket();
+    const { data: clinicData } = await supabaseAdmin
+      .from('clinics')
+      .select('id')
+      .eq('clinic_admin_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    const storageFileName = `${userId}/${Date.now()}.${fileExt}`;
-    const filePath = `clinic-logos/${storageFileName}`;
+    if (clinicData?.id) {
+      await supabaseAdmin.from('clinic_logo_files').delete().eq('clinic_id', clinicData.id);
+    }
 
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('clinic-assets')
-      .upload(filePath, fileBuffer, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: inferredType.startsWith('image/') ? inferredType : `image/${fileExt}`,
+    const { data: logoRow, error: insertError } = await supabaseAdmin
+      .from('clinic_logo_files')
+      .insert({
+        clinic_id: clinicData?.id || null,
+        user_id: userId,
+        file_name: String(fileName).slice(0, 255),
+        content_type: inferredType.startsWith('image/') ? inferredType : `image/${fileExt}`,
+        data: base64Data,
+      })
+      .select('id')
+      .single();
+
+    if (insertError || !logoRow?.id) {
+      console.error('❌ Error saving logo:', insertError);
+      return res.status(400).json({
+        error: insertError?.message || 'Failed to save logo. Please run the clinic_logo_files migration.',
       });
-
-    if (uploadError) {
-      console.error('❌ Error uploading logo:', uploadError);
-      return res.status(400).json({ error: uploadError.message });
     }
 
-    if (!uploadData) {
-      return res.status(400).json({ error: 'Upload failed' });
-    }
-
-    const { data: { publicUrl } } = supabaseAdmin.storage
-      .from('clinic-assets')
-      .getPublicUrl(filePath);
-
-    if (!publicUrl) {
-      return res.status(400).json({ error: 'Failed to get logo URL' });
-    }
-
-    res.json({ logo_url: publicUrl });
+    const logoUrl = `${getPublicApiBase(req)}/api/clinic-admin/public/clinic-logos/${logoRow.id}`;
+    res.json({ logo_url: logoUrl });
   } catch (error: any) {
     console.error('❌ Upload logo error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/clinic-admin/clinic/logo
+ * Remove the authenticated clinic's uploaded logo
+ */
+router.delete('/clinic/logo', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: clinicData, error: clinicError } = await supabaseAdmin
+      .from('clinics')
+      .select('id, logo_url')
+      .eq('clinic_admin_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (clinicError || !clinicData) {
+      return res.status(404).json({ error: 'Clinic not found' });
+    }
+
+    if (clinicData.id) {
+      await supabaseAdmin.from('clinic_logo_files').delete().eq('clinic_id', clinicData.id);
+    }
+
+    const logoUrl = String(clinicData.logo_url || '');
+    const match = logoUrl.match(/clinic-logos\/([0-9a-f-]{36})/i);
+    if (match?.[1]) {
+      await supabaseAdmin.from('clinic_logo_files').delete().eq('id', match[1]);
+    }
+
+    await supabaseAdmin
+      .from('clinics')
+      .update({ logo_url: null })
+      .eq('id', clinicData.id);
+
+    res.json({ success: true, logo_url: null });
+  } catch (error: any) {
+    console.error('❌ Remove logo error:', error);
     res.status(400).json({ error: error.message });
   }
 });

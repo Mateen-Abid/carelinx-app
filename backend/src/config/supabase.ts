@@ -14,7 +14,12 @@ export const createSupabaseAdminClient = () =>
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    }
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${supabaseServiceKey}`,
+      },
+    },
   });
 
 export const supabaseAdmin = createSupabaseAdminClient();
