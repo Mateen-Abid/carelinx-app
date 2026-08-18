@@ -768,6 +768,22 @@ const Index = () => {
     setViewMode('services'); // Switch back to services view
   };
 
+  const handleHomeReset = () => {
+    setSelectedCategory('');
+    setViewMode('services');
+    setSearchQuery('');
+    setSelectedService('');
+    setSelectedServiceId('');
+    setSelectedBookingKind('service');
+    setClinicSearchQuery('');
+    setDistanceFilter(null);
+    setShowDistanceFilter(false);
+    setIsBookingModalOpen(false);
+    setSelectedClinic('');
+    selectedClinicRef.current = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Wrapper for viewMode change that preserves selectedCategory when switching views
   const handleViewModeChange = (mode: 'services' | 'clinics') => {
     // Never clear selectedCategory when switching views - preserve it so user can navigate back
@@ -1427,6 +1443,7 @@ const Index = () => {
       <Header 
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
+        onLogoClick={handleHomeReset}
       />
       <HeroSection 
         viewMode={viewMode}

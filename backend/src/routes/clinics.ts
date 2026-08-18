@@ -12,7 +12,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, address, logo_url, specialties, description, status')
+      .select('id, name, name_ar, address, address_ar, logo_url, specialties, description, description_ar, status')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -36,7 +36,7 @@ router.get('/by-admin/:adminId', authenticate, async (req: AuthRequest, res) => 
     
     const { data, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, status, logo_url, address, specialties, description')
+      .select('id, name, name_ar, status, logo_url, address, address_ar, specialties, description, description_ar')
       .eq('clinic_admin_id', adminId)
       .maybeSingle();
 
@@ -70,7 +70,7 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res) => {
     
     const { data, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, address, logo_url, specialties, description, status')
+      .select('id, name, name_ar, address, address_ar, logo_url, specialties, description, description_ar, status')
       .eq('id', id)
       .eq('status', 'active')
       .maybeSingle();

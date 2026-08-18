@@ -45,19 +45,84 @@ const dbTimeToMinutes = (dbTime: string | null): number | null => {
 router.post('/clinic', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const { name, email, description, specialties, logo_url, address } = req.body;
+    const {
+      name,
+      email,
+      description,
+      specialties,
+      logo_url,
+      address,
+      city,
+      district,
+      street,
+      address_details,
+      name_ar,
+      description_ar,
+      address_ar,
+    } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    const { data: existingClinic, error: existingError } = await supabaseAdmin
+      .from('clinics')
+      .select('id, status')
+      .eq('clinic_admin_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('❌ Error checking existing clinic:', existingError);
+      return res.status(400).json({ error: existingError.message });
+    }
+
+    // Resume onboarding against the existing clinic instead of inserting a duplicate
+    if (existingClinic) {
+      const { data: clinicData, error } = await supabaseAdmin
+        .from('clinics')
+        .update({
+          name,
+          name_ar: name_ar || null,
+          email,
+          address: address || '',
+          city: city || null,
+          district: district || null,
+          street: street || null,
+          address_details: address_details || null,
+          address_ar: address_ar || null,
+          description: description || null,
+          description_ar: description_ar || null,
+          specialties: specialties || null,
+          logo_url: logo_url || null,
+        })
+        .eq('id', existingClinic.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating existing clinic during onboarding:', error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.json({ clinic: clinicData });
     }
 
     const { data: clinicData, error } = await supabaseAdmin
       .from('clinics')
       .insert({
         name,
+        name_ar: name_ar || null,
         email,
         address: address || '',
+        city: city || null,
+        district: district || null,
+        street: street || null,
+        address_details: address_details || null,
+        address_ar: address_ar || null,
         description: description || null,
+        description_ar: description_ar || null,
         specialties: specialties || null,
         logo_url: logo_url || null,
         clinic_admin_id: userId,
@@ -198,8 +263,10 @@ router.get('/clinic', authenticate, async (req: AuthRequest, res) => {
     
     const { data: clinicData, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, status, logo_url, specialties, email, contact_phone, contact_email, address, description, registration_date')
+      .select('id, name, name_ar, status, logo_url, specialties, email, contact_phone, contact_email, address, city, district, street, address_details, address_ar, description, description_ar, country, registration_date')
       .eq('clinic_admin_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (error) {
@@ -1557,6 +1624,28 @@ router.get('/insights/bookings', authenticate, async (req: AuthRequest, res) => 
   }
 });
 
+const ALLOWED_LOGO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+
+const ensureClinicAssetsBucket = async () => {
+  const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+  if (listError) {
+    throw new Error(listError.message);
+  }
+
+  const existing = buckets?.find((bucket) => bucket.name === 'clinic-assets');
+  if (existing) return;
+
+  const { error: createError } = await supabaseAdmin.storage.createBucket('clinic-assets', {
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    allowedMimeTypes: ALLOWED_LOGO_MIME_TYPES,
+  });
+
+  if (createError && !/already exists/i.test(createError.message)) {
+    throw new Error(createError.message);
+  }
+};
+
 /**
  * POST /api/clinic-admin/clinic/logo
  * Upload clinic logo to Supabase storage
@@ -1564,40 +1653,42 @@ router.get('/insights/bookings', authenticate, async (req: AuthRequest, res) => 
 router.post('/clinic/logo', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    
-    // Get clinic ID
-    const { data: clinicData, error: clinicError } = await supabaseAdmin
-      .from('clinics')
-      .select('id')
-      .eq('clinic_admin_id', userId)
-      .maybeSingle();
-
-    if (clinicError || !clinicData) {
-      return res.status(404).json({ error: 'Clinic not found' });
-    }
-
-    // Note: File uploads should be sent as multipart/form-data
-    // For now, we'll accept base64 encoded file or use a file upload library
-    // This is a simplified version - you may want to use multer or similar
     const { file, fileName, fileType } = req.body;
 
     if (!file || !fileName) {
       return res.status(400).json({ error: 'File and fileName are required' });
     }
 
-    // Convert base64 to buffer if needed
-    const fileBuffer = Buffer.from(file, 'base64');
-    const fileExt = fileName.split('.').pop();
+    const normalizedType = String(fileType || '').toLowerCase();
+    const fileExt = String(fileName).split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const inferredType = normalizedType || (fileExt === 'jpg' ? 'image/jpeg' : `image/${fileExt}`);
+
+    if (!ALLOWED_LOGO_MIME_TYPES.includes(inferredType) && !['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExt)) {
+      return res.status(400).json({ error: 'Please upload a JPG, PNG, WEBP, or GIF image' });
+    }
+
+    const base64Data = String(file).includes(',') ? String(file).split(',').pop() || '' : String(file);
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+    if (!fileBuffer.length) {
+      return res.status(400).json({ error: 'Invalid image data' });
+    }
+
+    if (fileBuffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image size must be less than 5MB' });
+    }
+
+    await ensureClinicAssetsBucket();
+
     const storageFileName = `${userId}/${Date.now()}.${fileExt}`;
     const filePath = `clinic-logos/${storageFileName}`;
 
-    // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('clinic-assets')
       .upload(filePath, fileBuffer, {
         cacheControl: '3600',
-        upsert: false,
-        contentType: fileType || `image/${fileExt}`,
+        upsert: true,
+        contentType: inferredType.startsWith('image/') ? inferredType : `image/${fileExt}`,
       });
 
     if (uploadError) {
@@ -1609,10 +1700,13 @@ router.post('/clinic/logo', authenticate, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Upload failed' });
     }
 
-    // Get public URL
     const { data: { publicUrl } } = supabaseAdmin.storage
       .from('clinic-assets')
       .getPublicUrl(filePath);
+
+    if (!publicUrl) {
+      return res.status(400).json({ error: 'Failed to get logo URL' });
+    }
 
     res.json({ logo_url: publicUrl });
   } catch (error: any) {

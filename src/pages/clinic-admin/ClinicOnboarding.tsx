@@ -11,21 +11,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Upload, Mountain, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Upload, Mountain, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CarelinxIcon from '@/assets/carelinx-icon.svg';
+import LanguageToggle from '@/components/LanguageToggle';
 
 type OnboardingStep = 'clinic-info' | 'contact-details' | 'operating-hours';
 
+const daysOfWeek = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+];
+
+const convertToDatabaseTime = (displayTime: string): string | null => {
+  if (!displayTime) return null;
+  const [time, period] = displayTime.split(' ');
+  const [hours, minutes] = time.split(':');
+  let hour24 = parseInt(hours, 10);
+
+  if (period === 'PM' && hour24 !== 12) {
+    hour24 += 12;
+  } else if (period === 'AM' && hour24 === 12) {
+    hour24 = 0;
+  }
+
+  return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+};
+
+const convertToDisplayTime = (dbTime: string | null): string => {
+  if (!dbTime) return '';
+  const [hours, minutes] = dbTime.split(':');
+  const hour = parseInt(hours, 10);
+  const minute = (minutes || '00').padStart(2, '0');
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour.toString().padStart(2, '0')}:${minute} ${period}`;
+};
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_LOGO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+const dbTimeToMinutes = (dbTime: string | null): number | null => {
+  if (!dbTime) return null;
+  const [hours, minutes] = dbTime.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+};
+
+const normalizePhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10);
+
 const ClinicOnboarding = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar' || i18n.language.startsWith('ar');
   
   // ALL HOOKS MUST BE DECLARED BEFORE ANY CONDITIONAL RETURNS
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('clinic-info');
@@ -37,6 +88,7 @@ const ClinicOnboarding = () => {
   const [clinicInfo, setClinicInfo] = useState({
     logo: null as File | null,
     logoPreview: null as string | null,
+    logoRemoved: false,
     name: '',
     specialties: [] as string[],
     description: '',
@@ -50,8 +102,10 @@ const ClinicOnboarding = () => {
   const [contactDetails, setContactDetails] = useState({
     email: user?.email || '',
     phone: '',
-    address: '',
     city: '',
+    district: '',
+    street: '',
+    addressDetails: '',
     country: 'Saudi Arabia',
   });
 
@@ -68,120 +122,96 @@ const ClinicOnboarding = () => {
     6: { opening: '', closing: '', isClosed: false }, // Saturday
   });
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 ClinicOnboarding Component Mounted');
-    console.log('👤 User:', user?.id, user?.email);
-    console.log('🎭 UserRole:', userRole);
-    console.log('💾 localStorage role:', localStorage.getItem('userRole'));
-  }, []);
-
-  // Check if user should access this page
+  // Check if user should access this page and restore incomplete onboarding
   useEffect(() => {
     let isMounted = true;
-    
-    const checkAccess = async () => {
-      try {
-        console.log('🔍 ClinicOnboarding: Checking access...', { user: user?.id, userRole });
-        
-        // Wait a bit for userRole to load if user exists but role doesn't
-        if (user && !userRole) {
-          console.log('⏳ Waiting for userRole to load...');
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
 
+    const checkAccess = async () => {
+      if (authLoading) return;
+
+      const storedRole = localStorage.getItem('userRole');
+      const effectiveRole = userRole || storedRole;
+
+      if (!user) {
+        if (isMounted) setCheckingAccess(false);
+        return;
+      }
+
+      if (effectiveRole && effectiveRole !== 'clinic_admin') {
+        navigate('/', { replace: true });
+        return;
+      }
+
+      try {
+        const { clinic, operatingHours: hoursData } = await api.clinicAdmin.getClinic();
         if (!isMounted) return;
 
-        if (!user) {
-          console.log('❌ ClinicOnboarding: No user, redirecting to auth');
-          navigate('/auth', { replace: true });
+        if (clinic?.status === 'active') {
+          navigate('/clinic-admin/dashboard', { replace: true });
           return;
         }
 
-        // Check localStorage as fallback for role
-        const storedRole = localStorage.getItem('userRole');
-        const effectiveRole = userRole || storedRole;
-        
-        console.log('👤 Effective role:', effectiveRole, 'from userRole:', userRole, 'from localStorage:', storedRole);
+        if (clinic) {
+          setClinicId(clinic.id);
+          setClinicInfo((prev) => ({
+            ...prev,
+            name: clinic.name || '',
+            specialties: Array.isArray(clinic.specialties) ? clinic.specialties : [],
+            description: clinic.description || '',
+            logoPreview: clinic.logo_url || prev.logoPreview,
+            logoRemoved: false,
+          }));
+          setContactDetails((prev) => ({
+            ...prev,
+            email: clinic.contact_email || clinic.email || user?.email || prev.email,
+            phone: clinic.contact_phone || '',
+            city: clinic.city || '',
+            district: clinic.district || '',
+            street: clinic.street || '',
+            addressDetails: clinic.address_details || clinic.address || '',
+            country: clinic.country || 'Saudi Arabia',
+          }));
 
-        if (effectiveRole !== 'clinic_admin') {
-          console.log('❌ ClinicOnboarding: User is not clinic_admin, role:', effectiveRole);
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // Check if clinic already exists and is active via backend
-        console.log('🔍 ClinicOnboarding: Checking for existing clinic...');
-        try {
-          const { clinic } = await api.clinicAdmin.getClinic();
-
-          if (!isMounted) return;
-
-          console.log('📋 ClinicOnboarding: Clinic check result:', { clinic });
-
-          // If clinic exists and is active, redirect to dashboard
-          if (clinic && clinic.status === 'active') {
-            console.log('✅ ClinicOnboarding: Clinic already active, redirecting to dashboard');
-            navigate('/clinic-admin/dashboard', { replace: true });
-            return;
+          if (Array.isArray(hoursData) && hoursData.length > 0) {
+            setOperatingHours((prev) => {
+              const next = { ...prev };
+              hoursData.forEach((hour: {
+                day_of_week: number;
+                opening_time: string | null;
+                closing_time: string | null;
+                is_closed: boolean;
+              }) => {
+                next[hour.day_of_week] = {
+                  opening: convertToDisplayTime(hour.opening_time),
+                  closing: convertToDisplayTime(hour.closing_time),
+                  isClosed: !!hour.is_closed,
+                };
+              });
+              return next;
+            });
           }
-
-          // If clinic exists but pending, load it
-          if (clinic && clinic.status === 'pending') {
-            setClinicId(clinic.id);
-          }
-
-          // Allow access if no clinic or status is pending
-          console.log('✅ ClinicOnboarding: Access granted - no clinic or pending status');
-          if (isMounted) setCheckingAccess(false);
-        } catch (error: any) {
-          console.error('❌ ClinicOnboarding: Error checking clinic:', error);
-          // Still allow access - might be RLS issue, but user should be able to create clinic
-          if (isMounted) setCheckingAccess(false);
         }
-      } catch (error: any) {
-        console.error('❌ ClinicOnboarding: Error in checkAccess:', error);
-        // On error, still allow access (better UX)
+      } catch (error) {
+        console.error('ClinicOnboarding: no existing clinic yet', error);
+      } finally {
         if (isMounted) setCheckingAccess(false);
       }
     };
 
-    // Always try to check access, even if user/userRole not loaded yet
     checkAccess();
-
-    // Timeout fallback - if still checking after 5 seconds, allow access
-    const timeout = setTimeout(() => {
-      if (isMounted && checkingAccess) {
-        console.log('⏰ Timeout: Allowing access after 5 seconds');
-        setCheckingAccess(false);
-      }
-    }, 5000);
 
     return () => {
       isMounted = false;
-      clearTimeout(timeout);
     };
-  }, [user, userRole, navigate, checkingAccess]);
+  }, [user, userRole, authLoading, navigate]);
 
-  // Fetch super admin specialties
+  // Fetch super admin specialties through the backend (client has no Supabase session)
   useEffect(() => {
     const fetchSuperAdminSpecialties = async () => {
       try {
         setLoadingSpecialties(true);
-        
-        const { data: specialtiesData, error: specialtiesError } = await (supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from('super_admin_specialties' as any)
-          .select('name')
-          .eq('is_active', true)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .order('name', { ascending: true }) as any);
-
-        if (specialtiesError) {
-          console.error('Error fetching specialties:', specialtiesError);
-        } else {
-          setAvailableSpecialties((specialtiesData || []).map((s: any) => s.name));
-        }
+        const { specialties } = await api.services.getSpecialties();
+        setAvailableSpecialties((specialties || []).map((s: { name: string }) => s.name));
       } catch (error) {
         console.error('Error fetching super admin specialties:', error);
       } finally {
@@ -194,16 +224,19 @@ const ClinicOnboarding = () => {
 
   // Update contactDetails email when user changes
   useEffect(() => {
-    if (user?.email && !contactDetails.email) {
-      setContactDetails(prev => ({ ...prev, email: user.email || '' }));
+    if (user?.email) {
+      setContactDetails((prev) => (prev.email ? prev : { ...prev, email: user.email || '' }));
     }
   }, [user?.email]);
 
   // NOW we can have conditional returns after all hooks are declared
-  if (checkingAccess) {
+  if (checkingAccess || authLoading) {
     return (
       <ProtectedRoute allowedRoles={['clinic_admin']}>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
+          <div className="absolute top-4 end-4">
+            <LanguageToggle variant="onLight" />
+          </div>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2243] dark:border-[#00FFA2] mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">{t('Loading...')}</p>
@@ -223,51 +256,48 @@ const ClinicOnboarding = () => {
     return `${displayHour.toString().padStart(2, '0')}:${minute} ${period}`;
   });
 
-  // Convert display time (12-hour) to database time (24-hour HH:MM:SS)
-  const convertToDatabaseTime = (displayTime: string): string | null => {
-    if (!displayTime) return null;
-    const [time, period] = displayTime.split(' ');
-    const [hours, minutes] = time.split(':');
-    let hour24 = parseInt(hours);
-    
-    if (period === 'PM' && hour24 !== 12) {
-      hour24 += 12;
-    } else if (period === 'AM' && hour24 === 12) {
-      hour24 = 0;
-    }
-    
-    return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
-  };
-
-  const daysOfWeek = [
-    { value: 0, label: 'Sunday' },
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-  ];
-
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error(t('Please upload an image file'));
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(t('Image size must be less than 5MB'));
-        return;
-      }
+    e.target.value = '';
+    if (!file) return;
 
-      setClinicInfo(prev => ({
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const isAllowedType = ALLOWED_LOGO_TYPES.includes(file.type) || ALLOWED_LOGO_EXTENSIONS.includes(extension);
+    if (!isAllowedType) {
+      toast.error(t('Please upload a JPG, PNG, WEBP, or GIF image'));
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('Image size must be less than 5MB'));
+      return;
+    }
+
+    setClinicInfo((prev) => {
+      if (prev.logoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(prev.logoPreview);
+      }
+      return {
         ...prev,
         logo: file,
         logoPreview: URL.createObjectURL(file),
-      }));
-    }
+        logoRemoved: false,
+      };
+    });
+  };
+
+  const handleRemoveLogo = () => {
+    setClinicInfo((prev) => {
+      if (prev.logoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(prev.logoPreview);
+      }
+      return {
+        ...prev,
+        logo: null,
+        logoPreview: null,
+        logoRemoved: true,
+      };
+    });
   };
 
   const handleSpecialtySelect = (value: string) => {
@@ -310,16 +340,15 @@ const ClinicOnboarding = () => {
 
       console.log('✅ Logo uploaded successfully:', logo_url);
       return logo_url;
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Error in uploadLogoToStorage:', error);
-      toast.error(t('Failed to upload logo: {{message}}', { message: error.message || t('Unknown error') }));
+      toast.error(t('Failed to upload logo: {{message}}', { message: getErrorMessage(error) || t('Unknown error') }));
       return null;
     }
   };
 
   const handleNextStep = async () => {
     if (currentStep === 'clinic-info') {
-      // Validate Step 1
       if (!clinicInfo.name.trim()) {
         toast.error(t('Please enter clinic name'));
         return;
@@ -335,47 +364,43 @@ const ClinicOnboarding = () => {
 
       setLoading(true);
       try {
-        let logoUrl = null;
+        let currentClinicId = clinicId;
+        const clinicPayload = {
+          name: clinicInfo.name.trim(),
+          description: clinicInfo.description.trim(),
+          specialties: clinicInfo.specialties,
+        };
 
-        // Upload logo if provided (but don't block if it fails - make it optional)
-        if (clinicInfo.logo) {
-          console.log('📤 Attempting to upload logo...');
-          logoUrl = await uploadLogoToStorage(clinicInfo.logo);
-          if (!logoUrl) {
-            // Logo upload failed, but allow user to continue without logo
-            console.warn('⚠️ Logo upload failed, but continuing without logo');
-            toast.warning(t('Logo upload failed. You can continue without a logo or try again later.'));
-            // Don't return - allow them to proceed without logo
-          }
+        // Save clinic first so later steps and logo attach to a real record
+        if (currentClinicId) {
+          await api.clinicAdmin.updateClinic(clinicPayload);
+        } else {
+          const { clinic } = await api.clinicAdmin.createClinic({
+            ...clinicPayload,
+            email: user?.email || contactDetails.email || '',
+            address: '',
+          });
+          currentClinicId = clinic.id;
+          setClinicId(clinic.id);
         }
 
-        // Create or update clinic in database via backend
-        if (clinicId) {
-          // Update existing clinic
-          await api.clinicAdmin.updateClinic({
-            name: clinicInfo.name,
-            description: clinicInfo.description,
-            specialties: clinicInfo.specialties,
-            logo_url: logoUrl || undefined,
-          });
-        } else {
-          // Create new clinic
-          const { clinic } = await api.clinicAdmin.createClinic({
-            name: clinicInfo.name,
-            email: user?.email || '',
-            address: '', // Will be filled in Step 2
-            description: clinicInfo.description,
-            specialties: clinicInfo.specialties,
-            logo_url: logoUrl,
-          });
-          setClinicId(clinic.id);
+        if (clinicInfo.logo) {
+          const logoUrl = await uploadLogoToStorage(clinicInfo.logo);
+          if (!logoUrl) {
+            toast.error(t('Logo upload failed. Please try a JPG or PNG under 5MB.'));
+            return;
+          }
+          await api.clinicAdmin.updateClinic({ logo_url: logoUrl });
+          setClinicInfo((prev) => ({ ...prev, logo: null, logoPreview: logoUrl, logoRemoved: false }));
+        } else if (clinicInfo.logoRemoved) {
+          await api.clinicAdmin.updateClinic({ logo_url: null });
         }
 
         toast.success(t('Clinic information saved!'));
         setCurrentStep('contact-details');
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error saving clinic info:', error);
-        toast.error(t('Failed to save clinic information: {{message}}', { message: error.message }));
+        toast.error(t('Failed to save clinic information: {{message}}', { message: getErrorMessage(error) }));
       } finally {
         setLoading(false);
       }
@@ -389,8 +414,24 @@ const ClinicOnboarding = () => {
         toast.error(t('Please enter phone number'));
         return;
       }
-      if (!contactDetails.address.trim()) {
-        toast.error(t('Please enter clinic address'));
+      if (normalizePhoneNumber(contactDetails.phone).length !== 10) {
+        toast.error(t('Phone number must be 10 digits'));
+        return;
+      }
+      if (!contactDetails.city.trim()) {
+        toast.error(t('Please enter city'));
+        return;
+      }
+      if (!contactDetails.district.trim()) {
+        toast.error(t('Please enter district'));
+        return;
+      }
+      if (!contactDetails.street.trim()) {
+        toast.error(t('Please enter street'));
+        return;
+      }
+      if (!contactDetails.addressDetails.trim()) {
+        toast.error(t('Please enter address details'));
         return;
       }
       if (!clinicId) {
@@ -400,23 +441,30 @@ const ClinicOnboarding = () => {
 
       setLoading(true);
       try {
-        const fullAddress = contactDetails.city.trim()
-          ? `${contactDetails.address}, ${contactDetails.city.trim()}`
-          : contactDetails.address;
+        const fullAddress = [
+          contactDetails.street.trim(),
+          contactDetails.district.trim(),
+          contactDetails.city.trim(),
+          contactDetails.addressDetails.trim(),
+        ].filter(Boolean).join(', ');
 
         await api.clinicAdmin.updateClinic({
           email: contactDetails.email,
-          contact_phone: contactDetails.phone,
+          contact_phone: normalizePhoneNumber(contactDetails.phone),
           contact_email: contactDetails.email,
+          city: contactDetails.city.trim(),
+          district: contactDetails.district.trim(),
+          street: contactDetails.street.trim(),
+          address_details: contactDetails.addressDetails.trim(),
           address: fullAddress,
           country: 'Saudi Arabia',
         });
 
         toast.success(t('Contact details saved!'));
         setCurrentStep('operating-hours');
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error saving contact details:', error);
-        toast.error(t('Failed to save contact details: {{message}}', { message: error.message }));
+        toast.error(t('Failed to save contact details: {{message}}', { message: getErrorMessage(error) }));
       } finally {
         setLoading(false);
       }
@@ -428,6 +476,19 @@ const ClinicOnboarding = () => {
 
       if (!hasHours) {
         toast.error(t('Please set operating hours for at least one day'));
+        return;
+      }
+
+      const invalidHours = daysOfWeek.find((day) => {
+        const hours = operatingHours[day.value];
+        if (hours.isClosed || !hours.opening || !hours.closing) return false;
+        const openingMinutes = dbTimeToMinutes(convertToDatabaseTime(hours.opening));
+        const closingMinutes = dbTimeToMinutes(convertToDatabaseTime(hours.closing));
+        return openingMinutes === null || closingMinutes === null || closingMinutes <= openingMinutes;
+      });
+
+      if (invalidHours) {
+        toast.error(t('Closing time must be after opening time'));
         return;
       }
 
@@ -462,9 +523,9 @@ const ClinicOnboarding = () => {
         setTimeout(() => {
           navigate('/clinic-admin/dashboard', { replace: true });
         }, 1500);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error saving operating hours:', error);
-        toast.error(t('Failed to save operating hours: {{message}}', { message: error.message }));
+        toast.error(t('Failed to save operating hours: {{message}}', { message: getErrorMessage(error) }));
         setLoading(false);
       }
     }
@@ -490,23 +551,28 @@ const ClinicOnboarding = () => {
     <ProtectedRoute allowedRoles={['clinic_admin']}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <div className="flex items-center gap-2">
-              <img
-                src={CarelinxIcon}
-                alt="Carelinx icon"
-                className="h-8 w-8"
-              />
-              <span className="text-2xl font-bold leading-none">
-                <span className="text-[#0C2243] dark:text-white">care</span>
-                <span className="text-[#00FFA2]">linx</span>
-              </span>
+          {/* Logo + language switcher */}
+          <div className="relative mb-6">
+            <div className="flex justify-center">
+              <div className="flex items-center gap-2">
+                <img
+                  src={CarelinxIcon}
+                  alt="Carelinx icon"
+                  className="h-8 w-8"
+                />
+                <span className="text-2xl font-bold leading-none">
+                  <span className="text-[#0C2243] dark:text-white">care</span>
+                  <span className="text-[#00FFA2]">linx</span>
+                </span>
+              </div>
+            </div>
+            <div className="absolute top-0 end-0">
+              <LanguageToggle variant="onLight" />
             </div>
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-6">
             {t('Clinic Onboarding')}
           </h1>
 
@@ -539,38 +605,54 @@ const ClinicOnboarding = () => {
 
               {/* Clinic Logo */}
               <div>
-                <Label htmlFor="logo" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                <Label className="text-gray-700 dark:text-gray-300 mb-2 block">
                   {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-700">
+                  <div className="relative w-16 h-16 rounded-lg bg-[#00FFA2] border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {clinicInfo.logoPreview ? (
                       <img
                         src={clinicInfo.logoPreview}
                         alt={t('Clinic logo preview')}
-                        className="w-full h-full object-cover"
+                        className="max-h-full max-w-full object-contain p-1.5"
                       />
+                    ) : clinicInfo.name.trim() ? (
+                      <span className="text-[#0C2243] text-xl font-bold">
+                        {clinicInfo.name.trim().charAt(0).toUpperCase()}
+                      </span>
                     ) : (
-                      <Mountain className="w-8 h-8 text-gray-400" />
+                      <Mountain className="w-7 h-7 text-[#0C2243]/50" />
                     )}
                   </div>
-                  <div>
+                  <div className="flex flex-wrap gap-2">
                     <input
                       type="file"
-                      id="logo"
-                      accept="image/*"
+                      id="clinic-onboarding-logo"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
                       onChange={handleLogoUpload}
-                      className="hidden"
+                      className="sr-only"
                     />
                     <Button
-                      type="button"
+                      asChild
                       variant="outline"
-                      onClick={() => document.getElementById('logo')?.click()}
-                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
                     >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {t('Upload logo')}
+                      <label htmlFor="clinic-onboarding-logo">
+                        <Upload className="w-4 h-4 me-2" />
+                        {clinicInfo.logoPreview ? t('Change logo') : t('Upload logo')}
+                      </label>
                     </Button>
+                    {clinicInfo.logoPreview && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRemoveLogo}
+                        className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+                      >
+                        <Trash2 className="w-4 h-4 me-2" />
+                        {t('Remove logo')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -585,7 +667,7 @@ const ClinicOnboarding = () => {
                   placeholder={t('Enter clinic name')}
                   value={clinicInfo.name}
                   onChange={(e) =>
-                    setClinicInfo(prev => ({ ...prev, name: e.target.value }))
+                    setClinicInfo((prev) => ({ ...prev, name: e.target.value }))
                   }
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
@@ -620,6 +702,14 @@ const ClinicOnboarding = () => {
                       ))}
                   </SelectContent>
                 </Select>
+                {loadingSpecialties && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('Loading specialties...')}</p>
+                )}
+                {!loadingSpecialties && availableSpecialties.length === 0 && (
+                  <p className="text-sm text-red-500 mt-2">
+                    {t('No specialties available yet. Please contact the platform admin.')}
+                  </p>
+                )}
                 {clinicInfo.specialties.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {clinicInfo.specialties.map((specialty) => (
@@ -651,7 +741,7 @@ const ClinicOnboarding = () => {
                   placeholder={t('Enter clinic description')}
                   value={clinicInfo.description}
                   onChange={(e) =>
-                    setClinicInfo(prev => ({ ...prev, description: e.target.value }))
+                    setClinicInfo((prev) => ({ ...prev, description: e.target.value }))
                   }
                   rows={4}
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -695,29 +785,15 @@ const ClinicOnboarding = () => {
                   placeholder={t('Enter phone number')}
                   value={contactDetails.phone}
                   onChange={(e) =>
-                    setContactDetails(prev => ({ ...prev, phone: e.target.value }))
+                    setContactDetails(prev => ({ ...prev, phone: normalizePhoneNumber(e.target.value) }))
                   }
+                  inputMode="numeric"
+                  maxLength={10}
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
               </div>
 
-              {/* Address */}
-              <div>
-                <Label htmlFor="address" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  {t('Address')}
-                </Label>
-                <Input
-                  id="address"
-                  placeholder={t('Enter clinic address')}
-                  value={contactDetails.address}
-                  onChange={(e) =>
-                    setContactDetails(prev => ({ ...prev, address: e.target.value }))
-                  }
-                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
-
-              {/* City (optional) */}
+              {/* City */}
               <div>
                 <Label htmlFor="city" className="text-gray-700 dark:text-gray-300 mb-2 block">
                   {t('City')}
@@ -727,8 +803,57 @@ const ClinicOnboarding = () => {
                   placeholder={t('Enter city')}
                   value={contactDetails.city}
                   onChange={(e) =>
-                    setContactDetails(prev => ({ ...prev, city: e.target.value }))
+                    setContactDetails((prev) => ({ ...prev, city: e.target.value }))
                   }
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              {/* District */}
+              <div>
+                <Label htmlFor="district" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('District')}
+                </Label>
+                <Input
+                  id="district"
+                  placeholder={t('Enter district')}
+                  value={contactDetails.district}
+                  onChange={(e) =>
+                    setContactDetails((prev) => ({ ...prev, district: e.target.value }))
+                  }
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              {/* Street */}
+              <div>
+                <Label htmlFor="street" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('Street')}
+                </Label>
+                <Input
+                  id="street"
+                  placeholder={t('Enter street')}
+                  value={contactDetails.street}
+                  onChange={(e) =>
+                    setContactDetails((prev) => ({ ...prev, street: e.target.value }))
+                  }
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              {/* Address Details */}
+              <div>
+                <Label htmlFor="addressDetails" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('Address Details')}
+                </Label>
+                <Textarea
+                  id="addressDetails"
+                  placeholder={t('Enter address details')}
+                  value={contactDetails.addressDetails}
+                  onChange={(e) =>
+                    setContactDetails((prev) => ({ ...prev, addressDetails: e.target.value }))
+                  }
+                  rows={4}
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
               </div>
@@ -740,7 +865,7 @@ const ClinicOnboarding = () => {
                 </Label>
                 <Input
                   id="country"
-                  value="Saudi Arabia"
+                  value={t('Saudi Arabia')}
                   disabled
                   className="bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                 />
@@ -761,7 +886,7 @@ const ClinicOnboarding = () => {
                     key={day.value}
                     className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
-                    <div className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div className="w-28 text-sm font-medium text-gray-700 dark:text-gray-300">
                       {t(day.label)}
                     </div>
                     <div className="flex-1 grid grid-cols-2 gap-3">
@@ -852,7 +977,7 @@ const ClinicOnboarding = () => {
               variant="outline"
               className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              {isRtl ? <ArrowRight className="w-4 h-4 ms-0 me-2" /> : <ArrowLeft className="w-4 h-4 me-2" />}
               {t('Previous')}
             </Button>
             <Button
@@ -862,7 +987,7 @@ const ClinicOnboarding = () => {
             >
               {loading ? t('Saving...') : currentStep === 'operating-hours' ? t('Complete') : t('Next')}
               {!loading && currentStep !== 'operating-hours' && (
-                <ArrowRight className="w-4 h-4 ml-2" />
+                isRtl ? <ArrowLeft className="w-4 h-4 ms-2" /> : <ArrowRight className="w-4 h-4 ms-2" />
               )}
             </Button>
           </div>

@@ -248,7 +248,7 @@ const ClinicDetails = () => {
       return {
         id: databaseClinic.id,
         name: databaseClinic.name,
-        address: databaseClinic.address || 'Location not specified',
+        address: databaseClinic.address || t('Location not specified'),
         type: '',
         logo: databaseClinic.logo_url || '',
         timing: '9:00 AM – 6:00 PM',
@@ -270,7 +270,7 @@ const ClinicDetails = () => {
       doctorCount: 'Multiple Doctors',
       categories: {}
     };
-  }, [databaseClinic, clinicDoctors, clinicId]);
+  }, [databaseClinic, clinicDoctors, clinicId, t]);
 
   // Debug logging
   console.log('ClinicDetails - clinicId:', clinicId);

@@ -9,15 +9,24 @@ import CarelinxIcon from '@/assets/carelinx-icon.svg';
 interface HeaderProps {
   viewMode?: 'services' | 'clinics';
   onViewModeChange?: (mode: 'services' | 'clinics') => void;
+  onLogoClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
+const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange, onLogoClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === 'rtl';
   const showMobileBack = location.pathname.startsWith('/clinic/') || location.pathname.startsWith('/service/');
+
+  const handleLogoClick = () => {
+    if (location.pathname === '/' && onLogoClick) {
+      onLogoClick();
+      return;
+    }
+    navigate('/');
+  };
 
   const handleClinicClick = () => {
     if (location.pathname === '/') {
@@ -86,7 +95,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
             )}
             
             <button 
-              onClick={() => navigate('/')}
+              onClick={handleLogoClick}
               className={`flex items-center gap-2 text-base sm:text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer ${
                 (location.pathname === '/' && viewMode === 'clinics') || 
                 location.pathname.startsWith('/clinic/') || 
@@ -170,7 +179,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                     )}
                   </button>
                   <button
-                    onClick={() => navigate('/')}
+                    onClick={handleLogoClick}
                     className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
                     aria-label={t('Go to home')}
                   >
@@ -183,7 +192,7 @@ const Header: React.FC<HeaderProps> = ({ viewMode, onViewModeChange }) => {
                 </div>
               ) : (
                 <button 
-                  onClick={() => navigate('/')}
+                  onClick={handleLogoClick}
                   className="flex items-center gap-2 text-lg font-normal hover:opacity-80 transition-opacity cursor-pointer"
                 >
                   <div className="w-36 h-10 flex items-center justify-center">

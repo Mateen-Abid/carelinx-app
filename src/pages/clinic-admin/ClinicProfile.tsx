@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, X, Trash2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,10 @@ interface Clinic {
   contact_phone: string | null;
   contact_email: string | null;
   address: string;
+  city?: string | null;
+  district?: string | null;
+  street?: string | null;
+  address_details?: string | null;
   logo_url: string | null;
   description: string | null;
   specialties: string[] | null;
@@ -60,6 +64,8 @@ const daysOfWeek = [
   { label: 'Sunday', value: 0 },
 ];
 
+const normalizePhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10);
+
 const ClinicAdminClinicProfile = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { isCollapsed } = useSidebar();
@@ -76,6 +82,7 @@ const ClinicAdminClinicProfile = () => {
   const [savingHours, setSavingHours] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoRemoved, setLogoRemoved] = useState(false);
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(false);
   const [clinicLoaded, setClinicLoaded] = useState(false);
@@ -87,7 +94,10 @@ const ClinicAdminClinicProfile = () => {
     specialties: [] as string[],
     email: '',
     phone: '',
-    address: '',
+    city: '',
+    district: '',
+    street: '',
+    addressDetails: '',
   });
 
   // Edit Hours Form State
@@ -300,29 +310,48 @@ const ClinicAdminClinicProfile = () => {
       specialties: clinic.specialties || [],
       email: clinic.contact_email || clinic.email,
       phone: clinic.contact_phone || '',
-      address: clinic.address || '',
+      city: clinic.city || '',
+      district: clinic.district || '',
+      street: clinic.street || '',
+      addressDetails: clinic.address_details || clinic.address || '',
     });
     setLogoFile(null);
     setLogoPreview(clinic.logo_url);
+    setLogoRemoved(false);
     setIsEditProfileModalOpen(true);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error(t('Please upload an image file'));
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(t('Image size must be less than 5MB'));
-        return;
-      }
+    e.target.value = '';
+    if (!file) return;
 
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
+    if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
+      toast.error(t('Please upload an image file'));
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('Image size must be less than 5MB'));
+      return;
+    }
+
+    if (logoPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(logoPreview);
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setLogoRemoved(false);
+  };
+
+  const handleRemoveLogo = () => {
+    if (logoPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(logoPreview);
+    }
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoRemoved(true);
   };
 
   const uploadLogoToStorage = async (file: File): Promise<string | null> => {
@@ -360,28 +389,63 @@ const ClinicAdminClinicProfile = () => {
   const handleSaveProfile = async () => {
     if (!clinic) return;
 
+    if (!editProfileForm.name.trim()) {
+      toast.error(t('Please enter clinic name'));
+      return;
+    }
+    if (!editProfileForm.city.trim()) {
+      toast.error(t('Please enter city'));
+      return;
+    }
+    if (!editProfileForm.district.trim()) {
+      toast.error(t('Please enter district'));
+      return;
+    }
+    if (!editProfileForm.street.trim()) {
+      toast.error(t('Please enter street'));
+      return;
+    }
+    if (!editProfileForm.addressDetails.trim()) {
+      toast.error(t('Please enter address details'));
+      return;
+    }
+    if (normalizePhoneNumber(editProfileForm.phone).length !== 10) {
+      toast.error(t('Phone number must be 10 digits'));
+      return;
+    }
+
     setSavingProfile(true);
     try {
       let logoUrl = clinic.logo_url;
 
-      // Upload logo if a new one was selected
       if (logoFile) {
         logoUrl = await uploadLogoToStorage(logoFile);
         if (!logoUrl) {
-          // Logo upload failed, but allow user to continue without logo
-          console.warn('Logo upload failed, but continuing without logo');
+          toast.error(t('Logo upload failed. Please try a JPG or PNG under 5MB.'));
+          return;
         }
+      } else if (logoRemoved) {
+        logoUrl = null;
       }
 
-      // Update clinic via backend (email is not editable, so we don't send it)
+      const fullAddress = [
+        editProfileForm.street.trim(),
+        editProfileForm.district.trim(),
+        editProfileForm.city.trim(),
+        editProfileForm.addressDetails.trim(),
+      ].filter(Boolean).join(', ');
+
       await api.clinicAdmin.updateClinic({
-        name: editProfileForm.name,
-        description: editProfileForm.description || null,
+        name: editProfileForm.name.trim(),
+        description: editProfileForm.description.trim() || null,
         specialties: editProfileForm.specialties.length > 0 ? editProfileForm.specialties : null,
-        // contact_email is not editable, so we don't include it in the update
-        contact_phone: editProfileForm.phone || null,
-        address: editProfileForm.address,
-        logo_url: logoUrl || undefined,
+        contact_phone: normalizePhoneNumber(editProfileForm.phone) || null,
+        city: editProfileForm.city.trim(),
+        district: editProfileForm.district.trim(),
+        street: editProfileForm.street.trim(),
+        address_details: editProfileForm.addressDetails.trim(),
+        address: fullAddress,
+        logo_url: logoUrl,
       });
 
       toast.success(t('Clinic profile updated successfully'));
@@ -525,15 +589,17 @@ const ClinicAdminClinicProfile = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-[#00FFA2] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-16 h-16 bg-[#00FFA2] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {clinic.logo_url ? (
                           <img
                             src={clinic.logo_url}
                             alt={clinic.name}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="max-h-full max-w-full object-contain p-1.5"
                           />
                         ) : (
-                          <div className="w-8 h-8 bg-white rounded"></div>
+                          <span className="text-[#0C2243] text-xl font-bold">
+                            {clinic.name.charAt(0).toUpperCase()}
+                          </span>
                         )}
                       </div>
                       <div>
@@ -607,6 +673,30 @@ const ClinicAdminClinicProfile = () => {
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Registered Since')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {format(new Date(clinic.registration_date), 'MMMM yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('City')} -</span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {clinic.city || t('N/A')}
+                      </span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('District')} -</span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {clinic.district || t('N/A')}
+                      </span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Street')} -</span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {clinic.street || t('N/A')}
+                      </span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Address Details')} -</span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {clinic.address_details || t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-start">
@@ -697,33 +787,50 @@ const ClinicAdminClinicProfile = () => {
                   {t('Clinic Logo')}
                 </Label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-[#0C2243] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-16 h-16 rounded-lg bg-[#00FFA2] flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200 dark:border-gray-700">
                     {logoPreview ? (
                       <img
                         src={logoPreview}
                         alt={t('Clinic logo')}
-                        className="w-full h-full object-cover rounded-lg"
+                        className="max-h-full max-w-full object-contain p-1.5"
                       />
+                    ) : editProfileForm.name.trim() ? (
+                      <span className="text-[#0C2243] text-xl font-bold">
+                        {editProfileForm.name.trim().charAt(0).toUpperCase()}
+                      </span>
                     ) : (
-                      <div className="w-8 h-8 bg-[#00FFA2] rounded"></div>
+                      <div className="w-8 h-8 bg-white/80 rounded" />
                     )}
                   </div>
-                  <div>
+                  <div className="flex flex-wrap gap-2">
                     <input
                       type="file"
                       id="logo-upload"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
                       onChange={handleLogoUpload}
-                      className="hidden"
+                      className="sr-only"
                     />
                     <Button
-                      type="button"
-                      onClick={() => document.getElementById('logo-upload')?.click()}
+                      asChild
                       variant="outline"
-                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
                     >
-                      {t('Change logo')}
+                      <label htmlFor="logo-upload">
+                        <Upload className="w-4 h-4 mr-2" />
+                        {logoPreview ? t('Change logo') : t('Upload logo')}
+                      </label>
                     </Button>
+                    {logoPreview && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRemoveLogo}
+                        className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('Remove logo')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -811,24 +918,71 @@ const ClinicAdminClinicProfile = () => {
                   id="phone"
                   type="tel"
                   value={editProfileForm.phone}
-                  onChange={(e) => setEditProfileForm({ ...editProfileForm, phone: e.target.value })}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, phone: normalizePhoneNumber(e.target.value) })}
+                  inputMode="numeric"
+                  maxLength={10}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder={t('Enter phone number')}
                 />
               </div>
 
-              {/* Address */}
+              {/* City */}
               <div>
-                <Label htmlFor="address" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t('Address')}
+                <Label htmlFor="city" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('City')}
                 </Label>
                 <Input
-                  id="address"
+                  id="city"
                   type="text"
-                  value={editProfileForm.address}
-                  onChange={(e) => setEditProfileForm({ ...editProfileForm, address: e.target.value })}
+                  value={editProfileForm.city}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, city: e.target.value })}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  placeholder={t('Enter address')}
+                  placeholder={t('Enter city')}
+                />
+              </div>
+
+              {/* District */}
+              <div>
+                <Label htmlFor="district" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('District')}
+                </Label>
+                <Input
+                  id="district"
+                  type="text"
+                  value={editProfileForm.district}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, district: e.target.value })}
+                  className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder={t('Enter district')}
+                />
+              </div>
+
+              {/* Street */}
+              <div>
+                <Label htmlFor="street" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Street')}
+                </Label>
+                <Input
+                  id="street"
+                  type="text"
+                  value={editProfileForm.street}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, street: e.target.value })}
+                  className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder={t('Enter street')}
+                />
+              </div>
+
+              {/* Address Details */}
+              <div>
+                <Label htmlFor="address-details" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Address Details')}
+                </Label>
+                <Textarea
+                  id="address-details"
+                  value={editProfileForm.addressDetails}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, addressDetails: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder={t('Enter address details')}
+                  rows={4}
                 />
               </div>
 
