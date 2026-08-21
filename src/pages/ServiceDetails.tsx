@@ -268,6 +268,7 @@ const ServiceDetails = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [modalDisabledTimeSlots, setModalDisabledTimeSlots] = useState<string[]>([]);
   const [pendingBookingId, setPendingBookingId] = useState<string>('');
+  const [bookingWasAutoApproved, setBookingWasAutoApproved] = useState(false);
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -988,7 +989,7 @@ const ServiceDetails = () => {
           isDatabaseService: isDatabaseService
         });
         
-        const bookingId = await addAppointment({
+        const createdBooking = await addAppointment({
           doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
           specialty: specialty,
           serviceName: isTreatmentBooking
@@ -1009,7 +1010,8 @@ const ServiceDetails = () => {
           await cancelAppointment(rescheduleOriginalBookingId);
         }
         
-        setPendingBookingId(bookingId);
+        setPendingBookingId(createdBooking.id);
+        setBookingWasAutoApproved(createdBooking.status === 'confirmed');
         setIsTimeSlotModalOpen(false);
         setIsBookingConfirmationOpen(true);
       } catch (error: any) {
@@ -1025,6 +1027,7 @@ const ServiceDetails = () => {
     // Only clinic admin can approve it
     // Just close the modal
     setPendingBookingId('');
+    setBookingWasAutoApproved(false);
     setIsBookingConfirmationOpen(false);
     setSelectedTreatment(null);
     setModalDisabledTimeSlots([]);
@@ -1440,6 +1443,7 @@ const ServiceDetails = () => {
         isOpen={isBookingConfirmationOpen}
         onClose={() => setIsBookingConfirmationOpen(false)}
         onConfirm={handleConfirmBooking}
+        isConfirmed={bookingWasAutoApproved}
         bookingDetails={{
           date: selectedDate ? format(selectedDate, 'MMMM d, yyyy') : '',
           time: selectedTimeSlot,

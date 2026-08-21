@@ -8,6 +8,7 @@ interface BookingConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  isConfirmed?: boolean;
   bookingDetails: {
     date: string;
     time: string;
@@ -20,6 +21,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  isConfirmed = false,
   bookingDetails
 }) => {
   const navigate = useNavigate();
@@ -52,12 +54,14 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
           {/* Title */}
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t('Booking Request Sent')}
+            {isConfirmed ? t('Booking Confirmed') : t('Booking Request Sent')}
           </h2>
 
           {/* Description */}
           <p className="text-gray-600 text-sm mb-8 leading-relaxed max-w-xs mx-auto">
-            {t("Your appointment booking request has been sent. We'll get back to you shortly.")}
+            {isConfirmed
+              ? t('Your appointment has been confirmed automatically.')
+              : t("Your appointment booking request has been sent. We'll get back to you shortly.")}
           </p>
 
           {/* View Booking Button */}

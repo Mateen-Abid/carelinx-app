@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import BookAppointmentModal from '@/components/clinic-admin/BookAppointmentModal';
+import { Switch } from '@/components/ui/switch';
 
 interface Appointment {
   id: string;
@@ -55,6 +56,7 @@ interface Clinic {
   id: string;
   name: string;
   logo_url: string | null;
+  auto_booking_enabled?: boolean;
 }
 
 const ClinicAdminAppointments = () => {
@@ -79,6 +81,8 @@ const ClinicAdminAppointments = () => {
   const [isBookAppointmentModalOpen, setIsBookAppointmentModalOpen] = useState(false);
   const [newAppointmentDate, setNewAppointmentDate] = useState<string>('');
   const [newAppointmentTime, setNewAppointmentTime] = useState<string>('');
+  const [autoBookingEnabled, setAutoBookingEnabled] = useState(false);
+  const [updatingAutoBooking, setUpdatingAutoBooking] = useState(false);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -94,6 +98,7 @@ const ClinicAdminAppointments = () => {
         }
 
         setClinic(clinicData);
+        setAutoBookingEnabled(clinicData.auto_booking_enabled === true);
         setCheckingClinic(false);
       } catch (error) {
         console.error('Error in checkClinicExists:', error);
@@ -103,6 +108,29 @@ const ClinicAdminAppointments = () => {
 
     checkClinicExists();
   }, [user, navigate]);
+
+  const handleAutoBookingChange = async (enabled: boolean) => {
+    const previousValue = autoBookingEnabled;
+    setAutoBookingEnabled(enabled);
+    setUpdatingAutoBooking(true);
+
+    try {
+      const result = await api.clinicAdmin.updateAutoBooking(enabled);
+      const savedValue = result.autoBookingEnabled === true;
+      setAutoBookingEnabled(savedValue);
+      setClinic((currentClinic) => currentClinic
+        ? { ...currentClinic, auto_booking_enabled: savedValue }
+        : currentClinic);
+      toast.success(savedValue
+        ? t('Auto booking enabled')
+        : t('Auto booking disabled'));
+    } catch (error: unknown) {
+      setAutoBookingEnabled(previousValue);
+      toast.error(error instanceof Error ? error.message : t('Failed to update auto booking'));
+    } finally {
+      setUpdatingAutoBooking(false);
+    }
+  };
 
   useEffect(() => {
     if (clinic?.id) {
@@ -799,12 +827,33 @@ const ClinicAdminAppointments = () => {
                       {t('To date')}
                     </button>
                   </div>
-                  <Button
-                    onClick={() => setIsBookAppointmentModalOpen(true)}
-                    className="bg-[#0C2243] text-white hover:bg-[#0A1D39] dark:bg-[#00FFA2] dark:text-[#0C2243] dark:hover:bg-[#00E693]"
-                  >
-                    {t('Book Appointment')}
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-[#0C2243] dark:text-white">
+                          {t('Auto booking')}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {autoBookingEnabled
+                            ? t('Patient requests are approved automatically')
+                            : t('Patient requests require approval')}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={autoBookingEnabled}
+                        onCheckedChange={handleAutoBookingChange}
+                        disabled={updatingAutoBooking}
+                        aria-label={t('Auto booking')}
+                        className="data-[state=checked]:bg-[#00D98B] data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => setIsBookAppointmentModalOpen(true)}
+                      className="bg-[#0C2243] text-white hover:bg-[#0A1D39] dark:bg-[#00FFA2] dark:text-[#0C2243] dark:hover:bg-[#00E693]"
+                    >
+                      {t('Book Appointment')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

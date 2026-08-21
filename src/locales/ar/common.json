@@ -1060,6 +1060,14 @@
   "Please enter the English clinic address": "يرجى إدخال عنوان العيادة بالإنجليزية",
   "Please enter the Arabic clinic address": "يرجى إدخال عنوان العيادة بالعربية",
   "You are editing English content. Switch to Arabic to fill the Arabic version.": "أنت تحرر المحتوى الإنجليزي. بدّل إلى العربية لتعبئة النسخة العربية.",
-  "You are editing Arabic content. Switch to English to fill the English version.": "أنت تحرر المحتوى العربي. بدّل إلى الإنجليزية لتعبئة النسخة الإنجليزية."
+  "You are editing Arabic content. Switch to English to fill the English version.": "أنت تحرر المحتوى العربي. بدّل إلى الإنجليزية لتعبئة النسخة الإنجليزية.",
+  "Auto booking": "الحجز التلقائي",
+  "Auto booking enabled": "تم تفعيل الحجز التلقائي",
+  "Auto booking disabled": "تم إيقاف الحجز التلقائي",
+  "Patient requests are approved automatically": "تتم الموافقة على طلبات المرضى تلقائيًا",
+  "Patient requests require approval": "تتطلب طلبات المرضى الموافقة",
+  "Failed to update auto booking": "فشل تحديث الحجز التلقائي",
+  "Booking Confirmed": "تم تأكيد الحجز",
+  "Your appointment has been confirmed automatically.": "تم تأكيد موعدك تلقائيًا."
 }
 

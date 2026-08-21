@@ -25,7 +25,10 @@ export interface Appointment {
 
 interface BookingContextType {
   appointments: Appointment[];
-  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => Promise<string>;
+  addAppointment: (appointment: Omit<Appointment, 'id' | 'bookedAt'>) => Promise<{
+    id: string;
+    status: Appointment['status'];
+  }>;
   confirmAppointment: (appointmentId: string) => Promise<void>;
   cancelAppointment: (appointmentId: string) => Promise<void>;
   getUpcomingAppointments: () => Appointment[];
@@ -206,7 +209,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Refresh appointments to get the new booking
       await fetchAppointments();
       
-      return booking.id;
+      return {
+        id: booking.id,
+        status: booking.status as Appointment['status'],
+      };
     } catch (error) {
       console.error('❌ Error adding appointment:', error);
       throw error;

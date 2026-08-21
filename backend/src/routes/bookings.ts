@@ -332,9 +332,38 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
+    const requestedClinicId = typeof req.body.clinic_id === 'string'
+      ? req.body.clinic_id.trim()
+      : '';
+    let autoBookingEnabled = false;
+    let canonicalClinicName = typeof req.body.clinic === 'string' ? req.body.clinic : null;
+
+    if (requestedClinicId) {
+      const { data: clinic, error: clinicError } = await supabaseAdmin
+        .from('clinics')
+        .select('id, name, status, auto_booking_enabled')
+        .eq('id', requestedClinicId)
+        .maybeSingle();
+
+      if (clinicError) throw clinicError;
+      if (!clinic) {
+        return res.status(400).json({ error: 'Clinic not found' });
+      }
+      if (clinic.status !== 'active') {
+        return res.status(403).json({ error: 'This clinic is not accepting appointments' });
+      }
+
+      autoBookingEnabled = clinic.auto_booking_enabled === true;
+      canonicalClinicName = clinic.name;
+    }
+
     const bookingData = {
       ...req.body,
       user_id: userId,
+      clinic_id: requestedClinicId || req.body.clinic_id || null,
+      clinic: canonicalClinicName || req.body.clinic,
+      status: autoBookingEnabled ? 'confirmed' : 'pending',
+      confirmed_at: autoBookingEnabled ? new Date().toISOString() : null,
       booking_source: 'patient_app',
       created_by_role: 'patient',
       created_by_user_id: userId,
@@ -362,9 +391,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       .select()
       .single();
 
+    if (error?.code === '23505' && error.message?.includes('appointment slot')) {
+      return res.status(409).json({ error: error.message });
+    }
     if (error) throw error;
 
-    res.json({ booking: data });
+    res.json({ booking: data, autoApproved: autoBookingEnabled });
   } catch (error: unknown) {
     console.error('Create booking error:', error);
     res.status(400).json({ error: getErrorMessage(error) });

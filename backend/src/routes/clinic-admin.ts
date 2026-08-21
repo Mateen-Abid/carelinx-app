@@ -183,6 +183,42 @@ router.patch('/clinic', authenticate, async (req: AuthRequest, res) => {
 });
 
 /**
+ * PATCH /api/clinic-admin/clinic/auto-booking
+ * Enable or disable automatic approval of patient appointment requests.
+ */
+router.patch('/clinic/auto-booking', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user.id;
+    const { enabled } = req.body;
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    const { data: clinicData, error } = await supabaseAdmin
+      .from('clinics')
+      .update({ auto_booking_enabled: enabled })
+      .eq('clinic_admin_id', userId)
+      .select('id, auto_booking_enabled')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error updating auto booking:', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    if (!clinicData) {
+      return res.status(404).json({ error: 'Clinic not found' });
+    }
+
+    res.json({ autoBookingEnabled: clinicData.auto_booking_enabled });
+  } catch (error: any) {
+    console.error('Update auto booking error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/clinic-admin/clinic/operating-hours
  * Update clinic operating hours
  */
@@ -263,7 +299,7 @@ router.get('/clinic', authenticate, async (req: AuthRequest, res) => {
     
     const { data: clinicData, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, name_ar, status, logo_url, specialties, email, contact_phone, contact_email, address, city, district, street, address_details, address_ar, description, description_ar, country, registration_date')
+      .select('id, name, name_ar, status, logo_url, specialties, email, contact_phone, contact_email, address, city, district, street, address_details, address_ar, description, description_ar, country, registration_date, auto_booking_enabled')
       .eq('clinic_admin_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
