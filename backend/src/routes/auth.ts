@@ -619,7 +619,7 @@ router.post('/reset-password', async (req, res) => {
     // Always return success message (for security - don't reveal if user exists)
     res.json({
       success: true,
-      message: 'If an account exists with this email, a password reset link has been sent. Please check your inbox.',
+      message: 'If an account exists with this email, a password reset link has been sent. Please check your email or spam folder.',
     });
   } catch (error: any) {
     console.error('❌ Reset password error:', error);

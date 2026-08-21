@@ -52,7 +52,7 @@ const Auth = () => {
       if (message === 'email_confirmed') {
         setIsLogin(true);
       } else if (message === 'password_reset') {
-        setAuthMessage('Password reset email sent! Please check your inbox and follow the instructions to reset your password.');
+        setAuthMessage(t('Password reset email sent! Please check your inbox and follow the instructions to reset your password.'));
         setIsLogin(true);
       } else {
         setAuthMessage(message);
@@ -244,7 +244,7 @@ const Auth = () => {
 
   const handleForgotPassword = async () => {
     if (!formData.email) {
-      setEmailError('Please enter your email address first');
+      setEmailError(t('Please enter your email'));
       return;
     }
     

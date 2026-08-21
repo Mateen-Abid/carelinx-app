@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/services/api';
+import i18n from '@/i18n';
 
 export type UserRole = 'patient' | 'clinic_admin' | 'super_admin' | 'doctor';
 
@@ -420,13 +421,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const resetPassword = async (email: string) => {
     try {
       console.log('🔐 Sending password reset email to:', email);
-      const { message } = await api.auth.resetPassword(email);
-      
-      toast.success(message || t('If an account exists with this email, a password reset link has been sent.'));
+      await api.auth.resetPassword(email);
+
+      // Always use the currently selected UI language (en/ar)
+      toast.success(
+        i18n.t('If an account exists with this email, a password reset link has been sent.')
+      );
       return { error: null };
     } catch (error: any) {
       console.error('❌ Reset password error:', error);
-      toast.error(error.message || t('Failed to send password reset email'));
+      const backendMessage = typeof error?.message === 'string' ? error.message : '';
+      toast.error(
+        backendMessage.includes('password reset')
+          ? i18n.t('Failed to send password reset email')
+          : backendMessage || i18n.t('Failed to send password reset email')
+      );
       return { error };
     }
   };

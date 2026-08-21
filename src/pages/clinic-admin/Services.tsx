@@ -50,7 +50,6 @@ const ClinicAdminServices = () => {
   const [checkingClinic, setCheckingClinic] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -130,21 +129,6 @@ const ClinicAdminServices = () => {
       console.error('❌ Error fetching services:', error);
       setLoading(false);
     }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedServices.length === filteredServices.length) {
-      setSelectedServices([]);
-    } else {
-      setSelectedServices(filteredServices.map(s => `${s.specialty}-${s.service}`));
-    }
-  };
-
-  const handleSelectService = (specialty: string, service: string) => {
-    const key = `${specialty}-${service}`;
-    setSelectedServices((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
   };
 
   // Get unique specialties for filter dropdown
@@ -280,14 +264,6 @@ const ClinicAdminServices = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                        <th className="text-left py-4 px-4 w-12">
-                          <input
-                            type="checkbox"
-                            checked={selectedServices.length === filteredServices.length && filteredServices.length > 0}
-                            onChange={handleSelectAll}
-                            className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
-                          />
-                        </th>
                         <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white w-1/5">
                           {t('Specialties')}
                         </th>
@@ -299,62 +275,25 @@ const ClinicAdminServices = () => {
                     <tbody>
                       {Object.entries(groupedBySpecialty).map(([specialtyName, specialtyData]) => {
                         const servicesArray = Array.from(specialtyData.services);
-                        const allServiceKeys = servicesArray.map(service => `${specialtyName}-${service}`);
-                        const allSelected = allServiceKeys.every(key => selectedServices.includes(key));
-                        const someSelected = allServiceKeys.some(key => selectedServices.includes(key));
-                        
+
                         return (
                           <tr
                             key={specialtyName}
                             className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                           >
-                            <td className="py-4 px-4 w-12 align-top">
-                              <input
-                                type="checkbox"
-                                checked={allSelected}
-                                ref={(input) => {
-                                  if (input) input.indeterminate = someSelected && !allSelected;
-                                }}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    const newSelections = allServiceKeys.filter(k => !selectedServices.includes(k));
-                                    setSelectedServices([...selectedServices, ...newSelections]);
-                                  } else {
-                                    setSelectedServices(selectedServices.filter(k => !allServiceKeys.includes(k)));
-                                  }
-                                }}
-                                className="w-4 h-4 text-[#00FFA2] border-gray-300 rounded focus:ring-[#00FFA2]"
-                              />
-                            </td>
                             <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-semibold w-1/5 align-middle">
                               {specialtyName}
                             </td>
                             <td className="py-4 px-4 align-middle">
                               <div className="flex flex-wrap gap-2">
-                                {servicesArray.map((service, idx) => {
-                                  const serviceKey = `${specialtyName}-${service}`;
-                                  const isSelected = selectedServices.includes(serviceKey);
-                                  return (
-                                    <button
-                                      key={idx}
-                                      type="button"
-                                      onClick={() => {
-                                        if (isSelected) {
-                                          setSelectedServices(selectedServices.filter(k => k !== serviceKey));
-                                        } else {
-                                          setSelectedServices([...selectedServices, serviceKey]);
-                                        }
-                                      }}
-                                      className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
-                                        isSelected 
-                                          ? 'bg-[#00FFA2] text-[#0C2243] border border-[#00FFA2] hover:bg-[#00FFA2]/90' 
-                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                      }`}
-                                    >
-                                      {service}
-                                    </button>
-                                  );
-                                })}
+                                {servicesArray.map((service, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                                  >
+                                    {service}
+                                  </span>
+                                ))}
                               </div>
                             </td>
                           </tr>
