@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,15 @@ import { clinicsData } from '@/data/clinicsData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { api } from '@/services/api';
 import { useTranslation } from 'react-i18next';
+import LinkifiedText from '@/components/LinkifiedText';
 
 const MyBookings = () => {
   const { getUpcomingAppointments, getPendingAppointments, getPastAppointments, appointments, cancelAppointment, confirmAppointment, fetchAppointments } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
+  const requestedBookingTab = (location.state as { bookingTab?: string } | null)?.bookingTab;
   
   // Function to find service ID by specialty name and optionally clinic name
   const findServiceIdBySpecialty = (specialty: string, clinicName?: string): string => {
@@ -81,7 +84,11 @@ const MyBookings = () => {
   };
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'pending' | 'history'>('pending');
+  const [selectedFilter, setSelectedFilter] = useState<'upcoming' | 'pending' | 'history'>(
+    requestedBookingTab === 'upcoming' || requestedBookingTab === 'pending' || requestedBookingTab === 'history'
+      ? requestedBookingTab
+      : 'pending'
+  );
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isRescheduleConfirmModalOpen, setIsRescheduleConfirmModalOpen] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] = useState<Appointment | null>(null);
@@ -97,6 +104,16 @@ const MyBookings = () => {
       setShowAuthPrompt(true);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (
+      requestedBookingTab === 'upcoming' ||
+      requestedBookingTab === 'pending' ||
+      requestedBookingTab === 'history'
+    ) {
+      setSelectedFilter(requestedBookingTab);
+    }
+  }, [requestedBookingTab]);
   
   // Show auth prompt modal if not logged in
   if (!user) {
@@ -468,7 +485,9 @@ const MyBookings = () => {
                       <div className="flex items-start gap-1 text-sm text-gray-600 mb-2">
                         <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <span className="line-clamp-3 leading-relaxed">
-                          {appointment.clinicAddress || t('Location not specified')}
+                          {appointment.clinicAddress
+                            ? <LinkifiedText text={appointment.clinicAddress} />
+                            : t('Location not specified')}
                         </span>
                       </div>
                       
@@ -490,6 +509,26 @@ const MyBookings = () => {
                           <span className="whitespace-nowrap">{format(new Date(appointment.date), 'd MMM, yyyy')}</span>
                         </div>
                       </div>
+
+                      {/* Action Buttons for Pending Appointments */}
+                      {selectedFilter === 'pending' && appointment.status !== 'rescheduled' && (
+                        <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-200">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleReschedule(appointment)}
+                            className="flex-1 border-[#0C2243] text-[#0C2243] hover:bg-[#0C2243]/10 px-4 py-2 rounded-lg font-medium text-sm"
+                          >
+                            {t('Reschedule')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleCancelAppointment(appointment)}
+                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg font-medium text-sm"
+                          >
+                            {t('Cancel')}
+                          </Button>
+                        </div>
+                      )}
 
                       {/* Action Buttons for Rescheduled Appointments */}
                       {selectedFilter === 'pending' && appointment.status === 'rescheduled' && (
@@ -593,7 +632,11 @@ const MyBookings = () => {
               {/* Location */}
               <div className="flex items-start gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{appointmentToReschedule.clinicAddress || t('Location not specified')}</span>
+                <span>
+                  {appointmentToReschedule.clinicAddress
+                    ? <LinkifiedText text={appointmentToReschedule.clinicAddress} />
+                    : t('Location not specified')}
+                </span>
               </div>
 
               {/* Treatment Type */}

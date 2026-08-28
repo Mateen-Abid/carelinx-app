@@ -165,11 +165,11 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     const isOthers = category.id === 'others';
     
     return (
-      <div className="relative">
+      <div className="relative shrink-0 overflow-hidden rounded-lg">
         <button
           onClick={isOthers ? undefined : (onClick || (() => handleCategorySelect(category.id)))}
           disabled={isOthers}
-          className={`flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-lg transition-all duration-200 text-xs font-medium relative ${
+          className={`flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden transition-all duration-200 text-xs font-medium relative ${
             isOthers
               ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
               : isSelected 
@@ -183,23 +183,21 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           <span className="text-[9px] sm:text-[11px] leading-[1.2] sm:leading-[1.2] text-center px-0.5 pb-0.5 break-words hyphens-auto max-w-full">
             {category.name}
           </span>
-        </button>
-        
-        {/* SOON Banner for Others button - positioned diagonally on top right corner */}
-        {isOthers && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 w-40 sm:w-44 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#00FFA2] text-black flex items-center justify-center px-2 py-1 text-[7px] sm:text-[8px] font-bold whitespace-nowrap shadow-sm rounded">
-              {t('SOON')}
+          {isOthers && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg">
+              <div className="absolute top-1/2 left-1/2 w-40 sm:w-44 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#00FFA2] text-black flex items-center justify-center px-2 py-1 text-[7px] sm:text-[8px] font-bold whitespace-nowrap shadow-sm">
+                {t('SOON')}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </button>
       </div>
     );
   };
 
   return (
-    <div className="w-full relative overflow-hidden">
-      <div className="flex items-center gap-2 sm:gap-3 justify-center overflow-x-auto overflow-y-hidden px-2 sm:px-0 pb-2">
+    <div className="w-full relative overflow-x-auto overflow-y-visible sm:overflow-hidden">
+      <div className="flex items-center gap-2 sm:gap-3 justify-start sm:justify-center overflow-x-auto sm:overflow-visible px-1 sm:px-0 py-1 sm:py-0 pb-2">
         <div className="flex gap-2 sm:gap-3 min-w-max">
           {/* Main category buttons */}
           {mainCategories.map((category) => (
