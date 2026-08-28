@@ -361,8 +361,9 @@ export const adminServicesApi = {
 
   // Service Requests
   getServiceRequests: async () => fetchWithAuth('/admin-services/requests/services'),
-  approveServiceRequest: async (id: string) => fetchWithAuth(`/admin-services/requests/services/${id}/approve`, {
+  approveServiceRequest: async (id: string, data?: { name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/services/${id}/approve`, {
     method: 'POST',
+    body: JSON.stringify(data || {}),
   }),
   rejectServiceRequest: async (id: string, rejectionReason: string) => fetchWithAuth(`/admin-services/requests/services/${id}/reject`, {
     method: 'POST',
@@ -371,8 +372,9 @@ export const adminServicesApi = {
 
   // Specialty Requests
   getSpecialtyRequests: async () => fetchWithAuth('/admin-services/requests/specialties'),
-  approveSpecialtyRequest: async (id: string) => fetchWithAuth(`/admin-services/requests/specialties/${id}/approve`, {
+  approveSpecialtyRequest: async (id: string, data?: { name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/specialties/${id}/approve`, {
     method: 'POST',
+    body: JSON.stringify(data || {}),
   }),
   rejectSpecialtyRequest: async (id: string, rejectionReason: string) => fetchWithAuth(`/admin-services/requests/specialties/${id}/reject`, {
     method: 'POST',
@@ -564,17 +566,24 @@ export const clinicAdminApi = {
     return fetchWithAuth(`/clinic-admin/insights/bookings${queryString ? `?${queryString}` : ''}`);
   },
 
-  createSpecialtyRequest: async (specialtyName: string) => {
+  createSpecialtyRequest: async (specialtyName: string, specialtyNameAr: string) => {
     return fetchWithAuth('/clinic-admin/specialty-requests', {
       method: 'POST',
-      body: JSON.stringify({ specialty_name: specialtyName }),
+      body: JSON.stringify({
+        specialty_name: specialtyName,
+        specialty_name_ar: specialtyNameAr,
+      }),
     });
   },
 
-  createServiceRequest: async (specialtyId: string, serviceName: string) => {
+  createServiceRequest: async (specialtyId: string, serviceName: string, serviceNameAr: string) => {
     return fetchWithAuth('/clinic-admin/service-requests', {
       method: 'POST',
-      body: JSON.stringify({ specialty_id: specialtyId, service_name: serviceName }),
+      body: JSON.stringify({
+        specialty_id: specialtyId,
+        service_name: serviceName,
+        service_name_ar: serviceNameAr,
+      }),
     });
   },
 

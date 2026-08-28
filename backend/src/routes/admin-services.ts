@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { trimToNull } from '../utils/bilingual';
 
 const router = Router();
 
@@ -31,13 +32,22 @@ router.get('/specialties', authenticate, async (req: AuthRequest, res) => {
  */
 router.post('/specialties', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, name_ar } = req.body;
+    const trimmedName = trimToNull(name);
+    const trimmedNameAr = trimToNull(name_ar);
+
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Specialty name is required' });
+    }
+    if (!trimmedNameAr) {
+      return res.status(400).json({ error: 'Arabic specialty name is required' });
+    }
 
     // Check if specialty exists
     const { data: existing } = await supabaseAdmin
       .from('super_admin_specialties')
       .select('id, name, is_active')
-      .ilike('name', name.trim())
+      .ilike('name', trimmedName)
       .maybeSingle();
 
     if (existing) {
@@ -51,6 +61,7 @@ router.post('/specialties', authenticate, async (req: AuthRequest, res) => {
         .update({
           is_active: true,
           description: description?.trim() || null,
+          name_ar: trimmedNameAr,
         })
         .eq('id', existing.id)
         .select()
@@ -65,7 +76,8 @@ router.post('/specialties', authenticate, async (req: AuthRequest, res) => {
     const { data, error } = await supabaseAdmin
       .from('super_admin_specialties')
       .insert({
-        name: name.trim(),
+        name: trimmedName,
+        name_ar: trimmedNameAr,
         description: description?.trim() || null,
         is_active: true,
       })
@@ -88,12 +100,19 @@ router.post('/specialties', authenticate, async (req: AuthRequest, res) => {
 router.patch('/specialties/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, name_ar } = req.body;
+    const trimmedName = trimToNull(name);
+    const trimmedNameAr = trimToNull(name_ar);
+
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Specialty name is required' });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('super_admin_specialties')
       .update({
-        name: name.trim(),
+        name: trimmedName,
+        name_ar: trimmedNameAr,
         description: description || null,
       })
       .eq('id', id)
@@ -249,7 +268,7 @@ router.get('/services', authenticate, async (req: AuthRequest, res) => {
       .from('super_admin_services')
       .select(`
         *,
-        specialty:super_admin_specialties(name)
+        specialty:super_admin_specialties(name, name_ar)
       `)
       .eq('is_active', true)
       .order('name', { ascending: true });
@@ -269,9 +288,17 @@ router.get('/services', authenticate, async (req: AuthRequest, res) => {
  */
 router.post('/services', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { specialty_id, name, description } = req.body;
+    const { specialty_id, name, description, name_ar } = req.body;
 
-    const trimmedName = name.trim();
+    const trimmedName = trimToNull(name);
+    const trimmedNameAr = trimToNull(name_ar);
+
+    if (!specialty_id || !trimmedName) {
+      return res.status(400).json({ error: 'Specialty and service name are required' });
+    }
+    if (!trimmedNameAr) {
+      return res.status(400).json({ error: 'Arabic service name is required' });
+    }
     console.log('📝 Creating service:', trimmedName, 'for specialty:', specialty_id);
     
     // First check for exact match (case-sensitive) - this is what the unique constraint uses
@@ -316,6 +343,7 @@ router.post('/services', authenticate, async (req: AuthRequest, res) => {
             .update({
               is_active: true,
               description: description?.trim() || null,
+              name_ar: trimmedNameAr,
               updated_at: new Date().toISOString(),
             })
             .eq('id', existing.id)
@@ -341,6 +369,7 @@ router.post('/services', authenticate, async (req: AuthRequest, res) => {
           .update({
             is_active: true,
             description: description?.trim() || null,
+            name_ar: trimmedNameAr,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id)
@@ -377,6 +406,7 @@ router.post('/services', authenticate, async (req: AuthRequest, res) => {
       .insert({
         specialty_id,
         name: trimmedName,
+        name_ar: trimmedNameAr,
         description: description?.trim() || null,
         is_active: true,
       })
@@ -404,6 +434,7 @@ router.post('/services', authenticate, async (req: AuthRequest, res) => {
             .update({
               is_active: true,
               description: description?.trim() || null,
+              name_ar: trimmedNameAr,
               updated_at: new Date().toISOString(),
             })
             .eq('id', inactiveService.id)
@@ -438,13 +469,20 @@ router.post('/services', authenticate, async (req: AuthRequest, res) => {
 router.patch('/services/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { specialty_id, name, description } = req.body;
+    const { specialty_id, name, description, name_ar } = req.body;
+    const trimmedName = trimToNull(name);
+    const trimmedNameAr = trimToNull(name_ar);
+
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Service name is required' });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('super_admin_services')
       .update({
         specialty_id,
-        name: name.trim(),
+        name: trimmedName,
+        name_ar: trimmedNameAr,
         description: description || null,
       })
       .eq('id', id)
@@ -534,8 +572,8 @@ router.get('/requests/services', authenticate, async (req: AuthRequest, res) => 
       .from('service_requests')
       .select(`
         *,
-        clinics:clinic_id (name),
-        specialties:specialty_id (name)
+        clinics:clinic_id (name, name_ar),
+        specialties:specialty_id (name, name_ar)
       `)
       .eq('status', 'pending')
       .order('requested_at', { ascending: false });
@@ -557,6 +595,7 @@ router.post('/requests/services/:id/approve', authenticate, async (req: AuthRequ
   try {
     const { id } = req.params;
     const userId = req.user.id;
+    const approvedNameAr = trimToNull(req.body?.name_ar);
 
     // Get the request details
     const { data: request, error: fetchError } = await supabaseAdmin
@@ -567,12 +606,15 @@ router.post('/requests/services/:id/approve', authenticate, async (req: AuthRequ
 
     if (fetchError) throw fetchError;
 
+    const serviceNameAr = approvedNameAr || trimToNull(request.service_name_ar);
+
     // Add service to super_admin_services
     const { data: service, error: serviceError } = await supabaseAdmin
       .from('super_admin_services')
       .insert({
         specialty_id: request.specialty_id,
         name: request.service_name,
+        name_ar: serviceNameAr,
         description: request.description,
         is_active: true,
         created_by: userId,
@@ -640,7 +682,7 @@ router.get('/requests/specialties', authenticate, async (req: AuthRequest, res) 
       .from('specialty_requests')
       .select(`
         *,
-        clinics:clinic_id(name)
+        clinics:clinic_id(name, name_ar)
       `)
       .eq('status', 'pending')
       .order('requested_at', { ascending: false });
@@ -662,6 +704,7 @@ router.post('/requests/specialties/:id/approve', authenticate, async (req: AuthR
   try {
     const { id } = req.params;
     const userId = req.user.id;
+    const approvedNameAr = trimToNull(req.body?.name_ar);
 
     // Get the request details
     const { data: request, error: fetchError } = await supabaseAdmin
@@ -672,11 +715,14 @@ router.post('/requests/specialties/:id/approve', authenticate, async (req: AuthR
 
     if (fetchError) throw fetchError;
 
+    const specialtyNameAr = approvedNameAr || trimToNull(request.specialty_name_ar);
+
     // Add specialty to super_admin_specialties
     const { data: specialty, error: specialtyError } = await supabaseAdmin
       .from('super_admin_specialties')
       .insert({
         name: request.specialty_name,
+        name_ar: specialtyNameAr,
         description: request.description,
         is_active: true,
         created_by: userId,

@@ -13,7 +13,7 @@ router.get('/specialties', optionalAuth, async (req: AuthRequest, res) => {
     const supabaseAdmin = createSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from('super_admin_specialties')
-      .select('id, name')
+      .select('id, name, name_ar')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
@@ -38,8 +38,9 @@ router.get('/treatments', optionalAuth, async (req: AuthRequest, res) => {
       .select(`
         id,
         name,
+        name_ar,
         specialty_id,
-        specialties:specialty_id(name)
+        specialties:specialty_id(name, name_ar)
       `)
       .eq('is_active', true)
       .order('name', { ascending: true });
@@ -111,15 +112,18 @@ router.get('/approved-clinic-services', optionalAuth, async (req: AuthRequest, r
         clinic_id,
         specialty_id,
         service_name,
+        service_name_ar,
         status,
         requested_at,
         clinics:clinic_id (
           id,
           name,
+          name_ar,
           status
         ),
         specialties:specialty_id (
-          name
+          name,
+          name_ar
         )
       `)
       .eq('status', 'approved')

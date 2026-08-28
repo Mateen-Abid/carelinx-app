@@ -4,6 +4,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../utils/email';
 import { validateBookingSlotConflict } from '../utils/booking-conflicts';
 import { attachResolvedServiceNames } from '../utils/booking-service';
+import { trimToNull } from '../utils/bilingual';
 
 const router = Router();
 
@@ -1075,10 +1076,15 @@ router.delete('/treatments/:id', authenticate, async (req: AuthRequest, res) => 
 router.post('/specialty-requests', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const { specialty_name } = req.body;
+    const { specialty_name, specialty_name_ar } = req.body;
+    const trimmedName = trimToNull(specialty_name);
+    const trimmedNameAr = trimToNull(specialty_name_ar);
 
-    if (!specialty_name || !specialty_name.trim()) {
+    if (!trimmedName) {
       return res.status(400).json({ error: 'Specialty name is required' });
+    }
+    if (!trimmedNameAr) {
+      return res.status(400).json({ error: 'Arabic specialty name is required' });
     }
 
     // Get clinic ID
@@ -1097,7 +1103,8 @@ router.post('/specialty-requests', authenticate, async (req: AuthRequest, res) =
       .insert({
         clinic_id: clinicData.id,
         clinic_admin_id: userId,
-        specialty_name: specialty_name.trim(),
+        specialty_name: trimmedName,
+        specialty_name_ar: trimmedNameAr,
         status: 'pending',
       })
       .select()
@@ -1122,10 +1129,15 @@ router.post('/specialty-requests', authenticate, async (req: AuthRequest, res) =
 router.post('/service-requests', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const { specialty_id, service_name } = req.body;
+    const { specialty_id, service_name, service_name_ar } = req.body;
+    const trimmedName = trimToNull(service_name);
+    const trimmedNameAr = trimToNull(service_name_ar);
 
-    if (!specialty_id || !service_name || !service_name.trim()) {
+    if (!specialty_id || !trimmedName) {
       return res.status(400).json({ error: 'Specialty ID and service name are required' });
+    }
+    if (!trimmedNameAr) {
+      return res.status(400).json({ error: 'Arabic service name is required' });
     }
 
     // Get clinic ID
@@ -1145,7 +1157,8 @@ router.post('/service-requests', authenticate, async (req: AuthRequest, res) => 
         clinic_id: clinicData.id,
         clinic_admin_id: userId,
         specialty_id,
-        service_name: service_name.trim(),
+        service_name: trimmedName,
+        service_name_ar: trimmedNameAr,
         status: 'pending',
       })
       .select()

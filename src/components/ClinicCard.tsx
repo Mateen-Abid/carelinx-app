@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { localizedStoredText } from '@/utils/localizedContent';
 
 interface ClinicService {
   name: string;
@@ -10,6 +11,7 @@ interface ClinicService {
 interface ClinicCardProps {
   id?: string; // Add clinic ID
   name: string;
+  nameAr?: string | null;
   address: string;
   type: string;
   services: ClinicService[];
@@ -30,6 +32,7 @@ interface ClinicCardProps {
 const ClinicCard: React.FC<ClinicCardProps> = ({
   id,
   name,
+  nameAr,
   address,
   type,
   services,
@@ -48,8 +51,9 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [logoError, setLogoError] = React.useState(false);
+  const displayName = localizedStoredText(name, nameAr, i18n.language);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent navigation if booking button was clicked
@@ -93,20 +97,20 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
           <img
             src={logo}
             className="aspect-[1] object-contain w-8 sm:w-[34px] shrink-0 rounded-[32px]"
-            alt={`${name} logo`}
+            alt={`${displayName} logo`}
             onError={() => setLogoError(true)}
           />
         ) : (
           <div className="aspect-[1] w-8 sm:w-[34px] shrink-0 rounded-[32px] bg-[#0C2243] flex items-center justify-center">
             <span className="text-[#00FFA2] text-sm sm:text-base font-bold">
-              {name.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="text-black text-sm sm:text-base font-medium truncate">
-              {name}
+              {displayName}
             </div>
             {startingPrice ? (
               <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-xs font-semibold">

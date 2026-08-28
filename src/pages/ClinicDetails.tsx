@@ -10,6 +10,7 @@ import { api } from '@/services/api';
 import Image5 from '../assets/image 5.svg';
 import DentalIcon from '../assets/dental-icon.svg';
 import { useTranslation } from 'react-i18next';
+import { localizedCatalogName, localizedStoredText, type CatalogName } from '@/utils/localizedContent';
 
 // Custom Tooth Icon Component
 const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -83,13 +84,14 @@ interface ClinicServiceRow {
 const ClinicDetails = () => {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [databaseClinic, setDatabaseClinic] = useState<any>(null);
   const [clinicDoctors, setClinicDoctors] = useState<Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null}>>([]);
   const [clinicServices, setClinicServices] = useState<ClinicServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [serviceCatalog, setServiceCatalog] = useState<CatalogName[]>([]);
 
   const normalizeServiceValue = (value: string) => value.trim().toLowerCase();
 
@@ -120,6 +122,11 @@ const ClinicDetails = () => {
             console.log('📡 Fetching doctors from backend...');
             const { doctors: doctorsData } = await api.doctors.getDoctors(clinicData.id);
             const { treatments: activeServicesData } = await api.services.getTreatments();
+
+            setServiceCatalog((activeServicesData || []).map((service: any) => ({
+              name: service.name,
+              name_ar: service.name_ar || null,
+            })));
 
             const activeServiceKeys = new Set(
               (activeServicesData || [])
@@ -248,6 +255,7 @@ const ClinicDetails = () => {
       return {
         id: databaseClinic.id,
         name: databaseClinic.name,
+        displayName: localizedStoredText(databaseClinic.name, databaseClinic.name_ar, i18n.language),
         address: databaseClinic.address || t('Location not specified'),
         type: '',
         logo: databaseClinic.logo_url || '',
@@ -262,6 +270,7 @@ const ClinicDetails = () => {
     return clinicsData.find(clinic => clinic.id === clinicId) || {
       id: 'unknown',
       name: 'Medical Center',
+      displayName: 'Medical Center',
       address: 'Location not specified',
       type: '',
       logo: '',
@@ -270,7 +279,7 @@ const ClinicDetails = () => {
       doctorCount: 'Multiple Doctors',
       categories: {}
     };
-  }, [databaseClinic, clinicDoctors, clinicId, t]);
+  }, [databaseClinic, clinicDoctors, clinicId, t, i18n.language]);
 
   // Debug logging
   console.log('ClinicDetails - clinicId:', clinicId);
@@ -499,7 +508,7 @@ const ClinicDetails = () => {
             {currentClinic.logo ? (
               <img
                 src={currentClinic.logo}
-                alt={currentClinic.name}
+                alt={currentClinic.displayName || currentClinic.name}
                 className="w-12 h-12 rounded-lg object-cover"
               />
             ) : (
@@ -510,7 +519,7 @@ const ClinicDetails = () => {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold">{currentClinic.name}</h1>
+              <h1 className="text-2xl font-bold">{currentClinic.displayName || currentClinic.name}</h1>
               <p className="text-sm text-gray-300">{currentClinic.address}</p>
             </div>
           </div>
@@ -600,7 +609,7 @@ const ClinicDetails = () => {
                   >
                     <div className="flex flex-col">
                       {/* Service Name */}
-                      <h3 className="font-semibold text-gray-900 text-lg">{service.name}</h3>
+                      <h3 className="font-semibold text-gray-900 text-lg">{localizedCatalogName(service.name, i18n.language, serviceCatalog, t)}</h3>
                     </div>
                   </div>
                 ))}

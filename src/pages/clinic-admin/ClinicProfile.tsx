@@ -28,10 +28,12 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { localizedCatalogName, localizedStoredText, type CatalogName } from '@/utils/localizedContent';
 
 interface Clinic {
   id: string;
   name: string;
+  name_ar?: string | null;
   email: string;
   contact_phone: string | null;
   contact_email: string | null;
@@ -42,6 +44,7 @@ interface Clinic {
   address_details?: string | null;
   logo_url: string | null;
   description: string | null;
+  description_ar?: string | null;
   specialties: string[] | null;
   registration_date: string;
   status: string;
@@ -71,7 +74,7 @@ const ClinicAdminClinicProfile = () => {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [operatingHours, setOperatingHours] = useState<OperatingHours[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,13 +87,16 @@ const ClinicAdminClinicProfile = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoRemoved, setLogoRemoved] = useState(false);
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [specialtyCatalog, setSpecialtyCatalog] = useState<CatalogName[]>([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(false);
   const [clinicLoaded, setClinicLoaded] = useState(false);
   
   // Edit Profile Form State
   const [editProfileForm, setEditProfileForm] = useState({
     name: '',
+    name_ar: '',
     description: '',
+    description_ar: '',
     specialties: [] as string[],
     email: '',
     phone: '',
@@ -112,7 +118,9 @@ const ClinicAdminClinicProfile = () => {
         setLoadingSpecialties(true);
         
         const { specialties } = await api.adminServices.getSpecialties();
-        setAvailableSpecialties((specialties || []).map((s: any) => s.name));
+        const catalog = (specialties || []) as CatalogName[];
+        setSpecialtyCatalog(catalog);
+        setAvailableSpecialties(catalog.map((s) => s.name));
       } catch (error) {
         console.error('Error fetching super admin specialties:', error);
       } finally {
@@ -306,7 +314,9 @@ const ClinicAdminClinicProfile = () => {
     
     setEditProfileForm({
       name: clinic.name,
+      name_ar: clinic.name_ar || '',
       description: clinic.description || '',
+      description_ar: clinic.description_ar || '',
       specialties: clinic.specialties || [],
       email: clinic.contact_email || clinic.email,
       phone: clinic.contact_phone || '',
@@ -451,7 +461,9 @@ const ClinicAdminClinicProfile = () => {
 
       await api.clinicAdmin.updateClinic({
         name: editProfileForm.name.trim(),
+        name_ar: editProfileForm.name_ar.trim() || null,
         description: editProfileForm.description.trim() || null,
+        description_ar: editProfileForm.description_ar.trim() || null,
         specialties: editProfileForm.specialties.length > 0 ? editProfileForm.specialties : null,
         contact_phone: normalizePhoneNumber(editProfileForm.phone) || null,
         city: editProfileForm.city.trim(),
@@ -607,7 +619,7 @@ const ClinicAdminClinicProfile = () => {
                         {clinic.logo_url ? (
                           <img
                             src={clinic.logo_url}
-                            alt={clinic.name}
+                            alt={localizedStoredText(clinic.name, clinic.name_ar, i18n.language)}
                             className="max-h-full max-w-full object-contain p-1.5"
                           />
                         ) : (
@@ -616,10 +628,10 @@ const ClinicAdminClinicProfile = () => {
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                          {clinic.name}
+                          {localizedStoredText(clinic.name, clinic.name_ar, i18n.language)}
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400">
-                          {clinic.description || t('Healthcare & Diagnostics')}
+                          {localizedStoredText(clinic.description, clinic.description_ar, i18n.language) || t('Healthcare & Diagnostics')}
                         </p>
                       </div>
                     </div>
@@ -664,20 +676,20 @@ const ClinicAdminClinicProfile = () => {
                     <div className="flex items-start">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Clinic Name')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {clinic.name}
+                        {localizedStoredText(clinic.name, clinic.name_ar, i18n.language)}
                       </span>
                     </div>
                     <div className="flex items-start">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Description')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {clinic.description || t('N/A')}
+                        {localizedStoredText(clinic.description, clinic.description_ar, i18n.language) || t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-start">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Specialties')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
                         {clinic.specialties && clinic.specialties.length > 0
-                          ? clinic.specialties.map((specialty) => t(specialty)).join(', ')
+                          ? clinic.specialties.map((specialty) => localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)).join(', ')
                           : t('N/A')}
                       </span>
                     </div>
@@ -846,13 +858,28 @@ const ClinicAdminClinicProfile = () => {
               {/* Clinic Name */}
               <div>
                 <Label htmlFor="clinic-name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t('Clinic Name')}
+                  {t('Clinic name (English)')}
                 </Label>
                 <Input
                   id="clinic-name"
                   type="text"
                   value={editProfileForm.name}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, name: e.target.value })}
+                  className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder={t('Enter clinic name')}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="clinic-name-ar" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Clinic name (Arabic)')}
+                </Label>
+                <Input
+                  id="clinic-name-ar"
+                  dir="rtl"
+                  type="text"
+                  value={editProfileForm.name_ar}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, name_ar: e.target.value })}
                   className="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder={t('Enter clinic name')}
                 />
@@ -872,7 +899,7 @@ const ClinicAdminClinicProfile = () => {
                           key={specialty}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium"
                         >
-                          {t(specialty)}
+                          {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                           <button
                             type="button"
                             onClick={() => handleSpecialtyRemove(specialty)}
@@ -894,7 +921,7 @@ const ClinicAdminClinicProfile = () => {
                         .filter(s => !editProfileForm.specialties.includes(s))
                         .map((specialty) => (
                           <SelectItem key={specialty} value={specialty}>
-                            {t(specialty)}
+                            {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -997,12 +1024,27 @@ const ClinicAdminClinicProfile = () => {
               {/* Description */}
               <div>
                 <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {t('Description')}
+                  {t('Description (English)')}
                 </Label>
                 <Textarea
                   id="description"
                   value={editProfileForm.description}
                   onChange={(e) => setEditProfileForm({ ...editProfileForm, description: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder={t('Enter clinic description')}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description-ar" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Description (Arabic)')}
+                </Label>
+                <Textarea
+                  id="description-ar"
+                  dir="rtl"
+                  value={editProfileForm.description_ar}
+                  onChange={(e) => setEditProfileForm({ ...editProfileForm, description_ar: e.target.value })}
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder={t('Enter clinic description')}
                   rows={3}

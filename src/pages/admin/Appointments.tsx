@@ -15,6 +15,7 @@ import { useDarkMode } from '@/contexts/DarkModeContext';
 // import { supabase } from '@/integrations/supabase/client'; // Removed - Using backend API
 import { api } from '@/services/api';
 import { resolveBookedServiceName } from '@/utils/bookingService';
+import { localizedCatalogName, type CatalogName } from '@/utils/localizedContent';
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,7 @@ interface DoctorDetails {
 
 const AdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
@@ -86,6 +87,8 @@ const AdminAppointments = () => {
   const [filterSpecialty, setFilterSpecialty] = useState<string>('');
   const [doctors, setDoctors] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState<string[]>([]);
+  const [specialtyCatalog, setSpecialtyCatalog] = useState<CatalogName[]>([]);
+  const [serviceCatalog, setServiceCatalog] = useState<CatalogName[]>([]);
   
   // Appointment action modals
   const [isApproveConfirmModalOpen, setIsApproveConfirmModalOpen] = useState(false);
@@ -106,6 +109,25 @@ const AdminAppointments = () => {
 
   useEffect(() => {
     fetchAppointments();
+    const fetchCatalog = async () => {
+      try {
+        const [{ specialties: specialtiesData }, { treatments }] = await Promise.all([
+          api.services.getSpecialties(),
+          api.services.getTreatments(),
+        ]);
+        setSpecialtyCatalog((specialtiesData || []).map((item: CatalogName) => ({
+          name: item.name,
+          name_ar: item.name_ar,
+        })));
+        setServiceCatalog((treatments || []).map((item: CatalogName) => ({
+          name: item.name,
+          name_ar: item.name_ar,
+        })));
+      } catch (error) {
+        console.error('Error fetching catalog names:', error);
+      }
+    };
+    fetchCatalog();
     // Real-time subscriptions removed - using backend API
   }, []);
 
@@ -346,12 +368,16 @@ const AdminAppointments = () => {
       const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
       
       // Search filter
+      const specialtyLabel = localizedCatalogName(appointment.service, i18n.language, specialtyCatalog, t);
+      const serviceLabel = localizedCatalogName(appointment.serviceName, i18n.language, serviceCatalog, t);
       const matchesSearch =
         searchQuery === '' ||
         appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        specialtyLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        serviceLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.clinic.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Clinic filter
@@ -380,6 +406,10 @@ const AdminAppointments = () => {
     filterDate,
     filterDoctor,
     filterSpecialty,
+    i18n.language,
+    specialtyCatalog,
+    serviceCatalog,
+    t,
   ]);
 
   // Apply default sorting: pending appointments first (by date), then others
@@ -769,10 +799,16 @@ const AdminAppointments = () => {
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.doctorName}</span>
                         </td>
                         <td className="py-4 px-6">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.service}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {localizedCatalogName(appointment.service, i18n.language, specialtyCatalog, t)}
+                          </span>
                         </td>
                         <td className="py-4 px-6">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.serviceName || t('N/A')}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {appointment.serviceName
+                              ? localizedCatalogName(appointment.serviceName, i18n.language, serviceCatalog, t)
+                              : t('N/A')}
+                          </span>
                         </td>
                         <td className="py-4 px-6">
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.clinic}</span>
@@ -893,7 +929,7 @@ const AdminAppointments = () => {
                     <SelectItem value="all">{t('All Specialties')}</SelectItem>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
-                        {specialty}
+                        {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -973,11 +1009,17 @@ const AdminAppointments = () => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.specialty}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {localizedCatalogName(doctorDetails.specialty, i18n.language, specialtyCatalog, t)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{doctorDetails.service || t('N/A')}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {doctorDetails.service
+                            ? localizedCatalogName(doctorDetails.service, i18n.language, serviceCatalog, t)
+                            : t('N/A')}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>
@@ -996,7 +1038,9 @@ const AdminAppointments = () => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointment.service}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {localizedCatalogName(selectedAppointment.service, i18n.language, specialtyCatalog, t)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>

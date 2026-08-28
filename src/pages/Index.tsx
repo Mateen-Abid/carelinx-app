@@ -18,10 +18,12 @@ import { useTranslation } from 'react-i18next';
 interface DatabaseClinic {
   id: string;
   name: string;
+  name_ar?: string | null;
   address: string;
   logo_url: string | null;
   specialties: string[] | null;
   description: string | null;
+  description_ar?: string | null;
   status: string;
 }
 
@@ -51,8 +53,8 @@ const Index = () => {
   const [databaseClinics, setDatabaseClinics] = useState<DatabaseClinic[]>([]);
   const [loadingClinics, setLoadingClinics] = useState(true);
   const [clinicDoctors, setClinicDoctors] = useState<Record<string, Array<{id: string, name: string, specialty: string, email: string | null, phone: string | null, availability: string | null, services?: string | null, price?: string | number | null}>>>({});
-  const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
-  const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
+  const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string, name_ar?: string | null}>>([]);
+  const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, name_ar?: string | null, specialty_id: string, specialty_name: string, specialty_name_ar?: string | null}>>([]);
   const [approvedClinicServices, setApprovedClinicServices] = useState<ApprovedClinicService[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -331,13 +333,15 @@ const Index = () => {
         ]);
 
         console.log('✅ Fetched specialties:', specialtiesData?.length || 0);
-        setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name })));
+        setSuperAdminSpecialties((specialtiesData || []).map((s: any) => ({ id: s.id, name: s.name, name_ar: s.name_ar || null })));
         console.log('✅ Fetched treatments:', servicesData?.length || 0);
         const transformedServices = (servicesData || []).map((service: any) => ({
           id: service.id,
           name: service.name,
+          name_ar: service.name_ar || null,
           specialty_id: service.specialty_id,
-          specialty_name: service.specialties?.name || 'Unknown'
+          specialty_name: service.specialties?.name || 'Unknown',
+          specialty_name_ar: service.specialties?.name_ar || null,
         }));
         setSuperAdminServices(transformedServices);
 
@@ -519,6 +523,7 @@ const Index = () => {
       return {
         id: clinic.id,
         name: clinic.name,
+        nameAr: clinic.name_ar || null,
         address: clinic.address,
         type: hardcodedClinic?.type || 'Medical Center',
         services: (clinic.specialties || []).slice(0, 4).map(specialty => ({
@@ -540,6 +545,7 @@ const Index = () => {
     const hardcodedClinicCards = clinicsData.map(clinic => ({
       id: clinic.id,
       name: clinic.name,
+      nameAr: null as string | null,
       address: clinic.address,
       type: clinic.type,
       services: Object.keys(clinic.categories).slice(0, 4).map(categoryName => ({
@@ -1302,6 +1308,7 @@ const Index = () => {
       filtered = filtered.filter(clinic => {
         const matchesClinicFields =
           clinic.name.toLowerCase().includes(normalizedQuery) ||
+          String(clinic.nameAr || '').toLowerCase().includes(normalizedQuery) ||
           clinic.address.toLowerCase().includes(normalizedQuery) ||
           clinic.type.toLowerCase().includes(normalizedQuery);
 

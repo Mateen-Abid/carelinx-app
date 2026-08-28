@@ -34,10 +34,12 @@ import { toast } from 'sonner';
 import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import { useTranslation } from 'react-i18next';
+import { localizedStoredText } from '@/utils/localizedContent';
 
 interface Specialty {
   id: string;
   name: string;
+  name_ar?: string | null;
   description: string | null;
   is_active: boolean;
 }
@@ -46,9 +48,11 @@ interface Service {
   id: string;
   specialty_id: string;
   name: string;
+  name_ar?: string | null;
   description: string | null;
   is_active: boolean;
   specialty_name?: string; // Joined from specialties table
+  specialty_name_ar?: string | null;
 }
 
 interface ServiceRequest {
@@ -57,6 +61,7 @@ interface ServiceRequest {
   clinic_admin_id: string;
   specialty_id: string;
   service_name: string;
+  service_name_ar?: string | null;
   description: string | null;
   status: 'pending' | 'approved' | 'rejected';
   requested_at: string;
@@ -72,6 +77,7 @@ interface SpecialtyRequest {
   clinic_id: string;
   clinic_admin_id: string;
   specialty_name: string;
+  specialty_name_ar?: string | null;
   description: string | null;
   status: 'pending' | 'approved' | 'rejected';
   requested_at: string;
@@ -83,7 +89,7 @@ interface SpecialtyRequest {
 
 const AdminServices = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -96,6 +102,9 @@ const AdminServices = () => {
   const [selectedSpecialtyRequest, setSelectedSpecialtyRequest] = useState<SpecialtyRequest | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showRejectSpecialtyModal, setShowRejectSpecialtyModal] = useState(false);
+  const [showApproveSpecialtyModal, setShowApproveSpecialtyModal] = useState(false);
+  const [showApproveServiceModal, setShowApproveServiceModal] = useState(false);
+  const [approvalNameAr, setApprovalNameAr] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   
   // Modals
@@ -107,10 +116,10 @@ const AdminServices = () => {
   const [showDeleteServiceModal, setShowDeleteServiceModal] = useState(false);
   
   // Form states
-  const [newSpecialty, setNewSpecialty] = useState({ name: '', description: '' });
+  const [newSpecialty, setNewSpecialty] = useState({ name: '', name_ar: '', description: '' });
   const [editingSpecialty, setEditingSpecialty] = useState<Specialty | null>(null);
   const [deletingSpecialty, setDeletingSpecialty] = useState<Specialty | null>(null);
-  const [newService, setNewService] = useState({ specialty_id: '', name: '', description: '' });
+  const [newService, setNewService] = useState({ specialty_id: '', name: '', name_ar: '', description: '' });
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
 
@@ -142,7 +151,8 @@ const AdminServices = () => {
       // Transform services to include specialty name
       const transformedServices = (servicesData || []).map((service: any) => ({
         ...service,
-        specialty_name: service.specialty?.name || 'Unknown'
+        specialty_name: service.specialty?.name || 'Unknown',
+        specialty_name_ar: service.specialty?.name_ar || null,
       }));
       setServices(transformedServices);
     } catch (error) {
@@ -156,7 +166,11 @@ const AdminServices = () => {
   // Add specialty
   const handleAddSpecialty = async () => {
     if (!newSpecialty.name.trim()) {
-      toast.error(t('Please enter a specialty name'));
+      toast.error(t('Please enter the English name'));
+      return;
+    }
+    if (!newSpecialty.name_ar.trim()) {
+      toast.error(t('Please enter the Arabic name'));
       return;
     }
 
@@ -164,6 +178,7 @@ const AdminServices = () => {
       // Create specialty via backend (handles checking for existing and reactivation)
       const result = await api.adminServices.createSpecialty({
         name: newSpecialty.name.trim(),
+        name_ar: newSpecialty.name_ar.trim(),
         description: newSpecialty.description.trim() || null,
       });
 
@@ -174,7 +189,7 @@ const AdminServices = () => {
       }
 
       setShowAddSpecialtyModal(false);
-      setNewSpecialty({ name: '', description: '' });
+      setNewSpecialty({ name: '', name_ar: '', description: '' });
       fetchData();
     } catch (error: any) {
       console.error('Error adding specialty:', error);
@@ -196,6 +211,7 @@ const AdminServices = () => {
     try {
       const updatedSpecialty = await api.adminServices.updateSpecialty(editingSpecialty.id, {
         name: editingSpecialty.name.trim(),
+        name_ar: editingSpecialty.name_ar?.trim() || null,
         description: editingSpecialty.description || null
       });
 
@@ -208,6 +224,7 @@ const AdminServices = () => {
             ? {
                 ...specialty,
                 name: editingSpecialty.name.trim(),
+                name_ar: editingSpecialty.name_ar?.trim() || null,
                 description: editingSpecialty.description || null,
               }
             : specialty
@@ -300,17 +317,22 @@ const AdminServices = () => {
       toast.error(t('Please select a specialty and enter a service name'));
       return;
     }
+    if (!newService.name_ar.trim()) {
+      toast.error(t('Please enter the Arabic name'));
+      return;
+    }
 
     try {
       await api.adminServices.createService({
         specialty_id: newService.specialty_id,
         name: newService.name.trim(),
+        name_ar: newService.name_ar.trim(),
         description: newService.description.trim() || null,
       });
 
       toast.success(t('Service added successfully'));
       setShowAddServiceModal(false);
-      setNewService({ specialty_id: '', name: '', description: '' });
+      setNewService({ specialty_id: '', name: '', name_ar: '', description: '' });
       fetchData();
     } catch (error: any) {
       console.error('Error adding service:', error);
@@ -337,6 +359,7 @@ const AdminServices = () => {
       const updatedService = await api.adminServices.updateService(editingService.id, {
         specialty_id: editingService.specialty_id,
         name: editingService.name.trim(),
+        name_ar: editingService.name_ar?.trim() || null,
         description: editingService.description || null
       });
 
@@ -349,8 +372,10 @@ const AdminServices = () => {
             ? {
                 ...service,
                 name: editingService.name.trim(),
+                name_ar: editingService.name_ar?.trim() || null,
                 specialty_id: editingService.specialty_id,
                 specialty_name: specialties.find(s => s.id === editingService.specialty_id)?.name || service.specialty_name,
+                specialty_name_ar: specialties.find(s => s.id === editingService.specialty_id)?.name_ar || service.specialty_name_ar,
                 description: editingService.description || null,
               }
             : service
@@ -451,16 +476,21 @@ const AdminServices = () => {
   };
 
   // Handle approve request
-  const handleApproveRequest = async (request: ServiceRequest) => {
-    if (!user) {
+  const handleApproveRequest = async () => {
+    if (!selectedRequest || !user) {
       toast.error(t('User not authenticated'));
       return;
     }
 
     try {
-      await api.adminServices.approveServiceRequest(request.id);
+      await api.adminServices.approveServiceRequest(selectedRequest.id, {
+        name_ar: approvalNameAr.trim() || null,
+      });
 
       toast.success(t('Service request approved and added successfully!'));
+      setShowApproveServiceModal(false);
+      setSelectedRequest(null);
+      setApprovalNameAr('');
       fetchServiceRequests(); // Refresh requests list
       fetchData(); // Refresh services list
     } catch (error) {
@@ -495,21 +525,26 @@ const AdminServices = () => {
   };
 
   // Handle approve specialty request
-  const handleApproveSpecialtyRequest = async (request: SpecialtyRequest) => {
-    if (!user) {
+  const handleApproveSpecialtyRequest = async () => {
+    if (!selectedSpecialtyRequest || !user) {
       toast.error(t('User not authenticated'));
       return;
     }
 
     try {
-      await api.adminServices.approveSpecialtyRequest(request.id);
+      await api.adminServices.approveSpecialtyRequest(selectedSpecialtyRequest.id, {
+        name_ar: approvalNameAr.trim() || null,
+      });
 
       toast.success(t('Specialty request approved and added successfully!'));
-      fetchSpecialtyRequests(); // Refresh requests list
-      fetchData(); // Refresh specialties list
+      setShowApproveSpecialtyModal(false);
+      setSelectedSpecialtyRequest(null);
+      setApprovalNameAr('');
+      fetchSpecialtyRequests();
+      fetchData();
     } catch (error) {
       console.error('Error approving specialty request:', error);
-      toast.error(t('Failed to approve request'));
+      toast.error(t('Failed to approve specialty request'));
     }
   };
 
@@ -613,7 +648,7 @@ const AdminServices = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
-                              {request.specialty_name}
+                              {localizedStoredText(request.specialty_name, request.specialty_name_ar, i18n.language)}
                             </h3>
                             <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium">
                               {t('Pending')}
@@ -629,7 +664,11 @@ const AdminServices = () => {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button
-                            onClick={() => handleApproveSpecialtyRequest(request)}
+                            onClick={() => {
+                              setSelectedSpecialtyRequest(request);
+                              setApprovalNameAr(request.specialty_name_ar || '');
+                              setShowApproveSpecialtyModal(true);
+                            }}
                             className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
                             size="sm"
                           >
@@ -685,7 +724,7 @@ const AdminServices = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
-                              {request.service_name}
+                              {localizedStoredText(request.service_name, request.service_name_ar, i18n.language)}
                             </h3>
                             <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium">
                               {t('Pending')}
@@ -702,7 +741,11 @@ const AdminServices = () => {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button
-                            onClick={() => handleApproveRequest(request)}
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setApprovalNameAr(request.service_name_ar || '');
+                              setShowApproveServiceModal(true);
+                            }}
                             className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
                             size="sm"
                           >
@@ -749,7 +792,9 @@ const AdminServices = () => {
                       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 dark:text-white">{specialty.name}</h3>
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {localizedStoredText(specialty.name, specialty.name_ar, i18n.language)}
+                        </h3>
                         {specialty.description && (
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{specialty.description}</p>
                         )}
@@ -827,7 +872,7 @@ const AdminServices = () => {
                           className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           <td className="py-4 px-4 text-sm text-gray-900 dark:text-white font-semibold align-middle w-1/5">
-                            {specialtyName}
+                            {localizedStoredText(specialtyName, serviceList[0]?.specialty_name_ar, i18n.language)}
                           </td>
                           <td className="py-4 px-4 align-middle">
                             <div className="flex flex-wrap gap-2">
@@ -836,7 +881,7 @@ const AdminServices = () => {
                                   key={service.id}
                                   className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 whitespace-nowrap"
                                 >
-                                  {service.name}
+                                  {localizedStoredText(service.name, service.name_ar, i18n.language)}
                                 </span>
                               ))}
                             </div>
@@ -911,12 +956,24 @@ const AdminServices = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>{t('Specialty Name')} *</Label>
+              <Label>{t('Specialty name (English)')} *</Label>
               <Input
                 value={newSpecialty.name}
                 onChange={(e) => setNewSpecialty({ ...newSpecialty, name: e.target.value })}
                 placeholder={t('e.g., Cardiology')}
               />
+            </div>
+            <div>
+              <Label>{t('Specialty name (Arabic)')} *</Label>
+              <Input
+                dir="rtl"
+                value={newSpecialty.name_ar}
+                onChange={(e) => setNewSpecialty({ ...newSpecialty, name_ar: e.target.value })}
+                placeholder={t('e.g., Cardiology in Arabic')}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t('Arabic is shown when the app language is Arabic')}
+              </p>
             </div>
             <div>
               <Label>{t('Description')}</Label>
@@ -946,10 +1003,18 @@ const AdminServices = () => {
           {editingSpecialty && (
             <div className="space-y-4">
               <div>
-                <Label>{t('Specialty Name')} *</Label>
+                <Label>{t('Specialty name (English)')} *</Label>
                 <Input
                   value={editingSpecialty.name}
                   onChange={(e) => setEditingSpecialty({ ...editingSpecialty, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>{t('Specialty name (Arabic)')}</Label>
+                <Input
+                  dir="rtl"
+                  value={editingSpecialty.name_ar || ''}
+                  onChange={(e) => setEditingSpecialty({ ...editingSpecialty, name_ar: e.target.value })}
                 />
               </div>
               <div>
@@ -1007,18 +1072,27 @@ const AdminServices = () => {
                 <SelectContent>
                   {specialties.map((specialty) => (
                     <SelectItem key={specialty.id} value={specialty.id}>
-                      {specialty.name}
+                      {localizedStoredText(specialty.name, specialty.name_ar, i18n.language)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>{t('Service Name')} *</Label>
+              <Label>{t('Service name (English)')} *</Label>
               <Input
                 value={newService.name}
                 onChange={(e) => setNewService({ ...newService, name: e.target.value })}
                 placeholder={t('e.g., Consultation')}
+              />
+            </div>
+            <div>
+              <Label>{t('Service name (Arabic)')} *</Label>
+              <Input
+                dir="rtl"
+                value={newService.name_ar}
+                onChange={(e) => setNewService({ ...newService, name_ar: e.target.value })}
+                placeholder={t('e.g., Consultation in Arabic')}
               />
             </div>
             <div>
@@ -1062,18 +1136,26 @@ const AdminServices = () => {
                   <SelectContent>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty.id} value={specialty.id}>
-                        {specialty.name}
+                        {localizedStoredText(specialty.name, specialty.name_ar, i18n.language)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>{t('Service Name')} *</Label>
+                <Label>{t('Service name (English)')} *</Label>
                 <Input
                   value={editingService.name}
                   onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
                   placeholder={t('Enter service name')}
+                />
+              </div>
+              <div>
+                <Label>{t('Service name (Arabic)')}</Label>
+                <Input
+                  dir="rtl"
+                  value={editingService.name_ar || ''}
+                  onChange={(e) => setEditingService({ ...editingService, name_ar: e.target.value })}
                 />
               </div>
               <div>
@@ -1227,6 +1309,86 @@ const AdminServices = () => {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               {t('Reject Request')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showApproveSpecialtyModal} onOpenChange={setShowApproveSpecialtyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Approve Specialty Request')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t('English stays the catalog identity. Edit Arabic if needed before approving.')}
+            </p>
+            <div>
+              <Label>{t('English name')}</Label>
+              <Input value={selectedSpecialtyRequest?.specialty_name || ''} disabled />
+            </div>
+            <div>
+              <Label>{t('Official Arabic name')}</Label>
+              <Input
+                dir="rtl"
+                value={approvalNameAr}
+                onChange={(e) => setApprovalNameAr(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowApproveSpecialtyModal(false);
+                setSelectedSpecialtyRequest(null);
+                setApprovalNameAr('');
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleApproveSpecialtyRequest} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
+              {t('Approve')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showApproveServiceModal} onOpenChange={setShowApproveServiceModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{t('Approve Service Request')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t('English stays the catalog identity. Edit Arabic if needed before approving.')}
+            </p>
+            <div>
+              <Label>{t('English name')}</Label>
+              <Input value={selectedRequest?.service_name || ''} disabled />
+            </div>
+            <div>
+              <Label>{t('Official Arabic name')}</Label>
+              <Input
+                dir="rtl"
+                value={approvalNameAr}
+                onChange={(e) => setApprovalNameAr(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowApproveServiceModal(false);
+                setSelectedRequest(null);
+                setApprovalNameAr('');
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleApproveRequest} className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243]">
+              {t('Approve')}
             </Button>
           </DialogFooter>
         </DialogContent>

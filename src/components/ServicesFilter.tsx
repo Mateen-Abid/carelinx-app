@@ -4,6 +4,7 @@ import Image5 from '../assets/image 5.svg'; // adjust path based on your folder 
 import DentalIcon from '../assets/dental-icon.svg';
 import { clinicsData } from '@/data/clinicsData';
 import { useTranslation } from 'react-i18next';
+import { localizedStoredText } from '@/utils/localizedContent';
 
 interface ServiceSubcategory {
   id: string;
@@ -20,11 +21,11 @@ interface ServiceCategory {
 interface ServicesFilterProps {
   onCategoryChange: (categoryId: string) => void;
   selectedCategory: string;
-  superAdminSpecialties?: Array<{id: string, name: string}>;
+  superAdminSpecialties?: Array<{id: string, name: string, name_ar?: string | null}>;
 }
 
 const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selectedCategory, superAdminSpecialties = [] }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Custom Tooth Icon Component
   const ToothIcon = ({ size = 16, className = "" }: { size?: number; className?: string }) => (
@@ -136,7 +137,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
           // Use a generic icon for super admin specialties (can be customized later)
           categories.push({
             id: specialty.id,
-            name: specialty.name,
+            name: localizedStoredText(specialty.name, specialty.name_ar, i18n.language) || specialty.name,
             icon: OthersIcon // Using OthersIcon as default, can be customized
           });
         }
@@ -147,7 +148,7 @@ const ServicesFilter: React.FC<ServicesFilterProps> = ({ onCategoryChange, selec
     categories.push({ id: 'others', name: t('Others'), icon: OthersIcon });
     
     return categories;
-  }, [superAdminSpecialties, t]);
+  }, [superAdminSpecialties, t, i18n.language]);
 
   const handleCategorySelect = (categoryId: string) => {
     onCategoryChange(categoryId);

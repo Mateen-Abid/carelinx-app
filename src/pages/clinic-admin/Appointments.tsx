@@ -16,6 +16,7 @@ import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import BookAppointmentModal from '@/components/clinic-admin/BookAppointmentModal';
 import { Switch } from '@/components/ui/switch';
 import { resolveBookedServiceName } from '@/utils/bookingService';
+import { localizedCatalogName, type CatalogName } from '@/utils/localizedContent';
 
 interface Appointment {
   id: string;
@@ -62,7 +63,7 @@ interface Clinic {
 
 const ClinicAdminAppointments = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
@@ -84,6 +85,31 @@ const ClinicAdminAppointments = () => {
   const [newAppointmentTime, setNewAppointmentTime] = useState<string>('');
   const [autoBookingEnabled, setAutoBookingEnabled] = useState(false);
   const [updatingAutoBooking, setUpdatingAutoBooking] = useState(false);
+  const [specialtyCatalog, setSpecialtyCatalog] = useState<CatalogName[]>([]);
+  const [serviceCatalog, setServiceCatalog] = useState<CatalogName[]>([]);
+
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      try {
+        const [{ specialties }, { treatments }] = await Promise.all([
+          api.services.getSpecialties(),
+          api.services.getTreatments(),
+        ]);
+        setSpecialtyCatalog((specialties || []).map((item: CatalogName) => ({
+          name: item.name,
+          name_ar: item.name_ar,
+        })));
+        setServiceCatalog((treatments || []).map((item: CatalogName) => ({
+          name: item.name,
+          name_ar: item.name_ar,
+        })));
+      } catch (error) {
+        console.error('Error fetching catalog names:', error);
+      }
+    };
+
+    fetchCatalog();
+  }, []);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -688,15 +714,19 @@ const ClinicAdminAppointments = () => {
         (statusFilter === 'pending' && appointment.status === 'pending') ||
         (statusFilter === 'cancelled' && appointment.status === 'cancelled');
       
+      const specialtyLabel = localizedCatalogName(appointment.service, i18n.language, specialtyCatalog, t);
+      const serviceLabel = localizedCatalogName(appointment.serviceName, i18n.language, serviceCatalog, t);
       const matchesSearch = searchQuery === '' ||
         appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase());
+        specialtyLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        serviceLabel.toLowerCase().includes(searchQuery.toLowerCase());
       
       return matchesStatus && matchesSearch;
     });
-  }, [appointmentsData, statusFilter, searchQuery]);
+  }, [appointmentsData, statusFilter, searchQuery, i18n.language, specialtyCatalog, serviceCatalog, t]);
 
   // Apply default sorting: pending appointments first (by date), then others
   const preSortedAppointments = useMemo(() => {
@@ -951,10 +981,12 @@ const ClinicAdminAppointments = () => {
                             {appointment.doctorName}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {appointment.service}
+                            {localizedCatalogName(appointment.service, i18n.language, specialtyCatalog, t)}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {appointment.serviceName || t('N/A')}
+                            {appointment.serviceName
+                              ? localizedCatalogName(appointment.serviceName, i18n.language, serviceCatalog, t)
+                              : t('N/A')}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
                             {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
@@ -1038,11 +1070,15 @@ const ClinicAdminAppointments = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Specialty')}</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.specialty}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {localizedCatalogName(selectedAppointmentDetails.doctor.specialty, i18n.language, specialtyCatalog, t)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Service')}</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAppointmentDetails.doctor.service}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {localizedCatalogName(selectedAppointmentDetails.doctor.service, i18n.language, serviceCatalog, t)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('Availability')}</p>

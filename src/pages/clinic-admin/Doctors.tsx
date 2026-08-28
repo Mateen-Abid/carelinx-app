@@ -40,6 +40,7 @@ import {
 } from '@/utils/clinicAvailability';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { localizedCatalogName, type CatalogName } from '@/utils/localizedContent';
 
 interface Doctor {
   id: string;
@@ -74,7 +75,7 @@ const ClinicAdminDoctors = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [viewMode, setViewMode] = useState<'doctors' | 'treatment'>('doctors');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'on-leave'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +102,9 @@ const ClinicAdminDoctors = () => {
   const [showRequestSpecialtyModal, setShowRequestSpecialtyModal] = useState(false);
   const [showRequestSuccessModal, setShowRequestSuccessModal] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
+  const [newServiceNameAr, setNewServiceNameAr] = useState('');
   const [newSpecialtyName, setNewSpecialtyName] = useState('');
+  const [newSpecialtyNameAr, setNewSpecialtyNameAr] = useState('');
   const [newDoctor, setNewDoctor] = useState({
     name: '',
     gender: '',
@@ -127,7 +130,9 @@ const ClinicAdminDoctors = () => {
   const [editDoctorAvailabilityEntries, setEditDoctorAvailabilityEntries] = useState<AvailabilityEntry[]>([]);
   
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [specialtyCatalog, setSpecialtyCatalog] = useState<CatalogName[]>([]);
   const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [serviceCatalog, setServiceCatalog] = useState<CatalogName[]>([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState(false);
@@ -168,7 +173,9 @@ const ClinicAdminDoctors = () => {
         const { specialties: specialtiesData } = await api.adminServices.getSpecialties();
 
         if (specialtiesData) {
-          setAvailableSpecialties(specialtiesData.map((s: any) => s.name));
+          const catalog = specialtiesData as CatalogName[];
+          setSpecialtyCatalog(catalog);
+          setAvailableSpecialties(catalog.map((s) => s.name));
         }
 
         // Services will be fetched when a specialty is selected
@@ -195,6 +202,7 @@ const ClinicAdminDoctors = () => {
 
       if (specialtiesToUse.length === 0) {
         setAvailableServices([]);
+        setServiceCatalog([]);
         return;
       }
 
@@ -211,18 +219,23 @@ const ClinicAdminDoctors = () => {
         if (!specialtyData) {
           console.error('Error: Specialty not found');
           setAvailableServices([]);
+          setServiceCatalog([]);
           return;
         }
 
-        const filteredServices = servicesData
-          .filter((s: any) => s.specialty_id === specialtyData.id && s.is_active)
-          .map((s: any) => s.name)
-          .sort();
-        
-        setAvailableServices(filteredServices);
+        const filteredServices = (servicesData || [])
+          .filter((s: any) => s.specialty_id === specialtyData.id && s.is_active);
+
+        setServiceCatalog(filteredServices.map((s: any) => ({ name: s.name, name_ar: s.name_ar })));
+        setAvailableServices(
+          filteredServices
+            .map((s: any) => s.name)
+            .sort()
+        );
       } catch (error) {
         console.error('Error fetching services:', error);
         setAvailableServices([]);
+        setServiceCatalog([]);
       }
     };
 
@@ -477,7 +490,11 @@ const ClinicAdminDoctors = () => {
 
   const handleSubmitServiceRequest = async () => {
     if (!newServiceName.trim()) {
-      toast.error(t('Please enter a service name'));
+      toast.error(t('Please enter the English name'));
+      return;
+    }
+    if (!newServiceNameAr.trim()) {
+      toast.error(t('Please enter the Arabic name'));
       return;
     }
 
@@ -504,13 +521,14 @@ const ClinicAdminDoctors = () => {
       }
 
       // Create service request via backend
-      await api.clinicAdmin.createServiceRequest(specialtyData.id, newServiceName.trim());
+      await api.clinicAdmin.createServiceRequest(specialtyData.id, newServiceName.trim(), newServiceNameAr.trim());
 
       console.log('✅ Service request submitted successfully');
       toast.success(t('Service request submitted successfully!'));
       
       setShowRequestServiceModal(false);
       setNewServiceName('');
+      setNewServiceNameAr('');
       setShowRequestSuccessModal(true);
       
       // Auto close success modal after 3 seconds
@@ -525,7 +543,11 @@ const ClinicAdminDoctors = () => {
 
   const handleSubmitSpecialtyRequest = async () => {
     if (!newSpecialtyName.trim()) {
-      toast.error(t('Please enter a specialty name'));
+      toast.error(t('Please enter the English name'));
+      return;
+    }
+    if (!newSpecialtyNameAr.trim()) {
+      toast.error(t('Please enter the Arabic name'));
       return;
     }
 
@@ -536,13 +558,14 @@ const ClinicAdminDoctors = () => {
 
     try {
       // Create specialty request via backend
-      await api.clinicAdmin.createSpecialtyRequest(newSpecialtyName.trim());
+      await api.clinicAdmin.createSpecialtyRequest(newSpecialtyName.trim(), newSpecialtyNameAr.trim());
 
       console.log('✅ Specialty request submitted successfully');
       toast.success(t('Specialty request submitted successfully!'));
       
       setShowRequestSpecialtyModal(false);
       setNewSpecialtyName('');
+      setNewSpecialtyNameAr('');
       setShowRequestSuccessModal(true);
       
       // Auto close success modal after 3 seconds
@@ -1122,7 +1145,7 @@ const ClinicAdminDoctors = () => {
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {doctor.specialty}
+                              {localizedCatalogName(doctor.specialty, i18n.language, specialtyCatalog, t)}
                             </span>
                           </td>
                           <td className="py-4 px-6">
@@ -1269,7 +1292,7 @@ const ClinicAdminDoctors = () => {
                           </td>
                           <td className="py-4 px-6">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {treatment.specialty}{treatment.service ? `, ${treatment.service}` : ''}
+                              {localizedCatalogName(treatment.specialty, i18n.language, specialtyCatalog, t)}{treatment.service ? `, ${localizedCatalogName(treatment.service, i18n.language, serviceCatalog, t)}` : ''}
                             </span>
                           </td>
                           <td className="py-4 px-6">
@@ -1428,7 +1451,7 @@ const ClinicAdminDoctors = () => {
                           key={specialty}
                           value={specialty}
                         >
-                          {specialty}
+                          {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                         </SelectItem>
                       ))}
                       <div className="px-2 py-1.5">
@@ -1453,7 +1476,7 @@ const ClinicAdminDoctors = () => {
                           key={specialty}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
                         >
-                          {specialty}
+                          {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                           <button
                             onClick={() => {
                               handleRemoveSpecialty(specialty);
@@ -1508,7 +1531,7 @@ const ClinicAdminDoctors = () => {
                               key={service}
                               value={service}
                             >
-                              {service}
+                              {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
                             </SelectItem>
                           ))
                       )}
@@ -1534,7 +1557,7 @@ const ClinicAdminDoctors = () => {
                           key={service}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
                         >
-                          {service}
+                          {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
                           <button
                             onClick={() => handleRemoveService(service)}
                             className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors ml-0.5"
@@ -1585,29 +1608,29 @@ const ClinicAdminDoctors = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('Price')}
-                  </Label>
-                  <Input
-                    id="doctor-price"
-                    type="number"
-                    value={newDoctor.price}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, price: e.target.value })}
-                    placeholder={t('Enter Price')}
-                    className="mt-1.5 h-10"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('Availability')}
-                  </Label>
-                  <AvailabilityPicker
-                    operatingHours={clinicOperatingHours}
-                    entries={newDoctorAvailabilityEntries}
-                    onEntriesChange={setNewDoctorAvailabilityEntries}
-                  />
-                </div>
+              </div>
+              <div>
+                <Label htmlFor="doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Price')}
+                </Label>
+                <Input
+                  id="doctor-price"
+                  type="number"
+                  value={newDoctor.price}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, price: e.target.value })}
+                  placeholder={t('Enter Price')}
+                  className="h-10"
+                />
+              </div>
+              <div>
+                <Label htmlFor="doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Availability')}
+                </Label>
+                <AvailabilityPicker
+                  operatingHours={clinicOperatingHours}
+                  entries={newDoctorAvailabilityEntries}
+                  onEntriesChange={setNewDoctorAvailabilityEntries}
+                />
               </div>
             </div>
           </div>
@@ -1693,7 +1716,7 @@ const ClinicAdminDoctors = () => {
                     <SelectContent>
                       {availableSpecialties.map((specialty) => (
                         <SelectItem key={specialty} value={specialty}>
-                          {specialty}
+                          {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1717,29 +1740,29 @@ const ClinicAdminDoctors = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="edit-doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('Availability')}
-                  </Label>
-                  <AvailabilityPicker
-                    operatingHours={clinicOperatingHours}
-                    entries={editDoctorAvailabilityEntries}
-                    onEntriesChange={setEditDoctorAvailabilityEntries}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('Price')}
-                  </Label>
-                  <Input
-                    id="edit-doctor-price"
-                    type="number"
-                    value={editDoctor.price}
-                    onChange={(e) => setEditDoctor({ ...editDoctor, price: e.target.value })}
-                    placeholder={t('Enter Price')}
-                    className="mt-1.5 h-10"
-                  />
-                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit-doctor-price" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Price')}
+                </Label>
+                <Input
+                  id="edit-doctor-price"
+                  type="number"
+                  value={editDoctor.price}
+                  onChange={(e) => setEditDoctor({ ...editDoctor, price: e.target.value })}
+                  placeholder={t('Enter Price')}
+                  className="h-10"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-doctor-availability" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  {t('Availability')}
+                </Label>
+                <AvailabilityPicker
+                  operatingHours={clinicOperatingHours}
+                  entries={editDoctorAvailabilityEntries}
+                  onEntriesChange={setEditDoctorAvailabilityEntries}
+                />
               </div>
             </div>
           </div>
@@ -1883,7 +1906,7 @@ const ClinicAdminDoctors = () => {
                       key={specialty}
                       value={specialty}
                     >
-                      {specialty}
+                      {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1927,7 +1950,7 @@ const ClinicAdminDoctors = () => {
                       key={service}
                       value={service}
                     >
-                      {service}
+                      {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1940,7 +1963,7 @@ const ClinicAdminDoctors = () => {
                       key={service}
                       className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                     >
-                      <span>{service}</span>
+                      <span>{localizedCatalogName(service, i18n.language, serviceCatalog, t)}</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -2053,13 +2076,26 @@ const ClinicAdminDoctors = () => {
             </p>
             <div>
               <Label htmlFor="service-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('Enter the service name')}
+                {t('Service name (English)')}
               </Label>
               <Input
                 id="service-name"
                 value={newServiceName}
                 onChange={(e) => setNewServiceName(e.target.value)}
                 placeholder={t('Service name')}
+                className="mt-1.5 h-10"
+              />
+            </div>
+            <div className="mt-3">
+              <Label htmlFor="service-name-ar" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('Service name (Arabic)')}
+              </Label>
+              <Input
+                id="service-name-ar"
+                dir="rtl"
+                value={newServiceNameAr}
+                onChange={(e) => setNewServiceNameAr(e.target.value)}
+                placeholder={t('e.g., Consultation in Arabic')}
                 className="mt-1.5 h-10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -2092,13 +2128,26 @@ const ClinicAdminDoctors = () => {
             </p>
             <div>
               <Label htmlFor="specialty-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('Enter the specialty name')}
+                {t('Specialty name (English)')}
               </Label>
               <Input
                 id="specialty-name"
                 value={newSpecialtyName}
                 onChange={(e) => setNewSpecialtyName(e.target.value)}
                 placeholder={t('Specialty name')}
+                className="mt-1.5 h-10"
+              />
+            </div>
+            <div className="mt-3">
+              <Label htmlFor="specialty-name-ar" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('Specialty name (Arabic)')}
+              </Label>
+              <Input
+                id="specialty-name-ar"
+                dir="rtl"
+                value={newSpecialtyNameAr}
+                onChange={(e) => setNewSpecialtyNameAr(e.target.value)}
+                placeholder={t('e.g., Cardiology in Arabic')}
                 className="mt-1.5 h-10"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -2166,7 +2215,7 @@ const ClinicAdminDoctors = () => {
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  {specialty}
+                  {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                 </button>
               ))}
             </div>

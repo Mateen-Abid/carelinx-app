@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getAllServices, getAllCategories, clinicsData } from '@/data/clinicsData';
 import { useTranslation } from 'react-i18next';
+import { localizedStoredText } from '@/utils/localizedContent';
 
 interface SearchOption {
   id: string;
   name: string;
+  label?: string;
   category: string;
   type: 'category' | 'subcategory';
   bookingType?: 'service' | 'treatment';
@@ -17,8 +19,8 @@ interface SearchInputProps {
   selectedCategory?: string;
   currentSearchQuery?: string;
   clinicServices?: SearchOption[]; // Add clinic-specific services
-  superAdminServices?: Array<{id: string, name: string, specialty_id: string, specialty_name: string}>;
-  superAdminSpecialties?: Array<{id: string, name: string}>;
+  superAdminServices?: Array<{id: string, name: string, name_ar?: string | null, specialty_id: string, specialty_name: string}>;
+  superAdminSpecialties?: Array<{id: string, name: string, name_ar?: string | null}>;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({ 
@@ -56,7 +58,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
     // Even if the array is empty (clinic has no services for this category)
     if (clinicServices !== undefined) {
       console.log('SearchInput - Using clinic-specific services:', clinicServices);
-      return clinicServices;
+      return clinicServices.map((option) => ({
+        ...option,
+        label: option.label || localizedStoredText(
+          option.name,
+          superAdminServices.find((service) => service.name === option.name)?.name_ar,
+          i18n.language,
+        ),
+      }));
     }
     
     // Check if a main category is selected
@@ -86,6 +95,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                 options.push({
                   id: `super-${service.id}`,
                   name: service.name,
+                  label: localizedStoredText(service.name, service.name_ar, i18n.language),
                   category: service.specialty_name,
                   type: 'subcategory',
                   bookingType: 'service',
@@ -126,6 +136,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
               options.push({
                 id: `super-${service.id}`,
                 name: service.name,
+                label: localizedStoredText(service.name, service.name_ar, i18n.language),
                 category: service.specialty_name,
                 type: 'subcategory',
                 bookingType: 'service',
@@ -147,7 +158,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
 
     return options;
-  }, [selectedCategory, clinicServices, superAdminServices, superAdminSpecialties]);
+  }, [selectedCategory, clinicServices, superAdminServices, superAdminSpecialties, i18n.language]);
 
   const getCategorySubcategories = () => {
     if (selectedCategory === 'all') {
@@ -209,6 +220,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     if (value.trim().length > 0) {
       // Filter options based on search term
       const filtered = searchOptions.filter(option =>
+        (option.label || option.name).toLowerCase().includes(value.toLowerCase()) ||
         option.name.toLowerCase().includes(value.toLowerCase()) ||
         option.category.toLowerCase().includes(value.toLowerCase())
       );
@@ -238,6 +250,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     if (searchValue.trim().length > 0) {
       // Filter based on current search value
       const filtered = searchOptions.filter(option =>
+        (option.label || option.name).toLowerCase().includes(searchValue.toLowerCase()) ||
         option.name.toLowerCase().includes(searchValue.toLowerCase()) ||
         option.category.toLowerCase().includes(searchValue.toLowerCase())
       );
@@ -340,7 +353,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {option.name}
+                        {option.label || option.name}
                       </div>
                     </div>
                     <div className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">

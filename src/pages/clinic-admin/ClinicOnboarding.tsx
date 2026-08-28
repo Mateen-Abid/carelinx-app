@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Upload, Image as ImageIcon, ArrowLeft, ArrowRight, Trash2, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from '@/components/LanguageToggle';
+import { localizedCatalogName, type CatalogName } from '@/utils/localizedContent';
 
 type OnboardingStep = 'clinic-info' | 'contact-details' | 'operating-hours';
 
@@ -90,12 +91,15 @@ const ClinicOnboarding = () => {
     logoPreview: null as string | null,
     logoRemoved: false,
     name: '',
+    name_ar: '',
     specialties: [] as string[],
     description: '',
+    description_ar: '',
   });
 
   // Available specialties from super admin
   const [availableSpecialties, setAvailableSpecialties] = useState<string[]>([]);
+  const [specialtyCatalog, setSpecialtyCatalog] = useState<CatalogName[]>([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(false);
 
   // Step 2: Contact Details
@@ -156,8 +160,10 @@ const ClinicOnboarding = () => {
           setClinicInfo((prev) => ({
             ...prev,
             name: clinic.name || '',
+            name_ar: clinic.name_ar || '',
             specialties: Array.isArray(clinic.specialties) ? clinic.specialties : [],
             description: clinic.description || '',
+            description_ar: clinic.description_ar || '',
             logoPreview: clinic.logo_url || prev.logoPreview,
             logoRemoved: false,
           }));
@@ -194,9 +200,11 @@ const ClinicOnboarding = () => {
           // Resume at the first incomplete step
           const hasClinicInfo = Boolean(
             clinic.name &&
+            clinic.name_ar &&
             Array.isArray(clinic.specialties) &&
             clinic.specialties.length > 0 &&
-            clinic.description
+            clinic.description &&
+            clinic.description_ar
           );
           const hasContactDetails = Boolean(
             clinic.contact_phone &&
@@ -233,7 +241,9 @@ const ClinicOnboarding = () => {
       try {
         setLoadingSpecialties(true);
         const { specialties } = await api.services.getSpecialties();
-        setAvailableSpecialties((specialties || []).map((s: { name: string }) => s.name));
+        const catalog = (specialties || []) as CatalogName[];
+        setSpecialtyCatalog(catalog);
+        setAvailableSpecialties(catalog.map((s) => s.name));
       } catch (error) {
         console.error('Error fetching super admin specialties:', error);
       } finally {
@@ -418,6 +428,10 @@ const ClinicOnboarding = () => {
         toast.error(t('Please enter clinic name'));
         return;
       }
+      if (!clinicInfo.name_ar.trim()) {
+        toast.error(t('Please enter the Arabic clinic name'));
+        return;
+      }
       if (clinicInfo.specialties.length === 0) {
         toast.error(t('Please select at least one specialty'));
         return;
@@ -426,13 +440,19 @@ const ClinicOnboarding = () => {
         toast.error(t('Please enter clinic description'));
         return;
       }
+      if (!clinicInfo.description_ar.trim()) {
+        toast.error(t('Please enter the Arabic description'));
+        return;
+      }
 
       setLoading(true);
       try {
         let currentClinicId = clinicId;
         const clinicPayload = {
           name: clinicInfo.name.trim(),
+          name_ar: clinicInfo.name_ar.trim(),
           description: clinicInfo.description.trim(),
+          description_ar: clinicInfo.description_ar.trim(),
           specialties: clinicInfo.specialties,
         };
 
@@ -613,7 +633,9 @@ const ClinicOnboarding = () => {
 
         const clinicPayload = {
           name: clinicInfo.name.trim(),
+          name_ar: clinicInfo.name_ar.trim() || null,
           description: clinicInfo.description.trim() || '',
+          description_ar: clinicInfo.description_ar.trim() || null,
           specialties: clinicInfo.specialties,
         };
 
@@ -840,7 +862,7 @@ const ClinicOnboarding = () => {
               {/* Clinic Name */}
               <div>
                 <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  {t('Clinic Name')}
+                  {t('Clinic name (English)')}
                 </Label>
                 <Input
                   id="name"
@@ -848,6 +870,22 @@ const ClinicOnboarding = () => {
                   value={clinicInfo.name}
                   onChange={(e) =>
                     setClinicInfo((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="name_ar" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('Clinic name (Arabic)')}
+                </Label>
+                <Input
+                  id="name_ar"
+                  dir="rtl"
+                  placeholder={t('Enter clinic name')}
+                  value={clinicInfo.name_ar}
+                  onChange={(e) =>
+                    setClinicInfo((prev) => ({ ...prev, name_ar: e.target.value }))
                   }
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
@@ -877,7 +915,7 @@ const ClinicOnboarding = () => {
                           value={specialty}
                           className="dark:text-white cursor-pointer"
                         >
-                          {t(specialty)}
+                          {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -897,7 +935,7 @@ const ClinicOnboarding = () => {
                         key={specialty}
                         className="px-3 py-1 bg-[#0C2243] dark:bg-[#00FFA2] text-white dark:text-[#0C2243] rounded-full text-sm inline-flex items-center gap-2"
                       >
-                        {t(specialty)}
+                        {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                         <button
                           type="button"
                           onClick={() => handleSpecialtyRemove(specialty)}
@@ -914,7 +952,7 @@ const ClinicOnboarding = () => {
               {/* Description */}
               <div>
                 <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 mb-2 block">
-                  {t('Description')}
+                  {t('Description (English)')}
                 </Label>
                 <Textarea
                   id="description"
@@ -922,6 +960,23 @@ const ClinicOnboarding = () => {
                   value={clinicInfo.description}
                   onChange={(e) =>
                     setClinicInfo((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  rows={4}
+                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description_ar" className="text-gray-700 dark:text-gray-300 mb-2 block">
+                  {t('Description (Arabic)')}
+                </Label>
+                <Textarea
+                  id="description_ar"
+                  dir="rtl"
+                  placeholder={t('Enter clinic description')}
+                  value={clinicInfo.description_ar}
+                  onChange={(e) =>
+                    setClinicInfo((prev) => ({ ...prev, description_ar: e.target.value }))
                   }
                   rows={4}
                   className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
