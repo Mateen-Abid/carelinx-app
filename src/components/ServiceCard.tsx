@@ -31,11 +31,23 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   // Navigate to service details page using the actual service ID
   const handleServiceClick = () => {
     if (serviceId) {
-      navigate(`/service/${serviceId}`);
+      navigate(`/service/${serviceId}`, {
+        state: {
+          clinicName,
+          selectedServiceName: serviceName,
+          selectedSpecialty: specialty,
+        },
+      });
     } else {
       // Fallback to name-based ID if serviceId is not provided
       const fallbackId = serviceName.toLowerCase().replace(/\s+/g, '-');
-      navigate(`/service/${fallbackId}`);
+      navigate(`/service/${fallbackId}`, {
+        state: {
+          clinicName,
+          selectedServiceName: serviceName,
+          selectedSpecialty: specialty,
+        },
+      });
     }
   };
 

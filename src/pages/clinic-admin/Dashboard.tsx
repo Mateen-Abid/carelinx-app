@@ -6,6 +6,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
+import { resolveBookedServiceName } from '@/utils/bookingService';
 import { X, ArrowUp, Check, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -595,9 +596,14 @@ const ClinicAdminDashboard = () => {
       const isTreatmentBooking = bookingData.booking_type === 'treatment';
       const resolvedSpecialty =
         treatmentData?.specialty || doctorData?.specialty || bookingData.specialty || appointment.specialty || t('General');
-      const resolvedService = isTreatmentBooking
-        ? bookingData.service_name || treatmentData?.service || t('N/A')
-        : bookingData.service_name || t('N/A');
+      const resolvedService =
+        resolveBookedServiceName({
+          serviceName: bookingData.service_name,
+          bookingType: bookingData.booking_type,
+          treatmentName: bookingData.treatment_name || treatmentData?.name,
+          treatmentService: treatmentData?.service,
+          doctorServices: doctorData?.services,
+        }) || t('N/A');
 
       // Build appointment details
       const details: AppointmentDetails = {

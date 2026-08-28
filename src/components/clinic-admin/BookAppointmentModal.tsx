@@ -247,18 +247,33 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
     [selectedTreatmentId, treatments]
   );
   const doctorServices = useMemo(() => splitStoredValues(selectedDoctor?.services), [selectedDoctor?.services]);
+  const treatmentServices = useMemo(
+    () => splitStoredValues(selectedTreatment?.service),
+    [selectedTreatment?.service]
+  );
 
   useEffect(() => {
-    if (bookingType !== 'doctor') return;
-    if (!selectedService && doctorServices.length === 1) {
-      setSelectedService(doctorServices[0]);
+    if (bookingType === 'doctor') {
+      if (!selectedService && doctorServices.length === 1) {
+        setSelectedService(doctorServices[0]);
+        return;
+      }
+
+      if (selectedService && !doctorServices.includes(selectedService)) {
+        setSelectedService('');
+      }
       return;
     }
 
-    if (selectedService && !doctorServices.includes(selectedService)) {
+    if (!selectedService && treatmentServices.length === 1) {
+      setSelectedService(treatmentServices[0]);
+      return;
+    }
+
+    if (selectedService && treatmentServices.length > 0 && !treatmentServices.includes(selectedService)) {
       setSelectedService('');
     }
-  }, [bookingType, doctorServices, selectedService]);
+  }, [bookingType, doctorServices, selectedService, treatmentServices]);
 
   useEffect(() => {
     if (!open || !clinic || !selectedDate) return;
@@ -353,13 +368,28 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
       return;
     }
 
-    if (bookingType === 'doctor' && doctorServices.length > 0 && !selectedService) {
+    if (bookingType === 'doctor' && doctorServices.length === 0) {
+      toast.error(t('This doctor has no services assigned'));
+      return;
+    }
+
+    if (bookingType === 'doctor' && !selectedService) {
       toast.error(t('Please select a service'));
       return;
     }
 
     if (bookingType === 'treatment' && !selectedTreatment) {
       toast.error(t('Please select a treatment'));
+      return;
+    }
+
+    if (bookingType === 'treatment' && treatmentServices.length === 0) {
+      toast.error(t('This treatment has no services assigned'));
+      return;
+    }
+
+    if (bookingType === 'treatment' && !selectedService) {
+      toast.error(t('Please select a service'));
       return;
     }
 
@@ -376,7 +406,7 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
         appointment_time: selectedTime,
         doctor_id: bookingType === 'doctor' ? selectedDoctor?.id : undefined,
         treatment_id: bookingType === 'treatment' ? selectedTreatment?.id : undefined,
-        service_name: bookingType === 'doctor' ? selectedService || undefined : undefined,
+        service_name: selectedService || undefined,
         patient_name: patientName.trim(),
         patient_phone: patientPhone.trim(),
         patient_email: patientEmail.trim() || undefined,
@@ -523,7 +553,7 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
                 </div>
 
                 <div className="space-y-2">
-                  {renderLabel('Service', doctorServices.length > 0)}
+                  {renderLabel('Service', true)}
                   <Select
                     value={selectedService}
                     onValueChange={setSelectedService}
@@ -535,7 +565,7 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
                           !selectedDoctor
                             ? t('Select doctor first')
                             : doctorServices.length === 0
-                              ? t('No specific service')
+                              ? t('This doctor has no services assigned')
                               : t('Select service')
                         }
                       />
@@ -552,7 +582,7 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
               </>
             ) : (
               <>
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                   {renderLabel('Treatment', true)}
                   <Select value={selectedTreatmentId} onValueChange={setSelectedTreatmentId} disabled={loadingOptions}>
                     <SelectTrigger>
@@ -562,6 +592,33 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
                       {treatments.map((treatment) => (
                         <SelectItem key={treatment.id} value={treatment.id}>
                           {treatment.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  {renderLabel('Service', true)}
+                  <Select
+                    value={selectedService}
+                    onValueChange={setSelectedService}
+                    disabled={!selectedTreatment || treatmentServices.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          !selectedTreatment
+                            ? t('Select treatment first')
+                            : treatmentServices.length === 0
+                              ? t('This treatment has no services assigned')
+                              : t('Select service')
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {treatmentServices.map((service) => (
+                        <SelectItem key={service} value={service}>
+                          {service}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -582,8 +639,8 @@ const BookAppointmentModal = ({ clinic, open, onOpenChange, onBooked }: Props) =
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('Service')}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {bookingType === 'doctor'
-                      ? selectedService || (doctorServices.length === 0 ? t('N/A') : t('Select service'))
-                      : selectedTreatment?.service || t('N/A')}
+                      ? selectedService || (doctorServices.length === 0 ? t('This doctor has no services assigned') : t('Select service'))
+                      : selectedService || (treatmentServices.length === 0 ? t('This treatment has no services assigned') : t('Select service'))}
                   </p>
                 </div>
               </div>

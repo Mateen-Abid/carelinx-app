@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createSupabaseAdminClient, supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validateBookingSlotConflict } from '../utils/booking-conflicts';
+import { attachResolvedServiceNames, resolveServiceNameForNewBooking } from '../utils/booking-service';
 
 const router = Router();
 
@@ -209,6 +210,8 @@ router.get('/all', authenticate, async (req: AuthRequest, res) => {
 
     if (bookingsError) throw bookingsError;
 
+    const bookingsWithServices = await attachResolvedServiceNames(bookingsData || []);
+
     // Fetch profiles for patient details
     const { data: profilesData } = await supabaseAdmin
       .from('profiles')
@@ -226,7 +229,7 @@ router.get('/all', authenticate, async (req: AuthRequest, res) => {
       .select('id, name, clinic_id');
 
     res.json({
-      bookings: bookingsData || [],
+      bookings: bookingsWithServices,
       profiles: profilesData || [],
       clinics: clinicsData || [],
       doctors: doctorsData || [],
@@ -357,7 +360,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       canonicalClinicName = clinic.name;
     }
 
-    const bookingData = {
+    const bookingData = await resolveServiceNameForNewBooking({
       ...req.body,
       user_id: userId,
       clinic_id: requestedClinicId || req.body.clinic_id || null,
@@ -367,7 +370,17 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       booking_source: 'patient_app',
       created_by_role: 'patient',
       created_by_user_id: userId,
-    };
+    });
+
+    const bookingType = bookingData.booking_type === 'treatment' ? 'treatment' : 'doctor';
+    const savedServiceName = typeof bookingData.service_name === 'string' ? bookingData.service_name.trim() : '';
+    const savedTreatmentName = typeof bookingData.treatment_name === 'string' ? bookingData.treatment_name.trim() : '';
+    if (!savedServiceName || savedServiceName.includes(',')) {
+      return res.status(400).json({ error: 'Service is required to book this appointment' });
+    }
+    if (bookingType === 'treatment' && savedTreatmentName && savedServiceName.toLowerCase() === savedTreatmentName.toLowerCase()) {
+      return res.status(400).json({ error: 'Service is required to book this appointment' });
+    }
 
     const slotConflict = await validateBookingSlotConflict({
       bookingType: bookingData.booking_type || 'doctor',

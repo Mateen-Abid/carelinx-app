@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 // import { supabase } from '@/integrations/supabase/client'; // Removed - Using backend API
 import { api } from '@/services/api';
+import { resolveBookedServiceName } from '@/utils/bookingService';
 import {
   Dialog,
   DialogContent,
@@ -306,7 +307,11 @@ const AdminAppointments = () => {
           patientContact: profile?.phone || profile?.contact || profile?.phone_number || booking.patient_phone || booking.patient_email || t('N/A'),
           doctorName: appointmentLabel,
           service: booking.specialty || t('Unknown Service'),
-          serviceName: booking.service_name || null,
+          serviceName: resolveBookedServiceName({
+            serviceName: booking.service_name,
+            bookingType: booking.booking_type,
+            treatmentName: booking.treatment_name,
+          }) || null,
           clinic: clinicName,
           date: formattedDate,
           time: formattedTime,
@@ -346,6 +351,7 @@ const AdminAppointments = () => {
         appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.clinic.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Clinic filter
@@ -461,7 +467,8 @@ const AdminAppointments = () => {
       [t('Patient Email')]: appointment.patientEmail || t('N/A'),
       [t('Patient Contact')]: appointment.patientContact || t('N/A'),
       [t('Doctor / Treatment')]: appointment.doctorName,
-      [t('Service')]: appointment.service,
+      [t('Specialty')]: appointment.service,
+      [t('Service')]: appointment.serviceName || t('N/A'),
       [t('Clinic')]: appointment.clinic,
       [t('Requested Date/Time')]: new Date(appointment.created_at).toLocaleString('en-US', { 
         month: 'short', 
@@ -491,7 +498,13 @@ const AdminAppointments = () => {
         setDoctorDetails({
           name: appointment.treatmentName || appointment.doctorName,
           specialty: treatmentData?.specialty || appointment.service,
-          service: appointment.serviceName || treatmentData?.service || t('N/A'),
+          service:
+            resolveBookedServiceName({
+              serviceName: appointment.serviceName,
+              bookingType: appointment.bookingType,
+              treatmentName: appointment.treatmentName || treatmentData?.name,
+              treatmentService: treatmentData?.service,
+            }) || t('N/A'),
           availability: treatmentData?.availability || t('N/A'),
         });
       } catch (error) {
@@ -499,7 +512,12 @@ const AdminAppointments = () => {
         setDoctorDetails({
           name: appointment.treatmentName || appointment.doctorName,
           specialty: appointment.service,
-          service: appointment.serviceName || t('N/A'),
+          service:
+            resolveBookedServiceName({
+              serviceName: appointment.serviceName,
+              bookingType: appointment.bookingType,
+              treatmentName: appointment.treatmentName,
+            }) || t('N/A'),
           availability: t('N/A'),
         });
       } finally {
@@ -513,7 +531,12 @@ const AdminAppointments = () => {
       setDoctorDetails({
         name: appointment.doctorName,
         specialty: appointment.service,
-        service: appointment.serviceName || t('N/A'),
+        service:
+          resolveBookedServiceName({
+            serviceName: appointment.serviceName,
+            bookingType: appointment.bookingType,
+            treatmentName: appointment.treatmentName,
+          }) || t('N/A'),
         availability: t('N/A'),
       });
       return;
@@ -534,7 +557,13 @@ const AdminAppointments = () => {
               ? appointment.treatmentName
               : doctorData.name || appointment.doctorName,
           specialty: doctorData.specialty || appointment.service,
-          service: appointment.serviceName || t('N/A'),
+          service:
+            resolveBookedServiceName({
+              serviceName: appointment.serviceName,
+              bookingType: appointment.bookingType,
+              treatmentName: appointment.treatmentName,
+              doctorServices: doctorData.services,
+            }) || t('N/A'),
           availability: doctorData.availability || t('N/A'),
         });
       } else {
@@ -542,7 +571,12 @@ const AdminAppointments = () => {
         setDoctorDetails({
           name: appointment.doctorName,
           specialty: appointment.service,
-          service: appointment.serviceName || t('N/A'),
+          service:
+            resolveBookedServiceName({
+              serviceName: appointment.serviceName,
+              bookingType: appointment.bookingType,
+              treatmentName: appointment.treatmentName,
+            }) || t('N/A'),
           availability: t('N/A'),
         });
       }
@@ -552,7 +586,12 @@ const AdminAppointments = () => {
       setDoctorDetails({
         name: appointment.doctorName,
         specialty: appointment.service,
-        service: appointment.serviceName || t('N/A'),
+        service:
+          resolveBookedServiceName({
+            serviceName: appointment.serviceName,
+            bookingType: appointment.bookingType,
+            treatmentName: appointment.treatmentName,
+          }) || t('N/A'),
         availability: t('N/A'),
       });
     } finally {
@@ -676,6 +715,12 @@ const AdminAppointments = () => {
                         {t('Specialty')}
                       </TableSortHeader>
                       <TableSortHeader
+                        sortDirection={getSortDirection('serviceName')}
+                        onSort={() => handleSort('serviceName')}
+                      >
+                        {t('Service')}
+                      </TableSortHeader>
+                      <TableSortHeader
                         sortDirection={getSortDirection('clinic')}
                         onSort={() => handleSort('clinic')}
                       >
@@ -727,6 +772,9 @@ const AdminAppointments = () => {
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.service}</span>
                         </td>
                         <td className="py-4 px-6">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.serviceName || t('N/A')}</span>
+                        </td>
+                        <td className="py-4 px-6">
                           <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.clinic}</span>
                         </td>
                         <td className="py-4 px-6">
@@ -767,7 +815,7 @@ const AdminAppointments = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={10} className="py-8 text-center text-gray-500 dark:text-gray-400">
                         {t('No appointments found')}
                       </td>
                     </tr>

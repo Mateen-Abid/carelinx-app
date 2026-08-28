@@ -169,6 +169,8 @@ const MyBookings = () => {
             rescheduleOriginalBookingId: appointment.id,
             bookingType: appointment.bookingType,
             clinicId: appointment.clinicId,
+            selectedServiceName: appointment.serviceName,
+            selectedSpecialty: appointment.specialty,
           },
         });
         return;
@@ -195,6 +197,8 @@ const MyBookings = () => {
           rescheduleOriginalBookingId: appointment.id,
           bookingType: appointment.bookingType,
           clinicId: appointment.clinicId,
+          selectedServiceName: appointment.serviceName,
+          selectedSpecialty: appointment.specialty,
         },
       });
     } catch (error) {
@@ -226,6 +230,8 @@ const MyBookings = () => {
             rescheduleOriginalBookingId: appointmentToReschedule.id,
             bookingType: appointmentToReschedule.bookingType,
             clinicId: appointmentToReschedule.clinicId,
+            selectedServiceName: appointmentToReschedule.serviceName,
+            selectedSpecialty: appointmentToReschedule.specialty,
           },
         });
         return;
@@ -299,6 +305,8 @@ const MyBookings = () => {
           rescheduleOriginalBookingId: appointmentToReschedule.id,
           bookingType: appointmentToReschedule.bookingType,
           clinicId: appointmentToReschedule.clinicId,
+          selectedServiceName: appointmentToReschedule.serviceName,
+          selectedSpecialty: appointmentToReschedule.specialty,
         },
       });
     } catch (error) {

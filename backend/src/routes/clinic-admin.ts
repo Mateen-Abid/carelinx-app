@@ -3,6 +3,7 @@ import { createSupabaseAdminClient, supabaseAdmin } from '../config/supabase';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../utils/email';
 import { validateBookingSlotConflict } from '../utils/booking-conflicts';
+import { attachResolvedServiceNames } from '../utils/booking-service';
 
 const router = Router();
 
@@ -183,42 +184,6 @@ router.patch('/clinic', authenticate, async (req: AuthRequest, res) => {
 });
 
 /**
- * PATCH /api/clinic-admin/clinic/auto-booking
- * Enable or disable automatic approval of patient appointment requests.
- */
-router.patch('/clinic/auto-booking', authenticate, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user.id;
-    const { enabled } = req.body;
-
-    if (typeof enabled !== 'boolean') {
-      return res.status(400).json({ error: 'enabled must be a boolean' });
-    }
-
-    const { data: clinicData, error } = await supabaseAdmin
-      .from('clinics')
-      .update({ auto_booking_enabled: enabled })
-      .eq('clinic_admin_id', userId)
-      .select('id, auto_booking_enabled')
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error updating auto booking:', error);
-      return res.status(400).json({ error: error.message });
-    }
-
-    if (!clinicData) {
-      return res.status(404).json({ error: 'Clinic not found' });
-    }
-
-    res.json({ autoBookingEnabled: clinicData.auto_booking_enabled });
-  } catch (error: any) {
-    console.error('Update auto booking error:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-/**
  * POST /api/clinic-admin/clinic/operating-hours
  * Update clinic operating hours
  */
@@ -299,7 +264,7 @@ router.get('/clinic', authenticate, async (req: AuthRequest, res) => {
     
     const { data: clinicData, error } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, name_ar, status, logo_url, specialties, email, contact_phone, contact_email, address, city, district, street, address_details, address_ar, description, description_ar, country, registration_date, auto_booking_enabled')
+      .select('id, name, name_ar, status, logo_url, specialties, email, contact_phone, contact_email, address, city, district, street, address_details, address_ar, description, description_ar, country, registration_date')
       .eq('clinic_admin_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -377,8 +342,10 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: bookingsError.message });
     }
 
+    const bookingsWithServices = await attachResolvedServiceNames(bookingsData || []);
+
     // Fetch profiles for bookings
-    const userIds = [...new Set((bookingsData || []).map((b: any) => b.user_id).filter((id: any) => id !== null && id !== undefined))];
+    const userIds = [...new Set((bookingsWithServices || []).map((b: any) => b.user_id).filter((id: any) => id !== null && id !== undefined))];
     let profilesMap = new Map();
     
     console.log('👥 Unique user IDs from bookings:', userIds.length);
@@ -422,7 +389,7 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
     }
 
     // Attach profiles to bookings
-    const bookingsWithProfiles = (bookingsData || []).map((booking: any) => {
+    const bookingsWithProfiles = (bookingsWithServices || []).map((booking: any) => {
       const profile = booking.user_id ? profilesMap.get(booking.user_id) || null : null;
       if (booking.user_id && !profile) {
         console.log('⚠️ No profile found for booking:', {
@@ -492,6 +459,10 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Appointment date and time are required' });
     }
 
+    if (trimmedServiceName.includes(',')) {
+      return res.status(400).json({ error: 'Please select one service for this appointment' });
+    }
+
     const { data: clinicData, error: clinicError } = await supabaseAdmin
       .from('clinics')
       .select('id, name, status')
@@ -556,14 +527,16 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
         .map((value) => value.trim())
         .filter(Boolean);
 
-      if (doctorServices.length > 0) {
-        if (!trimmedServiceName) {
-          return res.status(400).json({ error: 'Service is required for this doctor booking' });
-        }
+      if (doctorServices.length === 0) {
+        return res.status(400).json({ error: 'This doctor has no services assigned' });
+      }
 
-        if (!doctorServices.some((value) => value.toLowerCase() === trimmedServiceName.toLowerCase())) {
-          return res.status(400).json({ error: 'Selected service is not offered by this doctor' });
-        }
+      if (!trimmedServiceName) {
+        return res.status(400).json({ error: 'Service is required for this doctor booking' });
+      }
+
+      if (!doctorServices.some((value) => value.toLowerCase() === trimmedServiceName.toLowerCase())) {
+        return res.status(400).json({ error: 'Selected service is not offered by this doctor' });
       }
 
       bookingPayload = {
@@ -571,7 +544,7 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
         doctor_id: doctorData.id,
         doctor_name: doctorData.name,
         specialty: doctorData.specialty || '',
-        service_name: trimmedServiceName || null,
+        service_name: trimmedServiceName,
       };
     } else {
       if (!treatment_id || typeof treatment_id !== 'string') {
@@ -593,6 +566,27 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
         return res.status(400).json({ error: 'Only active treatments can be booked' });
       }
 
+      const treatmentServices = String(treatmentData.service || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (treatmentServices.length === 0) {
+        return res.status(400).json({ error: 'This treatment has no services assigned' });
+      }
+
+      if (!trimmedServiceName) {
+        return res.status(400).json({ error: 'Service is required for this treatment booking' });
+      }
+
+      if (!treatmentServices.some((value) => value.toLowerCase() === trimmedServiceName.toLowerCase())) {
+        return res.status(400).json({ error: 'Selected service is not offered by this treatment' });
+      }
+
+      if (trimmedServiceName.toLowerCase() === String(treatmentData.name || '').trim().toLowerCase()) {
+        return res.status(400).json({ error: 'Service is required for this treatment booking' });
+      }
+
       bookingPayload = {
         ...bookingPayload,
         // Backward-compatible fallback for environments where doctor_name
@@ -601,7 +595,7 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
         treatment_id: treatmentData.id,
         treatment_name: treatmentData.name,
         specialty: treatmentData.specialty || '',
-        service_name: treatmentData.service || null,
+        service_name: trimmedServiceName,
       };
     }
 

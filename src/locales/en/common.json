@@ -240,6 +240,10 @@
   "Please select a doctor": "Please select a doctor",
   "Please select a treatment": "Please select a treatment",
   "Please select a service": "Please select a service",
+  "This doctor has no services assigned": "This doctor has no services assigned",
+  "This treatment has no services assigned": "This treatment has no services assigned",
+  "Service is required to book this appointment": "Service is required to book this appointment",
+  "Select treatment first": "Select treatment first",
   "Please select appointment date and time": "Please select appointment date and time",
   "Appointment booked successfully": "Appointment booked successfully",
   "Failed to create booking": "Failed to create booking",
@@ -1060,14 +1064,6 @@
   "Please enter the English clinic address": "Please enter the English clinic address",
   "Please enter the Arabic clinic address": "Please enter the Arabic clinic address",
   "You are editing English content. Switch to Arabic to fill the Arabic version.": "You are editing English content. Switch to Arabic to fill the Arabic version.",
-  "You are editing Arabic content. Switch to English to fill the English version.": "You are editing Arabic content. Switch to English to fill the English version.",
-  "Auto booking": "Auto booking",
-  "Auto booking enabled": "Auto booking enabled",
-  "Auto booking disabled": "Auto booking disabled",
-  "Patient requests are approved automatically": "Patient requests are approved automatically",
-  "Patient requests require approval": "Patient requests require approval",
-  "Failed to update auto booking": "Failed to update auto booking",
-  "Booking Confirmed": "Booking Confirmed",
-  "Your appointment has been confirmed automatically.": "Your appointment has been confirmed automatically."
+  "You are editing Arabic content. Switch to English to fill the English version.": "You are editing Arabic content. Switch to English to fill the English version."
 }
 

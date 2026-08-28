@@ -34,18 +34,6 @@ interface ApprovedClinicService {
   specialtyName: string;
 }
 
-interface BookableTreatment {
-  id: string;
-  clinicId: string;
-  clinicName: string;
-  clinicAddress: string;
-  clinicLogo: string;
-  name: string;
-  price: string | null;
-  specialty: string;
-  service: string;
-}
-
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'services' | 'clinics'>('services');
@@ -66,7 +54,6 @@ const Index = () => {
   const [superAdminSpecialties, setSuperAdminSpecialties] = useState<Array<{id: string, name: string}>>([]);
   const [superAdminServices, setSuperAdminServices] = useState<Array<{id: string, name: string, specialty_id: string, specialty_name: string}>>([]);
   const [approvedClinicServices, setApprovedClinicServices] = useState<ApprovedClinicService[]>([]);
-  const [bookableTreatments, setBookableTreatments] = useState<BookableTreatment[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -337,12 +324,10 @@ const Index = () => {
           { specialties: specialtiesData },
           { treatments: servicesData },
           { services: approvedClinicServicesData },
-          { treatments: bookableTreatmentsData },
         ] = await Promise.all([
           api.services.getSpecialties(),
           api.services.getTreatments(),
           api.services.getApprovedClinicServices(),
-          api.services.getBookableTreatments(),
         ]);
 
         console.log('✅ Fetched specialties:', specialtiesData?.length || 0);
@@ -374,27 +359,6 @@ const Index = () => {
 
         console.log('✅ Fetched approved clinic services:', transformedApprovedClinicServices.length);
         setApprovedClinicServices(transformedApprovedClinicServices);
-
-        const transformedBookableTreatments: BookableTreatment[] = (bookableTreatmentsData || [])
-          .map((treatment: any) => {
-            const clinicInfo = Array.isArray(treatment.clinics) ? treatment.clinics[0] : treatment.clinics;
-
-            return {
-              id: String(treatment.id || '').trim(),
-              clinicId: String(treatment.clinic_id || '').trim(),
-              clinicName: String(clinicInfo?.name || '').trim(),
-              clinicAddress: String(clinicInfo?.address || '').trim(),
-              clinicLogo: String(clinicInfo?.logo_url || ''),
-              name: String(treatment.name || '').trim(),
-              price: treatment.price ? String(treatment.price) : null,
-              specialty: String(treatment.specialty || '').trim(),
-              service: String(treatment.service || '').trim(),
-            };
-          })
-          .filter((treatment) => treatment.id && treatment.clinicId && treatment.clinicName && treatment.name && treatment.specialty);
-
-        console.log('✅ Fetched bookable treatments:', transformedBookableTreatments.length);
-        setBookableTreatments(transformedBookableTreatments);
       } catch (error) {
         console.error('Error fetching super admin data:', error);
       }
@@ -1039,21 +1003,6 @@ const Index = () => {
                 doctorName: '',
                 doctorId: '',
                 bookingType: 'service',
-              });
-            }
-          });
-
-        bookableTreatments
-          .filter((treatment) => treatment.clinicId === dbClinic.id)
-          .forEach((treatment) => {
-            if (!services.find((entry) => entry.name === treatment.name && entry.bookingType === 'treatment')) {
-              services.push({
-                id: `treatment-${treatment.id}`,
-                name: treatment.name,
-                category: treatment.specialty,
-                doctorName: '',
-                doctorId: '',
-                bookingType: 'treatment',
               });
             }
           });

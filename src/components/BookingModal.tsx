@@ -93,13 +93,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         // For database services, category is mapped from doctor's specialty
         await addAppointment({
           doctorName: selectedService.doctorName,
-          specialty: selectedService.category || selectedService.name, // Use category (specialty) instead of service name
+          specialty: selectedService.category || selectedService.name,
+          serviceName: selectedService.name,
           clinic: clinicName,
           date: appointmentDate,
           time: time,
-          status: 'pending', // Start as pending, will be confirmed by edge function
+          status: 'pending',
           doctorId: selectedService.doctorId || undefined,
-          bookingType: 'doctor',
+          bookingType: selectedService.bookingType === 'treatment' ? 'treatment' : 'doctor',
         });
       } catch (error) {
         console.error('Error booking appointment:', error);
@@ -130,8 +131,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         state: {
           clinicName,
           selectedSpecialty: service.category,
-          selectedServiceName: service.name,
-          bookingType: service.bookingType || 'service',
+          selectedServiceName: service.bookingType === 'treatment' ? undefined : service.name,
+          bookingType: service.bookingType === 'treatment' ? 'treatment' : 'service',
           isDatabaseService: true,
         }
       });

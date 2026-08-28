@@ -4,6 +4,7 @@ import DoctorSidebar from '@/components/doctor/DoctorSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/services/api';
+import { resolveBookedServiceName } from '@/utils/bookingService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -148,7 +149,11 @@ const DoctorAppointments = () => {
           patientName: profile?.full_name || t('Unknown Patient'),
           doctorName: appointmentLabel,
           service: booking.specialty || t('General Consultation'),
-          serviceName: booking.service_name || null,
+          serviceName: resolveBookedServiceName({
+            serviceName: booking.service_name,
+            bookingType: booking.booking_type,
+            treatmentName: booking.treatment_name,
+          }) || null,
           bookingType: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
           treatmentName: booking.treatment_name || null,
           treatmentId: booking.treatment_id || null,
@@ -291,9 +296,14 @@ const DoctorAppointments = () => {
       const isTreatmentBooking = (bookingData as any).booking_type === 'treatment';
       const resolvedSpecialty =
         treatmentData?.specialty || doctorData?.specialty || (bookingData as any).specialty || appointment.service || t('General');
-      const resolvedService = isTreatmentBooking
-        ? (bookingData as any).service_name || treatmentData?.service || t('N/A')
-        : (bookingData as any).service_name || t('N/A');
+      const resolvedService =
+        resolveBookedServiceName({
+          serviceName: (bookingData as any).service_name,
+          bookingType: (bookingData as any).booking_type,
+          treatmentName: (bookingData as any).treatment_name || treatmentData?.name,
+          treatmentService: treatmentData?.service,
+          doctorServices: doctorData?.services,
+        }) || t('N/A');
 
       const details: AppointmentDetails = {
         id: appointment.id,
@@ -486,7 +496,8 @@ const DoctorAppointments = () => {
     const matchesSearch = searchQuery === '' ||
       appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
+      appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesStatus && matchesSearch;
   });
@@ -639,6 +650,9 @@ const DoctorAppointments = () => {
                           {t('Specialty')}
                         </th>
                         <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
+                          {t('Services')}
+                        </th>
+                        <th className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm font-semibold text-gray-900 dark:text-white`}>
                           <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
                             {t('Date & Time')}
                             <ArrowUpDown className="w-4 h-4 text-gray-400" />
@@ -674,6 +688,9 @@ const DoctorAppointments = () => {
                           </td>
                           <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
                             {appointment.service}
+                          </td>
+                          <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
+                            {appointment.serviceName || t('N/A')}
                           </td>
                           <td className={`${isRtl ? 'text-right' : 'text-left'} py-4 px-4 text-sm text-gray-600 dark:text-gray-400`}>
                             {formatDate(appointment.appointment_date)} {t('at')} {formatTime(appointment.appointment_time)}

@@ -438,11 +438,10 @@ const ServiceDetails = () => {
           typeof location.state?.selectedServiceName === 'string' && location.state.selectedServiceName.trim()
             ? location.state.selectedServiceName.trim()
             : null;
-        let serviceName = isClinicRequestedService
-          ? selectedServiceNameFromState
-          : serviceNameFromId
-            ? serviceNameFromId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-            : null;
+        const reconstructedServiceName = serviceNameFromId
+          ? serviceNameFromId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+          : null;
+        let serviceName = selectedServiceNameFromState || reconstructedServiceName || null;
         let selectedSpecialtyFromState =
           typeof location.state?.selectedSpecialty === 'string' && location.state.selectedSpecialty.trim()
             ? location.state.selectedSpecialty.trim()
@@ -500,7 +499,17 @@ const ServiceDetails = () => {
 
             if (selectedTreatmentRecord) {
               clinicId = clinicId || selectedTreatmentRecord.clinicId;
-              serviceName = selectedTreatmentRecord.name;
+              const treatmentServices = splitStoredValues(selectedTreatmentRecord.service);
+              const serviceLooksLikeTreatment =
+                !!serviceName &&
+                serviceName.trim().toLowerCase() === selectedTreatmentRecord.name.trim().toLowerCase();
+              if (!serviceName || serviceLooksLikeTreatment) {
+                serviceName =
+                  treatmentServices.length === 1 &&
+                  treatmentServices[0].trim().toLowerCase() !== selectedTreatmentRecord.name.trim().toLowerCase()
+                    ? treatmentServices[0]
+                    : null;
+              }
               selectedSpecialtyFromState = selectedSpecialtyFromState || selectedTreatmentRecord.specialty || null;
             }
           } catch (error) {
@@ -563,7 +572,9 @@ const ServiceDetails = () => {
         
         if (isTreatmentBackedService && selectedTreatmentRecord) {
           const treatmentSpecialties = splitStoredValues(selectedTreatmentRecord.specialty);
-          const treatmentServices = splitStoredValues(selectedTreatmentRecord.service);
+          const requiredServices = serviceName
+            ? [serviceName]
+            : splitStoredValues(selectedTreatmentRecord.service);
 
           doctorsProvidingService = allDoctors.filter((doctor) => {
             const doctorSpecialties = splitStoredValues(doctor.specialty);
@@ -572,7 +583,7 @@ const ServiceDetails = () => {
             const specialtyMatches =
               treatmentSpecialties.length === 0 || valuesOverlap(treatmentSpecialties, doctorSpecialties);
             const serviceMatches =
-              treatmentServices.length === 0 || valuesOverlap(treatmentServices, doctorServices);
+              requiredServices.length === 0 || valuesOverlap(requiredServices, doctorServices);
 
             return specialtyMatches && serviceMatches;
           });
@@ -655,8 +666,8 @@ const ServiceDetails = () => {
         // Create service object
         setDatabaseService({
           id: serviceId,
-          name: selectedTreatmentRecord?.name || serviceName || 'General Consultation',
-          category: selectedTreatmentRecord?.specialty || specialty,
+          name: serviceName || (isTreatmentBackedService ? '' : 'General Consultation'),
+          category: selectedSpecialtyFromState || selectedTreatmentRecord?.specialty || specialty,
           doctorName: firstDoctor?.name || 'Available Doctor',
           doctorId: firstDoctor?.id || '',
           bookingType: isTreatmentBackedService ? 'treatment' : 'service',
@@ -989,12 +1000,21 @@ const ServiceDetails = () => {
           isDatabaseService: isDatabaseService
         });
         
+        const bookedServiceName = String(serviceData.name || '').trim();
+        const bookedTreatmentName = isTreatmentBooking ? String(selectedTreatment?.name || '').trim() : '';
+        if (
+          !bookedServiceName ||
+          bookedServiceName.includes(',') ||
+          (bookedTreatmentName && bookedServiceName.toLowerCase() === bookedTreatmentName.toLowerCase())
+        ) {
+          toast.error(t('Service is required to book this appointment'));
+          return;
+        }
+
         const createdBooking = await addAppointment({
           doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
           specialty: specialty,
-          serviceName: isTreatmentBooking
-            ? serviceData.name
-            : serviceData.name,
+          serviceName: bookedServiceName,
           clinic: serviceData.clinic,
           clinicId: isDatabaseService ? databaseClinic?.id : undefined,
           date: format(selectedDate, 'yyyy-MM-dd'),
@@ -1003,7 +1023,7 @@ const ServiceDetails = () => {
           doctorId: finalDoctorId,
           bookingType: isTreatmentBooking ? 'treatment' : 'doctor',
           treatmentId: isTreatmentBooking ? (selectedTreatment?.id || databaseService?.treatmentId || treatmentRecordId || undefined) : undefined,
-          treatmentName: isTreatmentBooking ? (selectedTreatment?.name || serviceData.name) : undefined,
+          treatmentName: isTreatmentBooking ? bookedTreatmentName || undefined : undefined,
         });
 
         if (rescheduleOriginalBookingId) {
@@ -1447,7 +1467,7 @@ const ServiceDetails = () => {
         bookingDetails={{
           date: selectedDate ? format(selectedDate, 'MMMM d, yyyy') : '',
           time: selectedTimeSlot,
-          service: selectedTreatment?.name || serviceData.name,
+          service: serviceData.name,
           clinic: serviceData.clinic
         }}
       />

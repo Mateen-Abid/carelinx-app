@@ -175,10 +175,19 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       if (!user) throw new Error('User not authenticated');
 
+      const serviceName = String(appointmentData.serviceName || '').trim();
+      const treatmentName = String(appointmentData.treatmentName || '').trim();
+      if (!serviceName || serviceName.includes(',')) {
+        throw new Error('Service is required to book this appointment');
+      }
+      if (treatmentName && serviceName.toLowerCase() === treatmentName.toLowerCase()) {
+        throw new Error('Service is required to book this appointment');
+      }
+
       const bookingPayload = {
         doctor_name: appointmentData.doctorName,
         specialty: appointmentData.specialty || 'General',
-        service_name: appointmentData.serviceName || null,
+        service_name: serviceName,
         clinic: appointmentData.clinic,
         clinic_id: appointmentData.clinicId || null,
         appointment_date: appointmentData.date,

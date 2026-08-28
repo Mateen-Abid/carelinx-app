@@ -15,6 +15,7 @@ import { useTableSort } from '@/hooks/useTableSort';
 import { TableSortHeader } from '@/components/ui/TableSortHeader';
 import BookAppointmentModal from '@/components/clinic-admin/BookAppointmentModal';
 import { Switch } from '@/components/ui/switch';
+import { resolveBookedServiceName } from '@/utils/bookingService';
 
 interface Appointment {
   id: string;
@@ -302,7 +303,11 @@ const ClinicAdminAppointments = () => {
           patientName: patientName,
           doctorName: appointmentLabel,
           service: booking.specialty || t('General Consultation'),
-          serviceName: booking.service_name || null,
+          serviceName: resolveBookedServiceName({
+            serviceName: booking.service_name,
+            bookingType: booking.booking_type,
+            treatmentName: booking.treatment_name,
+          }) || null,
           bookingType: (booking.booking_type || 'doctor') as 'doctor' | 'treatment',
           treatmentName: booking.treatment_name || null,
           treatmentId: booking.treatment_id || null,
@@ -490,9 +495,14 @@ const ClinicAdminAppointments = () => {
       const isTreatmentBooking = bookingData.booking_type === 'treatment';
       const resolvedSpecialty =
         treatmentData?.specialty || doctorData?.specialty || bookingData.specialty || appointment.service || t('General');
-      const resolvedService = isTreatmentBooking
-        ? bookingData.service_name || treatmentData?.service || t('N/A')
-        : bookingData.service_name || t('N/A');
+      const resolvedService =
+        resolveBookedServiceName({
+          serviceName: bookingData.service_name,
+          bookingType: bookingData.booking_type,
+          treatmentName: bookingData.treatment_name || treatmentData?.name,
+          treatmentService: treatmentData?.service,
+          doctorServices: doctorData?.services,
+        }) || t('N/A');
 
       const details: AppointmentDetails = {
         id: appointment.id,
@@ -681,7 +691,8 @@ const ClinicAdminAppointments = () => {
       const matchesSearch = searchQuery === '' ||
         appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
+        appointment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (appointment.serviceName || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       return matchesStatus && matchesSearch;
     });
@@ -897,6 +908,12 @@ const ClinicAdminAppointments = () => {
                           {t('Specialty')}
                         </TableSortHeader>
                         <TableSortHeader
+                          sortDirection={getSortDirection('serviceName')}
+                          onSort={() => handleSort('serviceName')}
+                        >
+                          {t('Service')}
+                        </TableSortHeader>
+                        <TableSortHeader
                           sortDirection={getSortDirection('appointment_date')}
                           onSort={() => handleSort('appointment_date')}
                         >
@@ -935,6 +952,9 @@ const ClinicAdminAppointments = () => {
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
                             {appointment.service}
+                          </td>
+                          <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                            {appointment.serviceName || t('N/A')}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
                             {formatDate(appointment.appointment_date)} at {formatTime(appointment.appointment_time)}
