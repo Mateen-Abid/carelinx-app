@@ -595,7 +595,6 @@ router.post('/requests/services/:id/approve', authenticate, async (req: AuthRequ
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const approvedNameAr = trimToNull(req.body?.name_ar);
 
     // Get the request details
     const { data: request, error: fetchError } = await supabaseAdmin
@@ -606,23 +605,61 @@ router.post('/requests/services/:id/approve', authenticate, async (req: AuthRequ
 
     if (fetchError) throw fetchError;
 
-    const serviceNameAr = approvedNameAr || trimToNull(request.service_name_ar);
+    const serviceName = trimToNull(req.body?.name) || trimToNull(request.service_name);
+    const serviceNameAr = trimToNull(req.body?.name_ar) || trimToNull(request.service_name_ar);
 
-    // Add service to super_admin_services
-    const { data: service, error: serviceError } = await supabaseAdmin
+    if (!serviceName) {
+      return res.status(400).json({ error: 'Service name is required' });
+    }
+    if (!serviceNameAr) {
+      return res.status(400).json({ error: 'Arabic service name is required' });
+    }
+
+    const { data: existing } = await supabaseAdmin
       .from('super_admin_services')
-      .insert({
-        specialty_id: request.specialty_id,
-        name: request.service_name,
-        name_ar: serviceNameAr,
-        description: request.description,
-        is_active: true,
-        created_by: userId,
-      })
-      .select()
-      .single();
+      .select('id, name, is_active')
+      .eq('specialty_id', request.specialty_id)
+      .eq('name', serviceName)
+      .maybeSingle();
 
-    if (serviceError) throw serviceError;
+    if (existing?.is_active) {
+      return res.status(400).json({ error: `Service "${serviceName}" already exists for this specialty` });
+    }
+
+    let service;
+    if (existing && !existing.is_active) {
+      const { data: reactivated, error: reactivateError } = await supabaseAdmin
+        .from('super_admin_services')
+        .update({
+          is_active: true,
+          name: serviceName,
+          name_ar: serviceNameAr,
+          description: request.description,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (reactivateError) throw reactivateError;
+      service = reactivated;
+    } else {
+      const { data: created, error: serviceError } = await supabaseAdmin
+        .from('super_admin_services')
+        .insert({
+          specialty_id: request.specialty_id,
+          name: serviceName,
+          name_ar: serviceNameAr,
+          description: request.description,
+          is_active: true,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (serviceError) throw serviceError;
+      service = created;
+    }
 
     // Update request status
     const { error: updateError } = await supabaseAdmin
@@ -704,7 +741,6 @@ router.post('/requests/specialties/:id/approve', authenticate, async (req: AuthR
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const approvedNameAr = trimToNull(req.body?.name_ar);
 
     // Get the request details
     const { data: request, error: fetchError } = await supabaseAdmin
@@ -715,22 +751,58 @@ router.post('/requests/specialties/:id/approve', authenticate, async (req: AuthR
 
     if (fetchError) throw fetchError;
 
-    const specialtyNameAr = approvedNameAr || trimToNull(request.specialty_name_ar);
+    const specialtyName = trimToNull(req.body?.name) || trimToNull(request.specialty_name);
+    const specialtyNameAr = trimToNull(req.body?.name_ar) || trimToNull(request.specialty_name_ar);
 
-    // Add specialty to super_admin_specialties
-    const { data: specialty, error: specialtyError } = await supabaseAdmin
+    if (!specialtyName) {
+      return res.status(400).json({ error: 'Specialty name is required' });
+    }
+    if (!specialtyNameAr) {
+      return res.status(400).json({ error: 'Arabic specialty name is required' });
+    }
+
+    const { data: existing } = await supabaseAdmin
       .from('super_admin_specialties')
-      .insert({
-        name: request.specialty_name,
-        name_ar: specialtyNameAr,
-        description: request.description,
-        is_active: true,
-        created_by: userId,
-      })
-      .select()
-      .single();
+      .select('id, name, is_active')
+      .ilike('name', specialtyName)
+      .maybeSingle();
 
-    if (specialtyError) throw specialtyError;
+    if (existing?.is_active) {
+      return res.status(400).json({ error: 'Specialty already exists' });
+    }
+
+    let specialty;
+    if (existing && !existing.is_active) {
+      const { data: reactivated, error: reactivateError } = await supabaseAdmin
+        .from('super_admin_specialties')
+        .update({
+          is_active: true,
+          name: specialtyName,
+          name_ar: specialtyNameAr,
+          description: request.description,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (reactivateError) throw reactivateError;
+      specialty = reactivated;
+    } else {
+      const { data: created, error: specialtyError } = await supabaseAdmin
+        .from('super_admin_specialties')
+        .insert({
+          name: specialtyName,
+          name_ar: specialtyNameAr,
+          description: request.description,
+          is_active: true,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (specialtyError) throw specialtyError;
+      specialty = created;
+    }
 
     // Update request status
     const { error: updateError } = await supabaseAdmin

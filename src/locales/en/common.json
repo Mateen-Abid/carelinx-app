@@ -444,8 +444,9 @@
   "Arabic is shown when the app language is Arabic": "Arabic is shown when the app language is Arabic. English is used if Arabic is missing.",
   "Approve Specialty Request": "Approve Specialty Request",
   "Approve Service Request": "Approve Service Request",
+  "Official English name": "Official English name",
   "Official Arabic name": "Official Arabic name",
-  "English stays the catalog identity. Edit Arabic if needed before approving.": "English stays the catalog identity. Edit Arabic if needed before approving."
+  "Edit the English and Arabic names if needed before approving.": "Edit the English and Arabic names if needed before approving."
   ,
   "All Clinics": "All Clinics",
   "Filter": "Filter"
@@ -603,6 +604,8 @@
   "USED FOR": "USED FOR",
   "Request a New Service": "Request a New Service",
   "Request a New Specialty": "Request a New Specialty",
+  "Other / Request a New Specialty": "Other / Request a New Specialty",
+  "Other / Request a New Service": "Other / Request a New Service",
   "Request Success": "Request Success"
   ,
   "Search by specialties, doctor, or service...": "Search by specialties, doctor, or service..."

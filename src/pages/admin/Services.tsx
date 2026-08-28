@@ -104,6 +104,7 @@ const AdminServices = () => {
   const [showRejectSpecialtyModal, setShowRejectSpecialtyModal] = useState(false);
   const [showApproveSpecialtyModal, setShowApproveSpecialtyModal] = useState(false);
   const [showApproveServiceModal, setShowApproveServiceModal] = useState(false);
+  const [approvalName, setApprovalName] = useState('');
   const [approvalNameAr, setApprovalNameAr] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   
@@ -482,20 +483,31 @@ const AdminServices = () => {
       return;
     }
 
+    if (!approvalName.trim()) {
+      toast.error(t('Please enter the English name'));
+      return;
+    }
+    if (!approvalNameAr.trim()) {
+      toast.error(t('Please enter the Arabic name'));
+      return;
+    }
+
     try {
       await api.adminServices.approveServiceRequest(selectedRequest.id, {
-        name_ar: approvalNameAr.trim() || null,
+        name: approvalName.trim(),
+        name_ar: approvalNameAr.trim(),
       });
 
       toast.success(t('Service request approved and added successfully!'));
       setShowApproveServiceModal(false);
       setSelectedRequest(null);
+      setApprovalName('');
       setApprovalNameAr('');
       fetchServiceRequests(); // Refresh requests list
       fetchData(); // Refresh services list
     } catch (error) {
       console.error('Error approving request:', error);
-      toast.error(t('Failed to approve request'));
+      toast.error(error instanceof Error ? error.message : t('Failed to approve request'));
     }
   };
 
@@ -531,20 +543,31 @@ const AdminServices = () => {
       return;
     }
 
+    if (!approvalName.trim()) {
+      toast.error(t('Please enter the English name'));
+      return;
+    }
+    if (!approvalNameAr.trim()) {
+      toast.error(t('Please enter the Arabic name'));
+      return;
+    }
+
     try {
       await api.adminServices.approveSpecialtyRequest(selectedSpecialtyRequest.id, {
-        name_ar: approvalNameAr.trim() || null,
+        name: approvalName.trim(),
+        name_ar: approvalNameAr.trim(),
       });
 
       toast.success(t('Specialty request approved and added successfully!'));
       setShowApproveSpecialtyModal(false);
       setSelectedSpecialtyRequest(null);
+      setApprovalName('');
       setApprovalNameAr('');
       fetchSpecialtyRequests();
       fetchData();
     } catch (error) {
       console.error('Error approving specialty request:', error);
-      toast.error(t('Failed to approve specialty request'));
+      toast.error(error instanceof Error ? error.message : t('Failed to approve specialty request'));
     }
   };
 
@@ -666,6 +689,7 @@ const AdminServices = () => {
                           <Button
                             onClick={() => {
                               setSelectedSpecialtyRequest(request);
+                              setApprovalName(request.specialty_name || '');
                               setApprovalNameAr(request.specialty_name_ar || '');
                               setShowApproveSpecialtyModal(true);
                             }}
@@ -743,6 +767,7 @@ const AdminServices = () => {
                           <Button
                             onClick={() => {
                               setSelectedRequest(request);
+                              setApprovalName(request.service_name || '');
                               setApprovalNameAr(request.service_name_ar || '');
                               setShowApproveServiceModal(true);
                             }}
@@ -1321,11 +1346,14 @@ const AdminServices = () => {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {t('English stays the catalog identity. Edit Arabic if needed before approving.')}
+              {t('Edit the English and Arabic names if needed before approving.')}
             </p>
             <div>
-              <Label>{t('English name')}</Label>
-              <Input value={selectedSpecialtyRequest?.specialty_name || ''} disabled />
+              <Label>{t('Official English name')}</Label>
+              <Input
+                value={approvalName}
+                onChange={(e) => setApprovalName(e.target.value)}
+              />
             </div>
             <div>
               <Label>{t('Official Arabic name')}</Label>
@@ -1342,6 +1370,7 @@ const AdminServices = () => {
               onClick={() => {
                 setShowApproveSpecialtyModal(false);
                 setSelectedSpecialtyRequest(null);
+                setApprovalName('');
                 setApprovalNameAr('');
               }}
             >
@@ -1361,11 +1390,14 @@ const AdminServices = () => {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {t('English stays the catalog identity. Edit Arabic if needed before approving.')}
+              {t('Edit the English and Arabic names if needed before approving.')}
             </p>
             <div>
-              <Label>{t('English name')}</Label>
-              <Input value={selectedRequest?.service_name || ''} disabled />
+              <Label>{t('Official English name')}</Label>
+              <Input
+                value={approvalName}
+                onChange={(e) => setApprovalName(e.target.value)}
+              />
             </div>
             <div>
               <Label>{t('Official Arabic name')}</Label>
@@ -1382,6 +1414,7 @@ const AdminServices = () => {
               onClick={() => {
                 setShowApproveServiceModal(false);
                 setSelectedRequest(null);
+                setApprovalName('');
                 setApprovalNameAr('');
               }}
             >

@@ -361,7 +361,7 @@ export const adminServicesApi = {
 
   // Service Requests
   getServiceRequests: async () => fetchWithAuth('/admin-services/requests/services'),
-  approveServiceRequest: async (id: string, data?: { name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/services/${id}/approve`, {
+  approveServiceRequest: async (id: string, data?: { name?: string | null; name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/services/${id}/approve`, {
     method: 'POST',
     body: JSON.stringify(data || {}),
   }),
@@ -372,7 +372,7 @@ export const adminServicesApi = {
 
   // Specialty Requests
   getSpecialtyRequests: async () => fetchWithAuth('/admin-services/requests/specialties'),
-  approveSpecialtyRequest: async (id: string, data?: { name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/specialties/${id}/approve`, {
+  approveSpecialtyRequest: async (id: string, data?: { name?: string | null; name_ar?: string | null }) => fetchWithAuth(`/admin-services/requests/specialties/${id}/approve`, {
     method: 'POST',
     body: JSON.stringify(data || {}),
   }),

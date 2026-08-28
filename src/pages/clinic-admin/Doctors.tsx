@@ -137,6 +137,8 @@ const ClinicAdminDoctors = () => {
   
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showTreatmentSpecialtyDropdown, setShowTreatmentSpecialtyDropdown] = useState(false);
+  const [showTreatmentServiceDropdown, setShowTreatmentServiceDropdown] = useState(false);
   const [newTreatment, setNewTreatment] = useState({
     name: '',
     specialty: '',
@@ -155,12 +157,14 @@ const ClinicAdminDoctors = () => {
       .map((item) => item.trim())
       .filter(Boolean);
 
-  // Restrict treatment mapping inputs to the current clinic's own data.
   const clinicTreatmentSpecialties = Array.from(
     new Set([
       ...((clinic?.specialties || []).map((specialty) => specialty?.trim()).filter(Boolean) as string[]),
       ...(doctors.map((doctor) => doctor.specialty?.trim()).filter(Boolean) as string[]),
     ])
+  ).sort();
+  const treatmentSpecialtyOptions = Array.from(
+    new Set([...availableSpecialties, ...clinicTreatmentSpecialties])
   ).sort();
 
   // Fetch super admin specialties and services
@@ -469,21 +473,26 @@ const ClinicAdminDoctors = () => {
   };
 
   const handleRequestNewService = () => {
-    console.log('handleRequestNewService called');
+    const selectedSpecialtyName = showAddTreatmentModal
+      ? newTreatment.specialty
+      : newDoctor.specialties[0];
+
+    if (!selectedSpecialtyName) {
+      toast.error(t('Please select a specialty first'));
+      return;
+    }
+
     setShowServiceDropdown(false);
-    // Use requestAnimationFrame to ensure state updates properly
+    setShowTreatmentServiceDropdown(false);
     requestAnimationFrame(() => {
-      console.log('Opening request service modal');
       setShowRequestServiceModal(true);
     });
   };
 
   const handleRequestNewSpecialty = () => {
-    console.log('handleRequestNewSpecialty called');
     setShowSpecialtyDropdown(false);
-    // Use requestAnimationFrame to ensure state updates properly
+    setShowTreatmentSpecialtyDropdown(false);
     requestAnimationFrame(() => {
-      console.log('Opening request specialty modal');
       setShowRequestSpecialtyModal(true);
     });
   };
@@ -503,14 +512,17 @@ const ClinicAdminDoctors = () => {
       return;
     }
 
-    if (newDoctor.specialties.length === 0) {
+    const selectedSpecialtyName = showAddTreatmentModal
+      ? newTreatment.specialty
+      : newDoctor.specialties[0];
+
+    if (!selectedSpecialtyName) {
       toast.error(t('Please select a specialty first'));
       return;
     }
 
     try {
       // Get the specialty ID from the selected specialty name
-      const selectedSpecialtyName = newDoctor.specialties[0];
       const { specialties } = await api.adminServices.getSpecialties();
       const specialtyData = specialties.find((s: any) => s.name === selectedSpecialtyName && s.is_active);
 
@@ -743,6 +755,8 @@ const ClinicAdminDoctors = () => {
       });
       setNewTreatmentServiceValue(undefined);
       setNewTreatmentAvailabilityEntries([]);
+      setShowTreatmentSpecialtyDropdown(false);
+      setShowTreatmentServiceDropdown(false);
       fetchTreatments(clinic.id);
     } catch (error) {
       console.error('❌ Error adding treatment:', error);
@@ -1464,7 +1478,7 @@ const ClinicAdminDoctors = () => {
                           }}
                           className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          Other / Request a New Specialty
+                          {t('Other / Request a New Specialty')}
                         </button>
                       </div>
                     </SelectContent>
@@ -1545,7 +1559,7 @@ const ClinicAdminDoctors = () => {
                           }}
                           className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                          Other / Request a New Service
+                          {t('Other / Request a New Service')}
                         </button>
                       </div>
                   </SelectContent>
@@ -1878,8 +1892,9 @@ const ClinicAdminDoctors = () => {
                 {t('Specialty')}
               </Label>
               <Select
+                open={showTreatmentSpecialtyDropdown}
+                onOpenChange={setShowTreatmentSpecialtyDropdown}
                 value={newTreatment.specialty}
-                disabled={clinicTreatmentSpecialties.length === 0}
                 onValueChange={(value) =>
                   {
                     setNewTreatment((prev) => ({
@@ -1892,16 +1907,10 @@ const ClinicAdminDoctors = () => {
                 }
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue
-                    placeholder={
-                      clinicTreatmentSpecialties.length > 0
-                        ? t('Select a speciality')
-                        : t('No specialties found')
-                    }
-                  />
+                  <SelectValue placeholder={t('Select a speciality')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {clinicTreatmentSpecialties.map((specialty) => (
+                  {treatmentSpecialtyOptions.map((specialty) => (
                     <SelectItem
                       key={specialty}
                       value={specialty}
@@ -1909,6 +1918,19 @@ const ClinicAdminDoctors = () => {
                       {localizedCatalogName(specialty, i18n.language, specialtyCatalog, t)}
                     </SelectItem>
                   ))}
+                  <div className="px-2 py-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRequestNewSpecialty();
+                      }}
+                      className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {t('Other / Request a New Specialty')}
+                    </button>
+                  </div>
                 </SelectContent>
               </Select>
             </div>
@@ -1919,6 +1941,8 @@ const ClinicAdminDoctors = () => {
                 {t('Services')}
               </Label>
               <Select
+                open={showTreatmentServiceDropdown}
+                onOpenChange={setShowTreatmentServiceDropdown}
                 value={newTreatmentServiceValue}
                 onValueChange={(value) => {
                   setNewTreatment((prev) => ({
@@ -1929,30 +1953,53 @@ const ClinicAdminDoctors = () => {
                   }));
                   setNewTreatmentServiceValue(undefined);
                 }}
-                disabled={!newTreatment.specialty || availableServices.length === 0}
+                disabled={!newTreatment.specialty}
               >
-                <SelectTrigger className="h-10">
+                <SelectTrigger className="h-10" disabled={!newTreatment.specialty}>
                   <SelectValue
                     placeholder={
                       !newTreatment.specialty
                         ? t('Select a specialty first')
-                        : availableServices.length > 0
-                          ? t('Select services')
-                          : t('No services available for selected specialty')
+                        : t('Select services')
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableServices
-                    .filter((service) => !newTreatment.services.includes(service))
-                    .map((service) => (
-                    <SelectItem
-                      key={service}
-                      value={service}
-                    >
-                      {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
-                    </SelectItem>
-                  ))}
+                  {!newTreatment.specialty ? (
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                      {t('Please select a specialty first')}
+                    </div>
+                  ) : availableServices.filter((service) => !newTreatment.services.includes(service)).length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                      {t('No services available for selected specialty')}
+                    </div>
+                  ) : (
+                    availableServices
+                      .filter((service) => !newTreatment.services.includes(service))
+                      .map((service) => (
+                      <SelectItem
+                        key={service}
+                        value={service}
+                      >
+                        {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
+                      </SelectItem>
+                    ))
+                  )}
+                  {newTreatment.specialty ? (
+                    <div className="px-2 py-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRequestNewService();
+                        }}
+                        className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        {t('Other / Request a New Service')}
+                      </button>
+                    </div>
+                  ) : null}
                 </SelectContent>
               </Select>
 
@@ -2049,6 +2096,8 @@ const ClinicAdminDoctors = () => {
                 });
                 setNewTreatmentServiceValue(undefined);
                 setNewTreatmentAvailabilityEntries([]);
+                setShowTreatmentSpecialtyDropdown(false);
+                setShowTreatmentServiceDropdown(false);
               }}
               className="flex-1 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >

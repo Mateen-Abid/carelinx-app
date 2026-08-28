@@ -444,8 +444,9 @@
   "Arabic is shown when the app language is Arabic": "تظهر النسخة العربية عند اختيار اللغة العربية. تُستخدم الإنجليزية إذا لم تتوفر العربية.",
   "Approve Specialty Request": "الموافقة على طلب التخصص",
   "Approve Service Request": "الموافقة على طلب الخدمة",
+  "Official English name": "الاسم الرسمي بالإنجليزية",
   "Official Arabic name": "الاسم الرسمي بالعربية",
-  "English stays the catalog identity. Edit Arabic if needed before approving.": "تبقى الإنجليزية هوية الكتالوج. يمكن تعديل العربية قبل الموافقة إذا لزم الأمر."
+  "Edit the English and Arabic names if needed before approving.": "يمكن تعديل الاسم الإنجليزي والعربي قبل الموافقة إذا لزم الأمر."
   ,
   "All Clinics": "كل العيادات",
   "Filter": "تصفية"
@@ -603,6 +604,8 @@
   "USED FOR": "يُستخدم لـ",
   "Request a New Service": "طلب خدمة جديدة",
   "Request a New Specialty": "طلب تخصص جديد",
+  "Other / Request a New Specialty": "أخرى / طلب تخصص جديد",
+  "Other / Request a New Service": "أخرى / طلب خدمة جديدة",
   "Request Success": "تم إرسال الطلب"
   ,
   "Search by specialties, doctor, or service...": "ابحث حسب التخصصات أو الطبيب أو الخدمة..."
