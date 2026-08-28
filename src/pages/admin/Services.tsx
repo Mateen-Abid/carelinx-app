@@ -107,6 +107,7 @@ const AdminServices = () => {
   const [approvalName, setApprovalName] = useState('');
   const [approvalNameAr, setApprovalNameAr] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [approvingRequestId, setApprovingRequestId] = useState<string | null>(null);
   
   // Modals
   const [showAddSpecialtyModal, setShowAddSpecialtyModal] = useState(false);
@@ -476,26 +477,30 @@ const AdminServices = () => {
     }
   };
 
-  // Handle approve request
-  const handleApproveRequest = async () => {
-    if (!selectedRequest || !user) {
+  const approveServiceRequestWithNames = async (
+    request: ServiceRequest,
+    name: string,
+    nameAr: string
+  ) => {
+    if (!user) {
       toast.error(t('User not authenticated'));
       return;
     }
 
-    if (!approvalName.trim()) {
+    if (!name.trim()) {
       toast.error(t('Please enter the English name'));
       return;
     }
-    if (!approvalNameAr.trim()) {
+    if (!nameAr.trim()) {
       toast.error(t('Please enter the Arabic name'));
       return;
     }
 
+    setApprovingRequestId(request.id);
     try {
-      await api.adminServices.approveServiceRequest(selectedRequest.id, {
-        name: approvalName.trim(),
-        name_ar: approvalNameAr.trim(),
+      await api.adminServices.approveServiceRequest(request.id, {
+        name: name.trim(),
+        name_ar: nameAr.trim(),
       });
 
       toast.success(t('Service request approved and added successfully!'));
@@ -503,12 +508,27 @@ const AdminServices = () => {
       setSelectedRequest(null);
       setApprovalName('');
       setApprovalNameAr('');
-      fetchServiceRequests(); // Refresh requests list
-      fetchData(); // Refresh services list
+      fetchServiceRequests();
+      fetchData();
     } catch (error) {
       console.error('Error approving request:', error);
       toast.error(error instanceof Error ? error.message : t('Failed to approve request'));
+    } finally {
+      setApprovingRequestId(null);
     }
+  };
+
+  const handleApproveRequest = async () => {
+    if (!selectedRequest) return;
+    await approveServiceRequestWithNames(selectedRequest, approvalName, approvalNameAr);
+  };
+
+  const handleApproveServiceDirect = async (request: ServiceRequest) => {
+    await approveServiceRequestWithNames(
+      request,
+      request.service_name || '',
+      request.service_name_ar || ''
+    );
   };
 
   // Handle reject request
@@ -536,26 +556,30 @@ const AdminServices = () => {
     }
   };
 
-  // Handle approve specialty request
-  const handleApproveSpecialtyRequest = async () => {
-    if (!selectedSpecialtyRequest || !user) {
+  const approveSpecialtyRequestWithNames = async (
+    request: SpecialtyRequest,
+    name: string,
+    nameAr: string
+  ) => {
+    if (!user) {
       toast.error(t('User not authenticated'));
       return;
     }
 
-    if (!approvalName.trim()) {
+    if (!name.trim()) {
       toast.error(t('Please enter the English name'));
       return;
     }
-    if (!approvalNameAr.trim()) {
+    if (!nameAr.trim()) {
       toast.error(t('Please enter the Arabic name'));
       return;
     }
 
+    setApprovingRequestId(request.id);
     try {
-      await api.adminServices.approveSpecialtyRequest(selectedSpecialtyRequest.id, {
-        name: approvalName.trim(),
-        name_ar: approvalNameAr.trim(),
+      await api.adminServices.approveSpecialtyRequest(request.id, {
+        name: name.trim(),
+        name_ar: nameAr.trim(),
       });
 
       toast.success(t('Specialty request approved and added successfully!'));
@@ -568,7 +592,22 @@ const AdminServices = () => {
     } catch (error) {
       console.error('Error approving specialty request:', error);
       toast.error(error instanceof Error ? error.message : t('Failed to approve specialty request'));
+    } finally {
+      setApprovingRequestId(null);
     }
+  };
+
+  const handleApproveSpecialtyRequest = async () => {
+    if (!selectedSpecialtyRequest) return;
+    await approveSpecialtyRequestWithNames(selectedSpecialtyRequest, approvalName, approvalNameAr);
+  };
+
+  const handleApproveSpecialtyDirect = async (request: SpecialtyRequest) => {
+    await approveSpecialtyRequestWithNames(
+      request,
+      request.specialty_name || '',
+      request.specialty_name_ar || ''
+    );
   };
 
   // Handle reject specialty request
@@ -687,17 +726,28 @@ const AdminServices = () => {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button
+                            onClick={() => handleApproveSpecialtyDirect(request)}
+                            className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
+                            size="sm"
+                            disabled={approvingRequestId === request.id}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            {t('Approve')}
+                          </Button>
+                          <Button
                             onClick={() => {
                               setSelectedSpecialtyRequest(request);
                               setApprovalName(request.specialty_name || '');
                               setApprovalNameAr(request.specialty_name_ar || '');
                               setShowApproveSpecialtyModal(true);
                             }}
-                            className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
+                            variant="outline"
+                            className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                             size="sm"
+                            disabled={approvingRequestId === request.id}
                           >
-                            <Check className="w-4 h-4 mr-1" />
-                            {t('Approve')}
+                            <Edit className="w-4 h-4 mr-1" />
+                            {t('Edit')}
                           </Button>
                           <Button
                             onClick={() => {
@@ -707,6 +757,7 @@ const AdminServices = () => {
                             variant="outline"
                             className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                             size="sm"
+                            disabled={approvingRequestId === request.id}
                           >
                             <X className="w-4 h-4 mr-1" />
                             {t('Reject')}
@@ -765,17 +816,28 @@ const AdminServices = () => {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button
+                            onClick={() => handleApproveServiceDirect(request)}
+                            className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
+                            size="sm"
+                            disabled={approvingRequestId === request.id}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            {t('Approve')}
+                          </Button>
+                          <Button
                             onClick={() => {
                               setSelectedRequest(request);
                               setApprovalName(request.service_name || '');
                               setApprovalNameAr(request.service_name_ar || '');
                               setShowApproveServiceModal(true);
                             }}
-                            className="bg-[#00FFA2] hover:bg-[#00FFA2]/90 text-[#0C2243] font-medium"
+                            variant="outline"
+                            className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                             size="sm"
+                            disabled={approvingRequestId === request.id}
                           >
-                            <Check className="w-4 h-4 mr-1" />
-                            {t('Approve')}
+                            <Edit className="w-4 h-4 mr-1" />
+                            {t('Edit')}
                           </Button>
                           <Button
                             onClick={() => {
@@ -785,6 +847,7 @@ const AdminServices = () => {
                             variant="outline"
                             className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                             size="sm"
+                            disabled={approvingRequestId === request.id}
                           >
                             <X className="w-4 h-4 mr-1" />
                             {t('Reject')}

@@ -171,7 +171,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     fetchAppointments();
   }, [user]);
 
-  const addAppointment = async (appointmentData: Omit<Appointment, 'id' | 'bookedAt'>): Promise<string> => {
+  const addAppointment = async (appointmentData: Omit<Appointment, 'id' | 'bookedAt'>): Promise<{
+    id: string;
+    status: Appointment['status'];
+  }> => {
     try {
       if (!user) throw new Error('User not authenticated');
 
