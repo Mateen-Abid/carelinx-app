@@ -4,9 +4,9 @@
   "description": "Backend API to hide Supabase credentials from frontend",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "node init && nodemon src/index.ts",
+    "build": "node init && tsc",
+    "start": "node init && node dist/index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -27,4 +27,3 @@
     "nodemon": "^3.0.2"
   }
 }
-
