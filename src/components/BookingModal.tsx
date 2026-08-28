@@ -15,6 +15,7 @@ interface BookingModalProps {
   onClose: () => void;
   doctorName?: string;
   clinicName?: string;
+  clinicId?: string;
   serviceName?: string;
   serviceSchedule?: Record<string, string>; // Add schedule data
   clinicServices?: Array<{id: string, name: string, category: string, doctorName: string, doctorId?: string, bookingType?: 'service' | 'treatment'}>; // Add clinic services
@@ -46,6 +47,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   doctorName = 'Dr Ishfaq',
   clinicName = 'Central Medical Center',
+  clinicId,
   serviceName = 'General Consultation',
   serviceSchedule = {},
   clinicServices = []
@@ -58,6 +60,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
+  const [createdBookingStatus, setCreatedBookingStatus] = useState<'pending' | 'confirmed'>('pending');
   const { addAppointment } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -91,17 +94,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         
         // Use category as specialty (category contains the doctor's specialty like "Dermatology", "Orthopedics")
         // For database services, category is mapped from doctor's specialty
-        await addAppointment({
+        const createdBooking = await addAppointment({
           doctorName: selectedService.doctorName,
           specialty: selectedService.category || selectedService.name,
           serviceName: selectedService.name,
           clinic: clinicName,
+          clinicId,
           date: appointmentDate,
           time: time,
           status: 'pending',
           doctorId: selectedService.doctorId || undefined,
           bookingType: selectedService.bookingType === 'treatment' ? 'treatment' : 'doctor',
         });
+        setCreatedBookingStatus(createdBooking.status === 'confirmed' ? 'confirmed' : 'pending');
       } catch (error) {
         console.error('Error booking appointment:', error);
       }
@@ -115,6 +120,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedDate(undefined);
     setSelectedTime('');
     setSelectedService(null);
+    setCreatedBookingStatus('pending');
     onClose();
   };
 
@@ -149,7 +155,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const handleBookAnother = () => {
     handleClose();
-    navigate('/my-bookings');
+    navigate('/my-bookings', {
+      state: { bookingTab: createdBookingStatus === 'confirmed' ? 'upcoming' : 'pending' },
+    });
   };
 
   // Check authentication when modal opens

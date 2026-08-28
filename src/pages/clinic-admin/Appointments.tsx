@@ -706,6 +706,19 @@ const ClinicAdminAppointments = () => {
     return `${day}/${month}/${year}`;
   };
 
+  const statusCounts = useMemo(() => {
+    return appointmentsData.reduce(
+      (counts, appointment) => {
+        counts.all += 1;
+        if (appointment.status === 'pending') counts.pending += 1;
+        if (appointment.status === 'approved') counts.approved += 1;
+        if (appointment.status === 'cancelled') counts.cancelled += 1;
+        return counts;
+      },
+      { all: 0, pending: 0, approved: 0, cancelled: 0 }
+    );
+  }, [appointmentsData]);
+
   // Filter appointments
   const filteredAppointmentsData = useMemo(() => {
     return appointmentsData.filter((appointment) => {
@@ -821,7 +834,9 @@ const ClinicAdminAppointments = () => {
                             : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                         }`}
                       >
-                        {filter === 'all' ? t('All') : t(filter.charAt(0).toUpperCase() + filter.slice(1))}
+                        {filter === 'all'
+                          ? `${t('All')} (${statusCounts.all})`
+                          : `${t(filter.charAt(0).toUpperCase() + filter.slice(1))} (${statusCounts[filter]})`}
                       </button>
                     ))}
                   </div>
