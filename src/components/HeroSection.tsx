@@ -16,7 +16,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
   const isRtl = i18n.dir() === 'rtl';
 
   return (
-    <section className="bg-[rgba(12,34,67,1)] w-full overflow-hidden">
+    <section className="bg-[rgba(12,34,67,1)] w-full overflow-visible sm:overflow-hidden">
       <div className="relative flex w-full flex-col pt-8 pb-4 sm:pt-12 sm:pb-6 lg:pt-[74px] lg:pb-8 px-4 sm:px-6 lg:px-8">
         {/* Background Pattern */}
         <div className="absolute z-0 w-[1372px] max-w-full left-[23px] bottom-0 opacity-20 hidden md:block">
@@ -122,7 +122,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ viewMode, onViewModeChange, s
                   <span className="text-white font-normal">{t('Please choose a specialty')}</span>
                 </p>
               </div>
-              <div className="mt-3 w-full px-4 sm:px-0 relative overflow-visible">
+              <div className="mt-3 w-full px-0 sm:px-0 relative overflow-visible">
                 <ServicesFilter 
                   selectedCategory={selectedCategory}
                   onCategoryChange={onCategoryChange}

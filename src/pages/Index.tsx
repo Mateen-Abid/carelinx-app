@@ -1394,6 +1394,12 @@ const Index = () => {
     return map;
   }, [clinicCards, clinicDoctors, isRtl, selectedService]);
 
+  const bookingModalClinicName = selectedClinicRef.current || selectedClinic;
+  const bookingModalClinicId = clinicCards.find((card) => card.name === bookingModalClinicName)?.id;
+  const bookingModalClinicUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingModalClinicId || '')
+    ? bookingModalClinicId
+    : undefined;
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20 sm:pb-0">{/* Added bottom padding for mobile nav */}
       <Header 
@@ -1531,7 +1537,8 @@ const Index = () => {
             setSelectedClinic(''); // Reset selected clinic when modal closes
             selectedClinicRef.current = ''; // Reset ref as well
           }}
-          clinicName={selectedClinicRef.current || selectedClinic}
+          clinicName={bookingModalClinicName}
+          clinicId={bookingModalClinicUuid}
           serviceSchedule={getSelectedClinicSchedule()}
           clinicServices={getSelectedClinicServices}
           doctorName={getSelectedClinicServices[0]?.doctorName || t('Dr. Available Doctor')}

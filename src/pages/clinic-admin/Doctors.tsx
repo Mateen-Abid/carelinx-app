@@ -71,6 +71,8 @@ interface Clinic {
   specialties?: string[] | null;
 }
 
+const normalizePhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10);
+
 const ClinicAdminDoctors = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { user } = useAuth();
@@ -123,6 +125,7 @@ const ClinicAdminDoctors = () => {
     email: '',
     phone: '',
     specialty: '',
+    services: [] as string[],
     status: '',
     availability: '',
     price: '',
@@ -137,6 +140,7 @@ const ClinicAdminDoctors = () => {
   
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showEditServiceDropdown, setShowEditServiceDropdown] = useState(false);
   const [showTreatmentSpecialtyDropdown, setShowTreatmentSpecialtyDropdown] = useState(false);
   const [showTreatmentServiceDropdown, setShowTreatmentServiceDropdown] = useState(false);
   const [newTreatment, setNewTreatment] = useState({
@@ -202,7 +206,9 @@ const ClinicAdminDoctors = () => {
       const specialtiesToUse =
         showAddTreatmentModal && newTreatment.specialty
           ? [newTreatment.specialty]
-          : newDoctor.specialties;
+          : showEditDoctorModal && editDoctor.specialty
+            ? [editDoctor.specialty]
+            : newDoctor.specialties;
 
       if (specialtiesToUse.length === 0) {
         setAvailableServices([]);
@@ -244,7 +250,7 @@ const ClinicAdminDoctors = () => {
     };
 
     fetchServicesForSpecialty();
-  }, [newDoctor.specialties, newTreatment.specialty, showAddTreatmentModal]);
+  }, [newDoctor.specialties, newTreatment.specialty, showAddTreatmentModal, editDoctor.specialty, showEditDoctorModal]);
 
   useEffect(() => {
     const checkClinicExists = async () => {
@@ -405,6 +411,12 @@ const ClinicAdminDoctors = () => {
         return;
       }
 
+      const phone = normalizePhoneNumber(newDoctor.phone || '');
+      if (phone && phone.length !== 10) {
+        toast.error(t('Phone number must be 10 digits'));
+        return;
+      }
+
       // Use the first specialty as primary for now (database structure)
       const primarySpecialty = newDoctor.specialties[0];
 
@@ -420,7 +432,7 @@ const ClinicAdminDoctors = () => {
         name: trimmedName,
         specialty: primarySpecialty, // Store first specialty as primary
         email: newDoctor.email?.trim() || null,
-        phone: newDoctor.phone?.trim() || null,
+        phone: phone || null,
         availability: availabilityString || null,
         services: servicesString, // Store services as comma-separated string
         status: (newDoctor.status || 'active') as 'active' | 'inactive' | 'on-leave',
@@ -475,7 +487,9 @@ const ClinicAdminDoctors = () => {
   const handleRequestNewService = () => {
     const selectedSpecialtyName = showAddTreatmentModal
       ? newTreatment.specialty
-      : newDoctor.specialties[0];
+      : showEditDoctorModal
+        ? editDoctor.specialty
+        : newDoctor.specialties[0];
 
     if (!selectedSpecialtyName) {
       toast.error(t('Please select a specialty first'));
@@ -483,6 +497,7 @@ const ClinicAdminDoctors = () => {
     }
 
     setShowServiceDropdown(false);
+    setShowEditServiceDropdown(false);
     setShowTreatmentServiceDropdown(false);
     requestAnimationFrame(() => {
       setShowRequestServiceModal(true);
@@ -514,7 +529,9 @@ const ClinicAdminDoctors = () => {
 
     const selectedSpecialtyName = showAddTreatmentModal
       ? newTreatment.specialty
-      : newDoctor.specialties[0];
+      : showEditDoctorModal
+        ? editDoctor.specialty
+        : newDoctor.specialties[0];
 
     if (!selectedSpecialtyName) {
       toast.error(t('Please select a specialty first'));
@@ -598,6 +615,7 @@ const ClinicAdminDoctors = () => {
       email: doctor.email || '',
       phone: doctor.phone || '',
       specialty: doctor.specialty || '',
+      services: parseCommaSeparatedValues(doctor.services),
       status: doctor.status || 'active',
       availability: doctor.availability || '',
       price: doctor.price !== null && doctor.price !== undefined ? String(doctor.price) : '',
@@ -622,6 +640,7 @@ const ClinicAdminDoctors = () => {
         email: editDoctor.email?.trim() || null,
         phone: editDoctor.phone?.trim() || null,
         specialty: editDoctor.specialty || null,
+        services: editDoctor.services.length > 0 ? editDoctor.services.join(',') : null,
         status: editDoctor.status as 'active' | 'inactive' | 'on-leave',
         availability: availabilityString || null,
         price: editDoctor.price?.trim() || null,
@@ -1406,7 +1425,6 @@ const ClinicAdminDoctors = () => {
                     <SelectContent>
                       <SelectItem value="male">{t('Male')}</SelectItem>
                       <SelectItem value="female">{t('Female')}</SelectItem>
-                      <SelectItem value="other">{t('Other')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1429,9 +1447,12 @@ const ClinicAdminDoctors = () => {
                   </Label>
                   <Input
                     id="doctor-phone"
+                    type="tel"
+                    inputMode="numeric"
                     value={newDoctor.phone}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, phone: normalizePhoneNumber(e.target.value) })}
                     placeholder={t('Enter phone number')}
+                    maxLength={10}
                     className="mt-1.5 h-10"
                   />
                 </div>
@@ -1722,7 +1743,7 @@ const ClinicAdminDoctors = () => {
                   </Label>
                   <Select
                     value={editDoctor.specialty}
-                    onValueChange={(value) => setEditDoctor({ ...editDoctor, specialty: value })}
+                    onValueChange={(value) => setEditDoctor({ ...editDoctor, specialty: value, services: [] })}
                   >
                     <SelectTrigger className="mt-1.5 h-10">
                       <SelectValue placeholder={t('Select a specialty')} />
@@ -1734,7 +1755,87 @@ const ClinicAdminDoctors = () => {
                         </SelectItem>
                       ))}
                     </SelectContent>
+                    </Select>
+                </div>
+                <div className="relative">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Service')}</Label>
+                  <Select
+                    open={showEditServiceDropdown}
+                    onOpenChange={setShowEditServiceDropdown}
+                    onValueChange={(value) => {
+                      if (value && !editDoctor.services.includes(value)) {
+                        setEditDoctor({ ...editDoctor, services: [...editDoctor.services, value] });
+                      }
+                      setShowEditServiceDropdown(false);
+                    }}
+                    disabled={!editDoctor.specialty}
+                  >
+                    <SelectTrigger className="mt-1.5 h-10" disabled={!editDoctor.specialty}>
+                      <SelectValue
+                        placeholder={
+                          editDoctor.specialty
+                            ? t('Select the service')
+                            : t('Select a specialty first')
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!editDoctor.specialty ? (
+                        <div className="px-2 py-1.5 text-sm text-gray-500">
+                          {t('Please select a specialty first')}
+                        </div>
+                      ) : availableServices.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-gray-500">
+                          {t('No services available for selected specialty')}
+                        </div>
+                      ) : (
+                        availableServices
+                          .filter((service) => !editDoctor.services.includes(service))
+                          .map((service) => (
+                            <SelectItem key={service} value={service}>
+                              {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
+                            </SelectItem>
+                          ))
+                      )}
+                      <div className="px-2 py-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRequestNewService();
+                          }}
+                          className="w-full text-left px-6 py-1.5 rounded-sm text-sm font-medium text-[#0C2243] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          {t('Other / Request a New Service')}
+                        </button>
+                      </div>
+                    </SelectContent>
                   </Select>
+                  {editDoctor.services.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {editDoctor.services.map((service) => (
+                        <span
+                          key={service}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#00FFA2] text-[#0C2243] rounded-full text-sm font-medium"
+                        >
+                          {localizedCatalogName(service, i18n.language, serviceCatalog, t)}
+                          <button
+                            onClick={() =>
+                              setEditDoctor({
+                                ...editDoctor,
+                                services: editDoctor.services.filter((item) => item !== service),
+                              })
+                            }
+                            className="hover:bg-[#0C2243] hover:text-white rounded-full p-0.5 transition-colors ml-0.5"
+                            type="button"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="edit-doctor-status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
