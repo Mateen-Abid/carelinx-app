@@ -6,6 +6,40 @@ import { attachResolvedServiceNames, resolveServiceNameForNewBooking } from '../
 
 const router = Router();
 
+const CLINIC_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const resolveClinicForPatientBooking = async (clinicId?: string | null, clinicName?: string | null) => {
+  const requestedId = typeof clinicId === 'string' ? clinicId.trim() : '';
+  const requestedName = typeof clinicName === 'string' ? clinicName.trim() : '';
+
+  if (requestedId && CLINIC_UUID_PATTERN.test(requestedId)) {
+    const { data, error } = await supabaseAdmin
+      .from('clinics')
+      .select('id, name, status, auto_booking_enabled')
+      .eq('id', requestedId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) return data;
+  }
+
+  const nameToMatch = requestedName || (requestedId && !CLINIC_UUID_PATTERN.test(requestedId) ? requestedId : '');
+  if (!nameToMatch) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from('clinics')
+    .select('id, name, status, auto_booking_enabled')
+    .eq('status', 'active')
+    .ilike('name', nameToMatch)
+    .limit(1);
+
+  if (error) {
+    console.warn('Clinic name lookup skipped:', error.message);
+    return null;
+  }
+
+  return data?.[0] || null;
+};
+
 type BookingClinicRow = {
   clinic_id?: string | null;
   clinic?: string | null;
@@ -335,36 +369,22 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user.id;
-    const requestedClinicId = typeof req.body.clinic_id === 'string'
-      ? req.body.clinic_id.trim()
-      : '';
-    let autoBookingEnabled = false;
-    let canonicalClinicName = typeof req.body.clinic === 'string' ? req.body.clinic : null;
+    const clinic = await resolveClinicForPatientBooking(req.body.clinic_id, req.body.clinic);
 
-    if (requestedClinicId) {
-      const { data: clinic, error: clinicError } = await supabaseAdmin
-        .from('clinics')
-        .select('id, name, status, auto_booking_enabled')
-        .eq('id', requestedClinicId)
-        .maybeSingle();
-
-      if (clinicError) throw clinicError;
-      if (!clinic) {
-        return res.status(400).json({ error: 'Clinic not found' });
-      }
-      if (clinic.status !== 'active') {
-        return res.status(403).json({ error: 'This clinic is not accepting appointments' });
-      }
-
-      autoBookingEnabled = clinic.auto_booking_enabled === true;
-      canonicalClinicName = clinic.name;
+    if (clinic && clinic.status !== 'active') {
+      return res.status(403).json({ error: 'This clinic is not accepting appointments' });
     }
+
+    const autoBookingEnabled = clinic?.auto_booking_enabled === true;
+    const resolvedClinicId = clinic?.id || (CLINIC_UUID_PATTERN.test(String(req.body.clinic_id || '').trim())
+      ? String(req.body.clinic_id).trim()
+      : null);
 
     const bookingData = await resolveServiceNameForNewBooking({
       ...req.body,
       user_id: userId,
-      clinic_id: requestedClinicId || req.body.clinic_id || null,
-      clinic: canonicalClinicName || req.body.clinic,
+      clinic_id: resolvedClinicId,
+      clinic: clinic?.name || req.body.clinic,
       status: autoBookingEnabled ? 'confirmed' : 'pending',
       confirmed_at: autoBookingEnabled ? new Date().toISOString() : null,
       booking_source: 'patient_app',

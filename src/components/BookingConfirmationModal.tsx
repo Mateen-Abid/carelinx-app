@@ -28,7 +28,9 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   const { t } = useTranslation();
 
   const handleViewBooking = () => {
-    navigate('/my-bookings');
+    navigate('/my-bookings', {
+      state: { bookingTab: isConfirmed ? 'upcoming' : 'pending' },
+    });
     onClose();
   };
 

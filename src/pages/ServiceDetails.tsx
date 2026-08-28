@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 
 import { getClinicByServiceId, getServiceById, clinicsData } from '@/data/clinicsData';
 import Image5 from '../assets/image 5.svg';
+import LinkifiedText from '@/components/LinkifiedText';
 
 // Generate service database dynamically from clinic data
 const generateServiceDatabase = () => {
@@ -1011,12 +1012,16 @@ const ServiceDetails = () => {
           return;
         }
 
+        const locationClinicId = typeof location.state?.clinicId === 'string' ? location.state.clinicId.trim() : '';
+        const bookedClinicId = databaseClinic?.id
+          || (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationClinicId) ? locationClinicId : undefined);
+
         const createdBooking = await addAppointment({
           doctorName: selectedDoctorData?.name || serviceData.doctors[0]?.name || 'Available Doctor',
           specialty: specialty,
           serviceName: bookedServiceName,
           clinic: serviceData.clinic,
-          clinicId: isDatabaseService ? databaseClinic?.id : undefined,
+          clinicId: bookedClinicId,
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: timeSlot,
           status: 'pending',
@@ -1219,7 +1224,7 @@ const ServiceDetails = () => {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                <span>{serviceData.address}</span>
+                <span>{serviceData.address ? <LinkifiedText text={serviceData.address} /> : null}</span>
               </div>
             </div>
           </div>

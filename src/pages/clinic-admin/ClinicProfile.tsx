@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { localizedCatalogName, localizedStoredText, type CatalogName } from '@/utils/localizedContent';
+import LinkifiedText from '@/components/LinkifiedText';
 
 interface Clinic {
   id: string;
@@ -58,13 +59,13 @@ interface OperatingHours {
 }
 
 const daysOfWeek = [
+  { label: 'Sunday', value: 0 },
   { label: 'Monday', value: 1 },
   { label: 'Tuesday', value: 2 },
   { label: 'Wednesday', value: 3 },
   { label: 'Thursday', value: 4 },
   { label: 'Friday', value: 5 },
   { label: 'Saturday', value: 6 },
-  { label: 'Sunday', value: 0 },
 ];
 
 const normalizePhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10);
@@ -661,7 +662,7 @@ const ClinicAdminClinicProfile = () => {
                     <div className="flex items-center">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('Address')}:</span>
                       <span className="text-sm text-gray-900 dark:text-white ml-2">
-                        {clinic.address || t('N/A')}
+                        {clinic.address ? <LinkifiedText text={clinic.address} /> : t('N/A')}
                       </span>
                     </div>
                   </div>
@@ -720,7 +721,7 @@ const ClinicAdminClinicProfile = () => {
                     <div className="flex items-start">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[140px]">{t('Address Details')} -</span>
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {clinic.address_details || t('N/A')}
+                        {clinic.address_details ? <LinkifiedText text={clinic.address_details} /> : t('N/A')}
                       </span>
                     </div>
                     <div className="flex items-start">

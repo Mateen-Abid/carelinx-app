@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { localizedStoredText } from '@/utils/localizedContent';
+import { extractHttpLinks } from '@/components/LinkifiedText';
 
 interface ClinicService {
   name: string;
@@ -54,6 +55,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
   const { t, i18n } = useTranslation();
   const [logoError, setLogoError] = React.useState(false);
   const displayName = localizedStoredText(name, nameAr, i18n.language);
+  const { text: addressText, links: mapLinks } = extractHttpLinks(address);
+  const mapUrl = mapLinks[0];
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent navigation if booking button was clicked
@@ -118,14 +121,27 @@ const ClinicCard: React.FC<ClinicCardProps> = ({
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-1 mt-1">
-            <div className="bg-white text-gray-600 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 border border-gray-200">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="truncate">{address}</span>
-            </div>
+          <div className="flex items-center gap-2 mt-1 min-w-0">
+            {addressText ? (
+              <div className="bg-white text-gray-600 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 border border-gray-200 min-w-0">
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="truncate">{addressText}</span>
+              </div>
+            ) : null}
+            {mapUrl ? (
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="shrink-0 inline-flex items-center rounded-full border border-[#00FFA2] bg-[#00FFA2]/15 px-2 py-1 text-xs font-medium text-[#0C2243] hover:bg-[#00FFA2]/25"
+              >
+                {t('View on map')}
+              </a>
+            ) : null}
           </div>
         </div>
       </div>
