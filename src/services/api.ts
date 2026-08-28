@@ -500,6 +500,13 @@ export const clinicAdminApi = {
     });
   },
 
+  updateAutoBooking: async (enabled: boolean) => {
+    return fetchWithAuth('/clinic-admin/clinic/auto-booking', {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    });
+  },
+
   updateOperatingHours: async (hours: any[]) => {
     return fetchWithAuth('/clinic-admin/clinic/operating-hours', {
       method: 'POST',
